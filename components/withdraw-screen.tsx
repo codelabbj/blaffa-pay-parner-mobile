@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ErrorAlert } from "@/components/ui/error-alert"
 import { TransactionConfirmationModal, TransactionData } from "@/components/ui/transaction-confirmation-modal"
-import { ArrowLeft, Building2, Wallet, Phone, AlertCircle, CheckCircle, Smartphone, CreditCard, TrendingDown, RefreshCw } from "lucide-react"
+import { ArrowLeft, Building2, Wallet, Phone, AlertCircle, CheckCircle, Smartphone, CreditCard, TrendingDown, RefreshCw, Check } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
@@ -18,11 +18,13 @@ interface WithdrawScreenProps {
 
 export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
   const [amount, setAmount] = useState("")
+  const [amountError, setAmountError] = useState("")
   const [recipientPhone, setRecipientPhone] = useState("")
   const [selectedNetwork, setSelectedNetwork] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [showNetworkSelection, setShowNetworkSelection] = useState(true)
   
@@ -39,6 +41,29 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { networks, createTransaction, accountData } = useAuth()
+
+  // Format number with spaces for better readability
+  const formatNumberWithSpaces = (value: string) => {
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+  }
+
+  // Amount validation function
+  const validateAmount = (value: string) => {
+    const numericAmount = parseFloat(value.replace(/\s/g, ""))
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return "Le montant doit être supérieur à 0"
+    }
+    if (numericAmount < 100) {
+      return "Le montant minimum est 100 FCFA"
+    }
+    if (numericAmount > 1000000) {
+      return "Le montant maximum est 1 000 000 FCFA"
+    }
+    if (accountData && numericAmount > parseFloat(accountData.balance.toString())) {
+      return "Le montant dépasse votre solde disponible"
+    }
+    return ""
+  }
 
   const handleNetworkSelect = (networkUid: string) => {
     setSelectedNetwork(networkUid)
@@ -75,11 +100,16 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
         network: selectedNetwork
       })
       
-      setSuccess(true)
+      // Show success modal
+      setShowSuccessModal(true)
       setShowConfirmationModal(false)
+      // Navigate back after modal delay
       setTimeout(() => {
-        onNavigateBack()
-      }, 2000)
+        setShowSuccessModal(false)
+        setTimeout(() => {
+          onNavigateBack()
+        }, 300) // Small delay for modal close animation
+      }, 2500)
     } catch (error) {
       console.error('Withdrawal error:', error)
       
@@ -458,39 +488,98 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
                   ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
                   : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
               }`}>
-                <Label className={`text-sm font-semibold mb-3 flex items-center gap-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}>
-                  <div className={`p-1.5 rounded-lg ${
-                    theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"
+                <div className="flex items-center justify-between mb-3">
+                  <Label className={`text-sm font-semibold flex items-center gap-2 ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-800"
                   }`}>
-                    <TrendingDown className="w-4 h-4" />
-                  </div>
-                  {t("withdraw.amount")}
-                </Label>
-
+                    <div className={`p-1.5 rounded-lg ${
+                      theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"
+                    }`}>
+                      <TrendingDown className="w-4 h-4" />
+                    </div>
+                    {t("withdraw.amount")}
+                  </Label>
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Min: 100 - Max: 1 000 000 FCFA
+                  </span>
+                </div>
 
                 {/* Amount input with better mobile UX */}
                 <div className="relative">
-                  <span className={`absolute left-4 top-1/2 transform -translate-y-1/2 text-sm font-semibold ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}>
-                    FCFA
-                  </span>
                   <Input
-                    type="number"
+                    type="tel"
                     inputMode="numeric"
-                    placeholder="0"
+                    pattern="[0-9]*"
+                    placeholder="Entrez le montant"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className={`pl-16 h-16 text-xl font-bold rounded-xl border-2 transition-all duration-300 ${
-                      theme === "dark" 
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\s/g, "")
+                      if (/^\d*$/.test(value)) {
+                        const formattedAmount = formatNumberWithSpaces(value)
+                        setAmount(formattedAmount)
+                        setAmountError(validateAmount(formattedAmount))
+                      }
+                    }}
+                    className={`h-16 text-xl font-bold rounded-xl border-2 pr-12 transition-all duration-300 ${
+                      amountError
+                        ? theme === "dark"
+                          ? "bg-red-900/20 border-red-500 text-white"
+                          : "bg-red-50 border-red-300 text-gray-900"
+                        : theme === "dark" 
                         ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-red-500 focus:bg-gray-700" 
                         : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-red-500 focus:bg-white"
                     }`}
                   />
+                  
+                  {/* Currency indicator */}
+                  <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    <span className="text-sm font-medium">FCFA</span>
+                  </div>
+                </div>
+
+                {/* Amount validation error */}
+                {amountError && (
+                  <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${
+                    theme === "dark" ? "bg-red-500/20" : "bg-red-100"
+                  }`}>
+                    <AlertCircle className={`w-4 h-4 ${
+                      theme === "dark" ? "text-red-400" : "text-red-600"
+                    }`} />
+                    <p className={`text-sm ${
+                      theme === "dark" ? "text-red-400" : "text-red-600"
+                    }`}>
+                      {amountError}
+                    </p>
+                  </div>
+                )}
+
+                {/* Amount range indicator */}
+                {amount && !amountError && (
+                  <div className="mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        Min: 100 FCFA
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        theme === "dark" ? "text-red-400" : "text-red-600"
+                      }`}>
+                        {amount} FCFA
+                      </span>
+                      <span className={`text-xs ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        Max: 1 000 000 FCFA
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
           {/* Status Messages */}
           <ErrorAlert
@@ -526,9 +615,9 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
       } backdrop-blur-lg`}>
             <Button
               onClick={handleWithdraw}
-              disabled={!amount || !recipientPhone || !selectedNetwork || isProcessing}
+              disabled={!amount || !recipientPhone || !selectedNetwork || !!amountError || isProcessing}
             className={`w-full h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-98 ${
-                !amount || !recipientPhone || !selectedNetwork || isProcessing
+                !amount || !recipientPhone || !selectedNetwork || !!amountError || isProcessing
               ? "bg-gray-400/50 cursor-not-allowed text-gray-600"
                 : "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg shadow-red-500/25"
               }`}
@@ -556,6 +645,114 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
         transactionData={transactionData}
         isProcessing={isProcessing}
       />
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showSuccessModal 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark" 
+                  ? "bg-green-500/20" 
+                  : "bg-green-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark" 
+                    ? "bg-green-500" 
+                    : "bg-green-500"
+                }`}>
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Retrait Réussi !
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Votre retrait a été effectué avec succès
+              </p>
+              
+              {/* Transaction Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark" 
+                  ? "bg-gray-700/50" 
+                  : "bg-gray-50"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Montant
+                  </span>
+                  <span className={`font-bold ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`}>
+                    {amount} FCFA
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Réseau
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {selectedNetworkDetails?.nom}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Téléphone
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {recipientPhone}
+                  </span>
+                </div>
+              </div>
+
+              {/* Success Animation */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

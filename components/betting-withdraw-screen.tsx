@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
+  Check,
+  X,
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
@@ -36,6 +38,9 @@ export function BettingWithdrawScreen({
   const [withdrawalCode, setWithdrawalCode] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState<{
     UserId: number
@@ -197,28 +202,31 @@ export function BettingWithdrawScreen({
       })
 
       if (result.success) {
-        toast({
-          title: "Retrait Réussi",
-          description: result.message || "Votre retrait a été effectué avec succès",
-        })
+        // Show success modal
+        setShowSuccessModal(true)
         // Reset form
         setBettingUserId("")
         setWithdrawalCode("")
         setShowConfirmation(false)
-        // Navigate back after short delay
+        // Navigate back after modal delay
         setTimeout(() => {
-          onNavigateBack()
-        }, 1500)
+          setShowSuccessModal(false)
+          setTimeout(() => {
+            onNavigateBack()
+          }, 300) // Small delay for modal close animation
+        }, 2500)
       } else {
         throw new Error(result.message || "Le retrait a échoué")
       }
     } catch (error) {
       console.error("Create withdrawal error:", error)
-      toast({
-        title: "Erreur de Retrait",
-        description: error instanceof Error ? error.message : "Impossible de créer le retrait",
-        variant: "destructive",
-      })
+      const errorMsg = error instanceof Error ? error.message : "Impossible de créer le retrait"
+      setErrorMessage(errorMsg)
+      setShowErrorModal(true)
+      // Auto-hide error modal after 5 seconds
+      setTimeout(() => {
+        setShowErrorModal(false)
+      }, 5000)
     } finally {
       setIsCreating(false)
     }
@@ -723,6 +731,189 @@ export function BettingWithdrawScreen({
           </div>
         )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showSuccessModal 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark" 
+                  ? "bg-green-500/20" 
+                  : "bg-green-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark" 
+                    ? "bg-green-500" 
+                    : "bg-green-500"
+                }`}>
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Retrait Réussi !
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Votre retrait a été effectué avec succès
+              </p>
+              
+              {/* Transaction Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark" 
+                  ? "bg-gray-700/50" 
+                  : "bg-gray-50"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Code de Retrait
+                  </span>
+                  <span className={`font-bold ${
+                    theme === "dark" ? "text-orange-400" : "text-orange-600"
+                  }`}>
+                    {withdrawalCode}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Plateforme
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {platform?.name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Success Animation */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowErrorModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showErrorModal 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark" 
+                  ? "bg-red-500/20" 
+                  : "bg-red-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark" 
+                    ? "bg-red-500" 
+                    : "bg-red-500"
+                }`}>
+                  <X className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Erreur de Retrait
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                {errorMessage}
+              </p>
+              
+              {/* Error Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark" 
+                  ? "bg-red-500/10 border border-red-500/20" 
+                  : "bg-red-50 border border-red-200"
+              }`}>
+                <div className="flex items-center justify-center gap-2">
+                  <AlertCircle className={`w-5 h-5 ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`} />
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`}>
+                    Veuillez réessayer
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="mt-6">
+                <Button
+                  onClick={() => setShowErrorModal(false)}
+                  className={`w-full h-12 rounded-xl font-semibold ${
+                    theme === "dark"
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-900"
+                  }`}
+                >
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

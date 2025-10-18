@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ErrorAlert } from "@/components/ui/error-alert"
-import { ArrowLeft, Send, Search, User as UserIcon, CheckCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react"
+import { ArrowLeft, Send, Search, User as UserIcon, CheckCircle, AlertCircle, Loader2, RefreshCw, Check } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
@@ -20,6 +20,7 @@ interface TransferScreenProps {
 
 export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
   const [amount, setAmount] = useState("")
+  const [amountError, setAmountError] = useState("")
   const [description, setDescription] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReceiver, setSelectedReceiver] = useState<User | null>(null)
@@ -28,6 +29,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   
   // Pull-to-refresh state
@@ -43,6 +45,21 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { theme } = useTheme()
   const { t } = useTranslation()
+
+  // Amount validation function
+  const validateAmount = (value: string) => {
+    const numericAmount = parseFloat(value.replace(/\s/g, ""))
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return "Le montant doit être supérieur à 0"
+    }
+    if (numericAmount < 100) {
+      return "Le montant minimum est 100 FCFA"
+    }
+    if (numericAmount > 1000000) {
+      return "Le montant maximum est 1 000 000 FCFA"
+    }
+    return ""
+  }
 
   // Search for partners with debouncing
   useEffect(() => {
@@ -132,16 +149,20 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
         description: description
       })
       
-      setSuccess(true)
+      // Show success modal
+      setShowSuccessModal(true)
       // Clear form
       setAmount("")
       setDescription("")
       clearReceiver()
       
-      
+      // Navigate back after modal delay
       setTimeout(() => {
-        setSuccess(false)
-      }, 3000)
+        setShowSuccessModal(false)
+        setTimeout(() => {
+          onNavigateBack()
+        }, 300) // Small delay for modal close animation
+      }, 2500)
     } catch (error) {
       console.error('Send transfer error:', error)
       
@@ -512,18 +533,65 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
                 FCFA
               </span>
               <Input
-                type="number"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "")
+                  setAmount(value)
+                  const error = validateAmount(value)
+                  setAmountError(error)
+                }}
                 className={`pl-16 h-16 text-xl font-bold rounded-xl border-2 transition-all duration-300 ${
-                  theme === "dark" 
-                    ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:bg-gray-700" 
-                    : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:bg-white"
+                  amountError 
+                    ? "border-red-500 focus:border-red-500" 
+                    : theme === "dark" 
+                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:bg-gray-700" 
+                      : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:bg-white"
                 }`}
               />
             </div>
+            
+            {/* Amount error */}
+            {amountError && (
+              <div className="mt-2 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-500">{amountError}</span>
+              </div>
+            )}
+            
+            {/* Amount range indicator */}
+            {amount && !amountError && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
+                    Min: 100 FCFA
+                  </span>
+                  <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
+                    Max: 1 000 000 FCFA
+                  </span>
+                </div>
+                <div className={`h-2 rounded-full ${
+                  theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                }`}>
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(100, Math.max(0, (parseFloat(amount.replace(/\s/g, "")) / 1000000) * 100))}%` 
+                    }}
+                  ></div>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {formatNumberWithSpaces(amount)} FCFA
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Description Card */}
@@ -563,18 +631,6 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
             onDismiss={() => setError("")}
           />
 
-          {success && (
-            <div className={`flex items-center gap-3 p-4 rounded-xl border animate-in slide-in-from-top-2 ${
-              theme === "dark" 
-                ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm" 
-                : "bg-green-50 border-green-200/50 backdrop-blur-sm"
-            }`}>
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className={`text-sm font-medium ${theme === "dark" ? "text-green-400" : "text-green-600"}`}>
-                Transfert effectué avec succès
-              </span>
-            </div>
-          )}
 
         </div>
       </div>
@@ -607,6 +663,114 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
           )}
         </Button>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+
+          {/* Modal Content */}
+          <div
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showSuccessModal
+                ? 'translate-y-0 opacity-100'
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark"
+                  ? "bg-green-500/20"
+                  : "bg-green-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark"
+                    ? "bg-green-500"
+                    : "bg-green-500"
+                }`}>
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Transfert Réussi !
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Votre transfert a été effectué avec succès
+              </p>
+
+              {/* Transaction Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark"
+                  ? "bg-gray-700/50"
+                  : "bg-gray-50"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Montant
+                  </span>
+                  <span className={`font-bold ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {formatNumberWithSpaces(amount)} FCFA
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Destinataire
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {selectedReceiver?.display_name}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Description
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {description}
+                  </span>
+                </div>
+              </div>
+
+              {/* Success Animation */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

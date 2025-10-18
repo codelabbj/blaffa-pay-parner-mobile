@@ -1,280 +1,3 @@
-// "use client"
-
-// import { Button } from "@/components/ui/button"
-// import { Input } from "@/components/ui/input"
-// import { Label } from "@/components/ui/label"
-// import { 
-//   ArrowLeft, 
-//   Image,
-//   AlertCircle
-// } from "lucide-react"
-// import { useState } from "react"
-// import { useTheme } from "@/lib/contexts"
-// import { useTranslation } from "@/lib/contexts"
-// import { useAuth } from "@/lib/contexts"
-
-// interface RechargeScreenProps {
-//   onNavigateBack: () => void
-// }
-
-// export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
-//   const [amount, setAmount] = useState("")
-//   const [proofImage, setProofImage] = useState<File | null>(null)
-//   const [proofDescription, setProofDescription] = useState("")
-//   const [isProcessing, setIsProcessing] = useState(false)
-//   const [error, setError] = useState("")
-//   const [success, setSuccess] = useState(false)
-//   const { theme } = useTheme()
-//   const { t } = useTranslation()
-//   const { createRecharge, accountData } = useAuth()
-
-//   const handleRecharge = async () => {
-//     if (!amount) {
-//       setError("Please enter an amount")
-//       return
-//     }
-    
-//     setIsProcessing(true)
-//     setError("")
-    
-//     try {
-//       await createRecharge({
-//         amount: amount,
-//         proof_image: proofImage,
-//         proof_description: proofDescription,
-//         transaction_date: null
-//       })
-      
-//       setSuccess(true)
-//       setTimeout(() => {
-//         onNavigateBack()
-//       }, 2000)
-//     } catch (error) {
-//       console.error('Recharge error:', error)
-      
-//       // Parse backend validation errors
-//       if (error instanceof Error) {
-//         try {
-//           const errorData = JSON.parse(error.message)
-//           if (typeof errorData === 'object' && errorData !== null) {
-//             // Handle field-specific errors
-//             const errorMessages: string[] = []
-//             Object.keys(errorData).forEach(field => {
-//               if (Array.isArray(errorData[field])) {
-//                 errorMessages.push(...(errorData[field] as string[]))
-//               } else {
-//                 errorMessages.push(String(errorData[field]))
-//               }
-//             })
-//             setError(errorMessages.join(', '))
-//           } else {
-//             setError(error.message)
-//           }
-//         } catch (parseError) {
-//           setError(error.message)
-//         }
-//       } else {
-//         setError("Failed to create recharge")
-//       }
-//     } finally {
-//       setIsProcessing(false)
-//     }
-//   }
-
-//   return (
-//     <div
-//       className={`min-h-screen transition-colors duration-300 ${
-//         theme === "dark"
-//           ? "bg-gradient-to-br from-purple-900 via-gray-900 to-purple-900"
-//           : "bg-gradient-to-br from-purple-50 via-white to-orange-50"
-//       }`}
-//     >
-//       {/* Header */}
-//       <div className="px-4 pt-12 pb-8 safe-area-inset-top">
-//         <div className="flex items-center gap-4 mb-8">
-//           <Button
-//             variant="ghost"
-//             size="sm"
-//             className={`h-11 w-11 p-0 rounded-full ${
-//               theme === "dark" 
-//                 ? "text-gray-300 hover:bg-gray-700/50" 
-//                 : "text-gray-600 hover:bg-gray-100/50"
-//             }`}
-//             onClick={onNavigateBack}
-//           >
-//             <ArrowLeft className="w-5 h-5" />
-//           </Button>
-//           <div>
-//             <h1 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//               {t("recharge.title")}
-//             </h1>
-//             <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//               {t("recharge.subtitle")}
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* Recharge Form */}
-//         <div className="space-y-6">
-//           {/* Balance Info */}
-//           <div className={`p-4 rounded-xl ${
-//             theme === "dark" ? "bg-gray-700/30" : "bg-gray-100/50"
-//           }`}>
-//             <div className="flex items-center justify-between">
-//               <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-//                 {t("recharge.availableBalance")}
-//               </span>
-//               <span className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                 {accountData?.formatted_balance || "Loading..."}
-//               </span>
-//             </div>
-//           </div>
-
-//           {/* Quick Amount Buttons */}
-//           <div className="space-y-2">
-//             <Label className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-//               {t("recharge.quickAmount")}
-//             </Label>
-//             <div className="grid grid-cols-3 gap-2">
-//               {["5000", "10000", "50000"].map((quickAmount) => (
-//                 <Button
-//                   key={quickAmount}
-//                   variant="outline"
-//                   size="sm"
-//                   onClick={() => setAmount(quickAmount)}
-//                   className={`h-10 ${
-//                     theme === "dark" 
-//                       ? "border-gray-600 hover:bg-gray-700/50 text-gray-300" 
-//                       : "border-gray-200 hover:bg-gray-100/50 text-gray-600"
-//                   }`}
-//                 >
-//                   {quickAmount} FCFA
-//                 </Button>
-//               ))}
-//             </div>
-//           </div>
-
-//           {/* Amount Input */}
-//           <div className="space-y-2">
-//             <Label htmlFor="amount" className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-//               {t("recharge.rechargeAmount")}
-//             </Label>
-//             <div className="relative">
-//               <span className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold ${
-//                 theme === "dark" ? "text-gray-400" : "text-gray-500"
-//               }`}>
-//                 FCFA
-//               </span>
-//               <Input
-//                 id="amount"
-//                 type="number"
-//                 placeholder="Enter amount"
-//                 value={amount}
-//                 onChange={(e) => setAmount(e.target.value)}
-//                 className={`pl-12 h-12 text-lg font-semibold ${
-//                   theme === "dark" 
-//                     ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400" 
-//                     : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder:text-gray-500"
-//                 }`}
-//               />
-//             </div>
-//           </div>
-
-//           {/* Proof Description */}
-//           <div className="space-y-2">
-//             <Label htmlFor="description" className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-//               {t("recharge.proofDescription")}
-//             </Label>
-//             <Input
-//               id="description"
-//               type="text"
-//               placeholder={t("recharge.proofDescriptionPlaceholder")}
-//               value={proofDescription}
-//               onChange={(e) => setProofDescription(e.target.value)}
-//               className={`h-12 text-lg font-semibold ${
-//                 theme === "dark" 
-//                   ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400" 
-//                   : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder:text-gray-500"
-//               }`}
-//             />
-//           </div>
-
-//           {/* Proof Image Upload */}
-//           <div className="space-y-2">
-//             <Label className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-//               {t("recharge.proofImage")}
-//             </Label>
-//             <div className="relative">
-//               <input
-//                 type="file"
-//                 accept="image/*"
-//                 onChange={(e) => setProofImage(e.target.files?.[0] || null)}
-//                 className="hidden"
-//                 id="proof-upload"
-//               />
-//               <label
-//                 htmlFor="proof-upload"
-//                 className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors duration-200 ${
-//                   theme === "dark"
-//                     ? "border-gray-600 hover:border-gray-500 hover:bg-gray-700/30"
-//                     : "border-gray-300 hover:border-gray-400 hover:bg-gray-50/50"
-//                 }`}
-//               >
-//                 <Image className="w-5 h-5" />
-//                 <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-//                   {proofImage ? proofImage.name : t("recharge.uploadProofImage")}
-//                 </span>
-//               </label>
-//             </div>
-//           </div>
-
-//           {/* Error Message */}
-//           {error && (
-//             <div className={`flex items-center gap-2 p-3 rounded-lg ${
-//               theme === "dark" ? "bg-red-900/20 border border-red-800" : "bg-red-50 border border-red-200"
-//             }`}>
-//               <AlertCircle className="w-4 h-4 text-red-500" />
-//               <span className="text-sm text-red-600">{error}</span>
-//             </div>
-//           )}
-
-//           {/* Success Message */}
-//           {success && (
-//             <div className={`flex items-center gap-2 p-3 rounded-lg ${
-//               theme === "dark" ? "bg-green-900/20 border border-green-800" : "bg-green-50 border border-green-200"
-//             }`}>
-//               <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-//               <span className="text-sm text-green-600">{t("recharge.successMessage")}</span>
-//             </div>
-//           )}
-
-//           {/* Recharge Button */}
-//           <Button
-//             onClick={handleRecharge}
-//             disabled={!amount || isProcessing}
-//             className={`w-full h-12 text-lg font-semibold transition-all duration-300 ${
-//               !amount || isProcessing
-//                 ? "bg-gray-400 cursor-not-allowed"
-//                 : "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 hover:scale-[1.02] active:scale-[0.98]"
-//             }`}
-//           >
-//             {isProcessing ? (
-//               <div className="flex items-center gap-2">
-//                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-//                 {t("recharge.creatingRecharge")}
-//               </div>
-//             ) : (
-//               t("recharge.createRecharge")
-//             )}
-//           </Button>
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }
-
-
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -291,7 +14,8 @@ import {
   CreditCard,
   FileText,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Check
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useTheme } from "@/lib/contexts"
@@ -305,12 +29,14 @@ interface RechargeScreenProps {
 
 export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
   const [amount, setAmount] = useState("")
+  const [amountError, setAmountError] = useState("")
   const [proofImage, setProofImage] = useState<File | null>(null)
   const [proofDescription, setProofDescription] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
@@ -325,6 +51,21 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { createRecharge, accountData } = useAuth()
+
+  // Amount validation function
+  const validateAmount = (value: string) => {
+    const numericAmount = parseFloat(value.replace(/\s/g, ""))
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return "Le montant doit être supérieur à 0"
+    }
+    if (numericAmount < 1000) {
+      return "Le montant minimum est 1 000 FCFA"
+    }
+    if (numericAmount > 1000000) {
+      return "Le montant maximum est 1 000 000 FCFA"
+    }
+    return ""
+  }
 
   const handleRecharge = async () => {
     if (!amount) {
@@ -348,11 +89,17 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
         transaction_date: null
       })
       
-      setSuccess(true)
+      // Show success modal
+      setShowSuccessModal(true)
       setShowConfirmationModal(false)
+      
+      // Navigate back after modal delay
       setTimeout(() => {
-        onNavigateBack()
-      }, 2000)
+        setShowSuccessModal(false)
+        setTimeout(() => {
+          onNavigateBack()
+        }, 300) // Small delay for modal close animation
+      }, 2500)
     } catch (error) {
       console.error('Recharge error:', error)
       
@@ -594,18 +341,65 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
                 FCFA
               </span>
               <Input
-                type="number"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "")
+                  setAmount(value)
+                  const error = validateAmount(value)
+                  setAmountError(error)
+                }}
                 className={`pl-16 h-14 text-lg font-bold rounded-xl border-2 transition-all duration-300 ${
-                  theme === "dark" 
-                    ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-emerald-500 focus:bg-gray-700" 
-                    : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-emerald-500 focus:bg-white"
+                  amountError 
+                    ? "border-red-500 focus:border-red-500" 
+                    : theme === "dark" 
+                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-emerald-500 focus:bg-gray-700" 
+                      : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-emerald-500 focus:bg-white"
                 }`}
               />
             </div>
+            
+            {/* Amount error */}
+            {amountError && (
+              <div className="mt-2 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-500">{amountError}</span>
+              </div>
+            )}
+            
+            {/* Amount range indicator */}
+            {amount && !amountError && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
+                    Min: 1 000 FCFA
+                  </span>
+                  {/* <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
+                    Max: 1 000 000 FCFA
+                  </span> */}
+                </div>
+                <div className={`h-2 rounded-full ${
+                  theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                }`}>
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(100, Math.max(0, (parseFloat(amount.replace(/\s/g, "")) / 1000000) * 100))}%` 
+                    }}
+                  ></div>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-emerald-400" : "text-emerald-600"
+                  }`}>
+                    {amount.replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Proof Description Card */}
@@ -711,18 +505,6 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
             onDismiss={() => setError("")}
           />
 
-          {success && (
-            <div className={`flex items-center gap-3 p-4 rounded-xl border animate-in slide-in-from-top-2 ${
-              theme === "dark" 
-                ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm" 
-                : "bg-green-50 border-green-200/50 backdrop-blur-sm"
-            }`}>
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className={`text-sm font-medium ${theme === "dark" ? "text-green-400" : "text-green-600"}`}>
-                {t("recharge.successMessage")}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -734,9 +516,9 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
       } backdrop-blur-lg`}>
           <Button
             onClick={handleRecharge}
-            disabled={!amount || isProcessing}
+            disabled={!amount || isProcessing || !!amountError}
           className={`w-full h-12 text-base font-bold rounded-2xl transition-all duration-200 active:scale-98 ${
-              !amount || isProcessing
+              !amount || isProcessing || !!amountError
               ? "bg-gray-400/50 cursor-not-allowed text-gray-600"
               : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/25"
             }`}
@@ -763,6 +545,114 @@ export function RechargeScreen({ onNavigateBack }: RechargeScreenProps) {
         transactionData={transactionData}
         isProcessing={isProcessing}
       />
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+
+          {/* Modal Content */}
+          <div
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showSuccessModal
+                ? 'translate-y-0 opacity-100'
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark"
+                  ? "bg-green-500/20"
+                  : "bg-green-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark"
+                    ? "bg-green-500"
+                    : "bg-green-500"
+                }`}>
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Recharge Réussie !
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Votre demande de recharge a été soumise avec succès
+              </p>
+
+              {/* Transaction Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark"
+                  ? "bg-gray-700/50"
+                  : "bg-gray-50"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Montant
+                  </span>
+                  <span className={`font-bold ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {amount.replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Description
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {proofDescription || "Aucune description"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Preuve
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {proofImage ? "Image fournie" : "Aucune image"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Success Animation */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

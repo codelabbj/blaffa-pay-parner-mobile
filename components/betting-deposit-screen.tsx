@@ -11,6 +11,8 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  Check,
+  X,
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
@@ -42,6 +44,10 @@ export function BettingDepositScreen({
     CurrencyId?: number
   } | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [amountError, setAmountError] = useState("")
   const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null)
   const [idValidationError, setIdValidationError] = useState("")
 
@@ -180,6 +186,25 @@ export function BettingDepositScreen({
     }
   }, [bettingUserId, platform])
 
+  // Amount validation function
+  const validateAmount = (value: string) => {
+    if (!platform) return ""
+    
+    const numericAmount = parseFloat(value.replace(/\s/g, ""))
+    if (isNaN(numericAmount)) return ""
+    
+    const minAmount = parseFloat(platform.min_deposit_amount)
+    const maxAmount = parseFloat(platform.max_deposit_amount)
+    
+    if (numericAmount < minAmount) {
+      return `Le montant minimum est ${formatNumberWithSpaces(platform.min_deposit_amount)} FCFA`
+    }
+    if (numericAmount > maxAmount) {
+      return `Le montant maximum est ${formatNumberWithSpaces(platform.max_deposit_amount)} FCFA`
+    }
+    return ""
+  }
+
 
   const handleCreateDeposit = async () => {
     if (!verifiedUser || !amount || !platform) return
@@ -222,29 +247,32 @@ export function BettingDepositScreen({
       })
 
       if (result.success) {
-        toast({
-          title: "Dépôt Réussi",
-          description: result.message || "Votre dépôt a été effectué avec succès",
-        })
+        // Show success modal
+        setShowSuccessModal(true)
         // Reset form
         setBettingUserId("")
         setAmount("")
         setVerifiedUser(null)
         setShowConfirmation(false)
-        // Navigate back after short delay
+        // Navigate back after modal delay
         setTimeout(() => {
-          onNavigateBack()
-        }, 1500)
+          setShowSuccessModal(false)
+          setTimeout(() => {
+            onNavigateBack()
+          }, 300) // Small delay for modal close animation
+        }, 2500)
       } else {
         throw new Error(result.message || "Le dépôt a échoué")
       }
     } catch (error) {
       console.error("Create deposit error:", error)
-      toast({
-        title: "Erreur de Dépôt",
-        description: error instanceof Error ? error.message : "Impossible de créer le dépôt",
-        variant: "destructive",
-      })
+      const errorMsg = error instanceof Error ? error.message : "Impossible de créer le dépôt"
+      setErrorMessage(errorMsg)
+      setShowErrorModal(true)
+      // Auto-hide error modal after 5 seconds
+      setTimeout(() => {
+        setShowErrorModal(false)
+      }, 5000)
     } finally {
       setIsCreating(false)
     }
@@ -526,39 +554,97 @@ export function BettingDepositScreen({
 
             {/* Amount Input */}
             <div>
-              <label
-                className={`block text-sm font-semibold mb-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}
-              >
-                Montant (FCFA)
-              </label>
-              <Input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={amount}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\s/g, "")
-                  if (/^\d*$/.test(value)) {
-                    setAmount(formatNumberWithSpaces(value))
-                  }
-                }}
-                placeholder="Entrez le montant"
-                className={`h-14 rounded-xl text-lg font-semibold ${
-                  theme === "dark"
-                    ? "bg-gray-800/60 border-gray-700 text-white"
-                    : "bg-white border-gray-200 text-gray-900"
-                }`}
-                disabled={!verifiedUser || isCreating}
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-800"
+                  }`}
+                >
+                  Montant (FCFA)
+                </label>
+                
+              </div>
+              
+              <div className="relative">
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={amount}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\s/g, "")
+                    if (/^\d*$/.test(value)) {
+                      const formattedAmount = formatNumberWithSpaces(value)
+                      setAmount(formattedAmount)
+                      setAmountError(validateAmount(formattedAmount))
+                    }
+                  }}
+                  placeholder="Entrez le montant"
+                  className={`h-14 rounded-xl text-lg font-semibold pr-12 ${
+                    amountError
+                      ? theme === "dark"
+                        ? "bg-red-900/20 border-red-500 text-white"
+                        : "bg-red-50 border-red-300 text-gray-900"
+                      : theme === "dark"
+                      ? "bg-gray-800/60 border-gray-700 text-white"
+                      : "bg-white border-gray-200 text-gray-900"
+                  }`}
+                  disabled={!verifiedUser || isCreating}
+                />
+                
+                {/* Currency indicator */}
+                <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-500"
+                }`}>
+                  <span className="text-sm font-medium">FCFA</span>
+                </div>
+              </div>
+
+              {/* Amount validation error */}
+              {amountError && (
+                <div className={`mt-2 p-2 rounded-lg flex items-center gap-2 ${
+                  theme === "dark" ? "bg-red-500/20" : "bg-red-100"
+                }`}>
+                  <AlertCircle className={`w-4 h-4 ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`} />
+                  <p className={`text-xs ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`}>
+                    {amountError}
+                  </p>
+                </div>
+              )}
+
+              {/* Amount range indicator */}
+              {platform && amount && !amountError && (
+                <div className="mt-2">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Min: {formatNumberWithSpaces(platform.min_deposit_amount)}
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      theme === "dark" ? "text-green-400" : "text-green-600"
+                    }`}>
+                      {amount} FCFA
+                    </span>
+                    <span className={`text-xs ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Max: {formatNumberWithSpaces(platform.max_deposit_amount)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
 
             {/* Submit Button */}
             <Button
               onClick={() => setShowConfirmation(true)}
-              disabled={!verifiedUser || !amount || isCreating}
+              disabled={!verifiedUser || !amount || !!amountError || isCreating}
               className={`w-full h-14 rounded-xl text-lg font-bold ${
                 theme === "dark"
                   ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white"
@@ -721,6 +807,189 @@ export function BettingDepositScreen({
           </div>
         )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showSuccessModal 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark" 
+                  ? "bg-green-500/20" 
+                  : "bg-green-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark" 
+                    ? "bg-green-500" 
+                    : "bg-green-500"
+                }`}>
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Transaction Réussie !
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Votre dépôt a été effectué avec succès
+              </p>
+              
+              {/* Transaction Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark" 
+                  ? "bg-gray-700/50" 
+                  : "bg-gray-50"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Montant
+                  </span>
+                  <span className={`font-bold ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {amount} FCFA
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Plateforme
+                  </span>
+                  <span className={`text-sm font-semibold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {platform?.name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Success Animation */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowErrorModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
+              showErrorModal 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-full opacity-0'
+            } ${
+              theme === "dark"
+                ? "bg-gray-800 border-t border-gray-700"
+                : "bg-white border-t border-gray-200"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-center pt-8 pb-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                theme === "dark" 
+                  ? "bg-red-500/20" 
+                  : "bg-red-100"
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  theme === "dark" 
+                    ? "bg-red-500" 
+                    : "bg-red-500"
+                }`}>
+                  <X className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 pb-8 text-center">
+              <h2 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Erreur de Dépôt
+              </h2>
+              <p className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                {errorMessage}
+              </p>
+              
+              {/* Error Details */}
+              <div className={`mt-6 p-4 rounded-2xl ${
+                theme === "dark" 
+                  ? "bg-red-500/10 border border-red-500/20" 
+                  : "bg-red-50 border border-red-200"
+              }`}>
+                <div className="flex items-center justify-center gap-2">
+                  <AlertCircle className={`w-5 h-5 ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`} />
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-red-400" : "text-red-600"
+                  }`}>
+                    Veuillez réessayer
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="mt-6">
+                <Button
+                  onClick={() => setShowErrorModal(false)}
+                  className={`w-full h-12 rounded-xl font-semibold ${
+                    theme === "dark"
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-900"
+                  }`}
+                >
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
