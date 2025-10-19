@@ -382,7 +382,7 @@ export function BettingPlatformsScreen({
                           )}
 
                           {/* Stats */}
-                          <div className="grid grid-cols-2 gap-1 mt-2">
+                          {/* <div className="grid grid-cols-2 gap-1 mt-2">
                             <div
                               className={`p-1.5 rounded-lg ${
                                 theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
@@ -423,7 +423,7 @@ export function BettingPlatformsScreen({
                                 {formatNumberWithSpaces(platform.my_stats.unpaid_commission.toString())}
                               </p>
                             </div>
-                          </div>
+                          </div> */}
 
                           {/* Action Buttons */}
                           {/* <div className="grid grid-cols-2 gap-1 mt-2">
