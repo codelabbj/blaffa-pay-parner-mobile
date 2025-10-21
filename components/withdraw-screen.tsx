@@ -95,7 +95,7 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
     try {
       await createTransaction({
         type: "withdrawal",
-        amount: parseFloat(amount),
+        amount: amount.replace(/\s/g, ""), // Remove spaces but preserve leading zeros
         recipient_phone: recipientPhone,
         network: selectedNetwork
       })

@@ -92,7 +92,7 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
     try {
       await createTransaction({
         type: "deposit",
-        amount: parseFloat(amount),
+        amount: amount.replace(/\s/g, ""), // Remove spaces but preserve leading zeros
         recipient_phone: recipientPhone,
         network: selectedNetwork
       })

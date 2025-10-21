@@ -4,7 +4,7 @@ import { parseBackendError, formatErrorMessage } from './error-utils'
 
 export interface CreateTransactionPayload {
   type: "deposit" | "withdrawal";
-  amount: number;
+  amount: string | number;
   recipient_phone: string;
   network: string;
 }

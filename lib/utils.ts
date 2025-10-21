@@ -6,16 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format number with spaces for better readability
- * Examples: 10000 -> "10 000", 100000 -> "100 000"
+ * Format number with spaces for better readability while preserving leading zeros
+ * Examples: 10000 -> "10 000", 100000 -> "100 000", "01000" -> "0 1000"
  */
 export function formatNumberWithSpaces(value: string | number): string {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value
+  const stringValue = value.toString()
   
-  if (isNaN(numValue)) {
-    return value.toString()
+  // If it's not a valid number string, return as is
+  if (!/^\d+$/.test(stringValue)) {
+    return stringValue
   }
   
-  // Convert to string and add spaces every 3 digits from the right
-  return numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  // Add spaces every 3 digits from the right, preserving leading zeros
+  return stringValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }

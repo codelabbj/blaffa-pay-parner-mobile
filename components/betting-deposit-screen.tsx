@@ -243,7 +243,7 @@ export function BettingDepositScreen({
       const result = await bettingService.createDeposit(accessToken, {
         platform_uid: platform.uid,
         betting_user_id: bettingUserId,
-        amount: numericAmount.toString(),
+        amount: amount.replace(/\s/g, ""), // Remove spaces but preserve leading zeros
       })
 
       if (result.success) {
