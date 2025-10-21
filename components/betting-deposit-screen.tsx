@@ -247,20 +247,34 @@ export function BettingDepositScreen({
       })
 
       if (result.success) {
-        // Show success modal
-        setShowSuccessModal(true)
-        // Reset form
-        setBettingUserId("")
-        setAmount("")
-        setVerifiedUser(null)
-        setShowConfirmation(false)
-        // Navigate back after modal delay
-        setTimeout(() => {
-          setShowSuccessModal(false)
+        // Check if transaction status is failed despite success being true
+        if (result.transaction && result.transaction.status === "failed") {
+          // Extract error message from external_response
+          const errorMessage = result.transaction.external_response?.error || 
+                              result.transaction.notes || 
+                              "Le dépôt a échoué"
+          setErrorMessage(errorMessage)
+          setShowErrorModal(true)
+          // Auto-hide error modal after 5 seconds
           setTimeout(() => {
-            onNavigateBack()
-          }, 300) // Small delay for modal close animation
-        }, 2500)
+            setShowErrorModal(false)
+          }, 5000)
+        } else {
+          // Show success modal
+          setShowSuccessModal(true)
+          // Reset form
+          setBettingUserId("")
+          setAmount("")
+          setVerifiedUser(null)
+          setShowConfirmation(false)
+          // Navigate back after modal delay
+          setTimeout(() => {
+            setShowSuccessModal(false)
+            setTimeout(() => {
+              onNavigateBack()
+            }, 300) // Small delay for modal close animation
+          }, 2500)
+        }
       } else {
         throw new Error(result.message || "Le dépôt a échoué")
       }
