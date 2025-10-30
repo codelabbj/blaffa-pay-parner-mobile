@@ -22,12 +22,15 @@ import {
   Send,
   X,
   Calendar,
-  Hash
+  Hash,
+  User
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 
 interface TransactionDetailsModalProps {
   isOpen: boolean
@@ -40,9 +43,14 @@ export function TransactionDetailsModal({
   onClose,
   transaction
 }: TransactionDetailsModalProps) {
+  const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { toast } = useToast()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   if (!transaction) return null
 
@@ -140,22 +148,23 @@ export function TransactionDetailsModal({
     }
   }
 
-  const TransactionIcon = getTransactionIcon()
-  const StatusIcon = getStatusIcon()
-  const colors = getTransactionColor()
+  const TransactionIcon = getTransactionIcon();
+  const StatusIcon = getStatusIcon();
+  const colors = getTransactionColor();
+  const showAdvanced = false;
 
-  return (
+  if (!mounted || !isOpen) return null
+
+  return createPortal(
     <>
       {/* Backdrop */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={onClose}
-        />
-      )}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={onClose}
+      />
       
       <div
-        className={`fixed bottom-0 left-0 right-0 w-full h-auto max-h-[85vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform ${
+        className={`fixed bottom-0 left-0 right-0 w-full h-[50vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform flex flex-col overflow-y-auto ${
           theme === "dark" 
             ? "bg-gray-900" 
             : "bg-white"
@@ -192,75 +201,8 @@ export function TransactionDetailsModal({
         </div>
 
         {/* Content */}
-        <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
+        <div className="px-4 pb-4 flex-1 overflow-visible">
           <div className="space-y-2 w-full">
-            {/* Names Section */}
-            <div>
-              <h3
-                className={`text-sm font-bold mb-1.5 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                NOMS ET CONTACTS
-              </h3>
-              <div className="space-y-1">
-                {/* Recipient Name */}
-                {transaction.recipient_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom Destinataire</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.recipient_name}</span>
-                  </div>
-                )}
-
-                {/* Display Recipient Name */}
-                {transaction.display_recipient_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom Affiché</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.display_recipient_name}</span>
-                  </div>
-                )}
-
-                {/* Partner Name */}
-                {transaction.partner_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom Partenaire</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.partner_name}</span>
-                  </div>
-                )}
-
-                {/* Platform Name */}
-                {transaction.platform_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom Plateforme</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.platform_name}</span>
-                  </div>
-                )}
-
-                {/* Receiver Name (for transfers) */}
-                {transaction.receiver_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom Receveur</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.receiver_name}</span>
-                  </div>
-                )}
-
-                {/* Processed By Name */}
-                {transaction.processed_by_name && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Traité par</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.processed_by_name}</span>
-                  </div>
-                )}
-
-                {/* Phone Number */}
-                {transaction.recipient_phone && (
-                  <div className={`p-1.5 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Téléphone</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.recipient_phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Transaction Info */}
             <div>
@@ -269,13 +211,74 @@ export function TransactionDetailsModal({
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 }`}
               >
-                INFORMATIONS
+              
               </h3>
-              <div className="space-y-1">
+              <div className="space-y-2">
+                {/* Recipient Info (name and phone) - moved to top */}
+                {(transaction.recipient_name || transaction.display_recipient_name || transaction.recipient_phone || transaction.phone) && (
+                  <div
+                    className={`p-3 rounded-xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} p-1.5 rounded-lg`}>
+                        <User className={`${theme === "dark" ? "text-gray-300" : "text-gray-700"} w-4 h-4`} />
+                      </div>
+                      <span className={`text-xs font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>Destinataire</span>
+                    </div>
+                    {transaction.recipient_name && (
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom</span>
+                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.recipient_name}</span>
+                      </div>
+                    )}
+                    {!transaction.recipient_name && transaction.display_recipient_name && (
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom</span>
+                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.display_recipient_name}</span>
+                      </div>
+                    )}
+                    {(transaction.recipient_phone || transaction.phone) && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Téléphone</span>
+                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.recipient_phone || transaction.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Betting Quick Info - moved to top */}
+                {transaction.historyType === 'betting' && ((transaction.betting_user_id || transaction.recipient_phone) || (transaction.platform_name || transaction.partner_name)) && (
+                  <div
+                    className={`p-3 rounded-xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`${theme === "dark" ? "bg-purple-600/20" : "bg-purple-100"} p-1.5 rounded-lg`}>
+                        <CreditCard className={`${theme === "dark" ? "text-purple-300" : "text-purple-600"} w-4 h-4`} />
+                      </div>
+                      <span className={`text-xs font-semibold ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>Paris</span>
+                    </div>
+                    {(transaction.betting_user_id || transaction.recipient_phone) && (
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>ID Utilisateur</span>
+                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.betting_user_id || transaction.recipient_phone}</span>
+                      </div>
+                    )}
+                    {(transaction.platform_name || transaction.partner_name) && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Plateforme</span>
+                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.platform_name || transaction.partner_name}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Amount */}
                 <div
-                  className={`p-1.5 rounded-xl flex items-center justify-between ${
-                    theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                  className={`p-3 rounded-xl flex items-center justify-between border ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
                   }`}
                 >
                   <span
@@ -311,8 +314,8 @@ export function TransactionDetailsModal({
 
                 {/* Status */}
                 <div
-                  className={`p-1.5 rounded-xl flex items-center justify-between ${
-                    theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                  className={`p-3 rounded-xl flex items-center justify-between border ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
                   }`}
                 >
                   <span
@@ -337,8 +340,8 @@ export function TransactionDetailsModal({
                 {/* Reference */}
                 {transaction.reference && (
                   <div
-                    className={`p-1.5 rounded-xl flex items-center justify-between ${
-                      theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                    className={`p-3 rounded-xl flex items-center justify-between border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
                     }`}
                   >
                     <span
@@ -366,8 +369,8 @@ export function TransactionDetailsModal({
 
                 {/* Date */}
                 <div
-                  className={`p-1.5 rounded-xl flex items-center justify-between ${
-                    theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                  className={`p-3 rounded-xl flex items-center justify-between border ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
                   }`}
                 >
                   <span
@@ -381,10 +384,14 @@ export function TransactionDetailsModal({
                     {formatTransactionDate(transaction.created_at)}
                   </span>
                 </div>
+
+                {/* Recipient Info (name and phone) */}
+                
               </div>
             </div>
 
             {/* Complete API Response Details */}
+            {showAdvanced && (
             <div>
               <h3
                 className={`text-sm font-bold mb-1.5 ${
@@ -642,9 +649,11 @@ export function TransactionDetailsModal({
                 )}
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
