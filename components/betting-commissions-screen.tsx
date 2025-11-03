@@ -474,7 +474,7 @@ export function BettingCommissionsScreen({
                           theme === "dark" ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        {formatNumberWithSpaces(platform.total_commission.toString())}
+                        {formatNumberWithSpaces((platform.total_commission ?? 0).toString())}
                       </p>
                     </div>
                     <div
@@ -494,7 +494,7 @@ export function BettingCommissionsScreen({
                           theme === "dark" ? "text-yellow-400" : "text-yellow-600"
                         }`}
                       >
-                        {formatNumberWithSpaces(platform.unpaid_commission.toString())}
+                        {formatNumberWithSpaces((platform.unpaid_commission ?? 0).toString())}
                       </p>
                     </div>
                   </div>

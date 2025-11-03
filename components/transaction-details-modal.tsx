@@ -52,6 +52,21 @@ export function TransactionDetailsModal({
     setMounted(true)
   }, [])
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current body overflow style
+      const originalStyle = window.getComputedStyle(document.body).overflow
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden'
+      
+      return () => {
+        // Restore original overflow on cleanup
+        document.body.style.overflow = originalStyle
+      }
+    }
+  }, [isOpen])
+
   if (!transaction) return null
 
   const getTransactionIcon = () => {
@@ -159,12 +174,13 @@ export function TransactionDetailsModal({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 overflow-hidden"
         onClick={onClose}
+        onTouchMove={(e) => e.preventDefault()}
       />
       
       <div
-        className={`fixed bottom-0 left-0 right-0 w-full h-[50vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform flex flex-col overflow-y-auto ${
+        className={`fixed bottom-0 left-0 right-0 w-full h-[50vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform flex flex-col ${
           theme === "dark" 
             ? "bg-gray-900" 
             : "bg-white"
@@ -176,32 +192,35 @@ export function TransactionDetailsModal({
           maxWidth: '100vw'
         }}
       >
-        {/* Drag Handle */}
-        <div className="flex justify-center pt-2 pb-1">
-          <div className={`w-10 h-1 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`}></div>
+        {/* Fixed Header Section (Non-scrollable) */}
+        <div className="flex-shrink-0">
+          {/* Drag Handle */}
+          <div className="flex justify-center pt-2 pb-1">
+            <div className={`w-10 h-1 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`}></div>
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2 px-4">
+            <h2
+              className={`text-sm font-bold ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}
+            >
+              {transaction.typeLabel || transaction.historyType}
+            </h2>
+            <button
+              onClick={onClose}
+              className={`h-7 w-7 rounded-lg flex items-center justify-center ${
+                theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
+              }`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2 px-4">
-          <h2
-            className={`text-sm font-bold ${
-              theme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            {transaction.typeLabel || transaction.historyType}
-          </h2>
-          <button
-            onClick={onClose}
-            className={`h-7 w-7 rounded-lg flex items-center justify-center ${
-              theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
-            }`}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="px-4 pb-4 flex-1 overflow-visible">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
           <div className="space-y-2 w-full">
 
             {/* Transaction Info */}
