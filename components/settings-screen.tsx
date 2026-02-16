@@ -352,7 +352,7 @@ export function SettingsScreen({ onNavigateBack, onNavigateToProfile, onLogout }
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -372,7 +372,7 @@ export function SettingsScreen({ onNavigateBack, onNavigateToProfile, onLogout }
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -380,7 +380,7 @@ export function SettingsScreen({ onNavigateBack, onNavigateToProfile, onLogout }
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-10 ${
           theme === "dark" ? "bg-blue-500" : "bg-blue-300"
@@ -433,7 +433,7 @@ export function SettingsScreen({ onNavigateBack, onNavigateToProfile, onLogout }
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className={`p-2 rounded-xl ${
-                  theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+                  theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
                 }`}>
                   <User className="w-5 h-5" />
                 </div>

@@ -81,6 +81,7 @@ export interface BettingTransaction {
   partner_balance_after: string
   is_cancellable?: boolean
   can_request_cancellation?: boolean
+  notes?: string
 }
 
 export interface BettingTransactionsResponse {
@@ -92,25 +93,28 @@ export interface BettingTransactionsResponse {
 
 export interface CreateDepositPayload {
   platform_uid: string
-  betting_user_id: string
-  amount: string
+  betting_user_id: string | number
+  amount: string | number
 }
 
 export interface CreateWithdrawalPayload {
   platform_uid: string
-  betting_user_id: string
+  betting_user_id: string | number
   withdrawal_code: string
 }
 
 export interface VerifyUserIdPayload {
   platform_uid: string
-  betting_user_id: string
+  betting_user_id: string | number
 }
 
 export interface VerifyUserIdResponse {
-  UserId: number
-  Name?: string
-  CurrencyId?: number
+  success: boolean
+  user: {
+    user_id: number
+    name?: string
+    currency_id?: number
+  }
 }
 
 export interface CommissionStats {
@@ -179,6 +183,12 @@ export interface ExternalPlatformData {
   max_win: number
   why_withdrawal_fail: string | null
   enable: boolean
+}
+
+export interface BettingTransactionResponse {
+  success: boolean
+  message: string
+  transaction?: BettingTransaction
 }
 
 // ========== Service Functions ==========
@@ -333,17 +343,33 @@ export const bettingService = {
 
 
   // Create betting deposit
-  async createDeposit(accessToken: string, payload: CreateDepositPayload) {
+  async createDeposit(accessToken: string, payload: CreateDepositPayload): Promise<BettingTransactionResponse> {
     try {
+      const numericAmount = typeof payload.amount === 'string'
+        ? Number(payload.amount.trim())
+        : payload.amount
+
+      if (Number.isNaN(numericAmount) || numericAmount <= 0) {
+        throw new Error('Invalid deposit amount')
+      }
+
+      const bettingUserIdValue = typeof payload.betting_user_id === 'string'
+        ? payload.betting_user_id.trim()
+        : payload.betting_user_id
+
       const response = await fetch(
-        `${BASE_URL}/api/payments/betting/user/transactions/create_deposit/`,
+        `${BASE_URL}/api/payments/betting/user/transactions/mobcash/deposit/`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            platform_uid: payload.platform_uid,
+            betting_user_id: bettingUserIdValue,
+            amount: numericAmount,
+          }),
         }
       )
 
@@ -354,7 +380,7 @@ export const bettingService = {
         throw new Error(formattedMessage)
       }
 
-      const data = await response.json()
+      const data: BettingTransactionResponse = await response.json()
       return data
     } catch (error) {
       console.error('Create deposit error:', error)
@@ -363,17 +389,25 @@ export const bettingService = {
   },
 
   // Create betting withdrawal
-  async createWithdrawal(accessToken: string, payload: CreateWithdrawalPayload) {
+  async createWithdrawal(accessToken: string, payload: CreateWithdrawalPayload): Promise<BettingTransactionResponse> {
     try {
+      const bettingUserIdValue = typeof payload.betting_user_id === 'string'
+        ? payload.betting_user_id.trim()
+        : payload.betting_user_id
+
       const response = await fetch(
-        `${BASE_URL}/api/payments/betting/user/transactions/create_withdrawal/`,
+        `${BASE_URL}/api/payments/betting/user/transactions/mobcash/withdrawal/`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            platform_uid: payload.platform_uid,
+            betting_user_id: bettingUserIdValue,
+            withdrawal_code: payload.withdrawal_code,
+          }),
         }
       )
 
@@ -384,7 +418,7 @@ export const bettingService = {
         throw new Error(formattedMessage)
       }
 
-      const data = await response.json()
+      const data: BettingTransactionResponse = await response.json()
       return data
     } catch (error) {
       console.error('Create withdrawal error:', error)
@@ -528,13 +562,24 @@ export const bettingService = {
     payload: VerifyUserIdPayload
   ): Promise<VerifyUserIdResponse> {
     try {
-      const response = await fetch(`${BASE_URL}/api/payments/betting/user/transactions/verify_user_id/`, {
+      const numericBettingUserId = typeof payload.betting_user_id === 'string'
+        ? Number(payload.betting_user_id.trim())
+        : payload.betting_user_id
+
+      if (Number.isNaN(numericBettingUserId)) {
+        throw new Error('Invalid betting user ID')
+      }
+
+      const response = await fetch(`${BASE_URL}/api/payments/betting/user/transactions/mobcash/verify-player/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          platform_uid: payload.platform_uid,
+          betting_user_id: numericBettingUserId,
+        }),
       })
 
       if (!response.ok) {
@@ -548,10 +593,9 @@ export const bettingService = {
         throw new Error(formattedMessage)
       }
 
-      const data = await response.json()
+      const data: VerifyUserIdResponse = await response.json()
       
-      // Check if user ID is invalid
-      if (data.UserId === 0) {
+      if (!data.success || !data.user || data.user.user_id === 0) {
         throw new Error('Invalid betting user ID')
       }
 

@@ -14,9 +14,10 @@ import { parseBackendError, formatErrorMessage } from "@/lib/error-utils"
 
 interface WithdrawScreenProps {
   onNavigateBack: () => void
+  onTransactionSuccess?: () => void
 }
 
-export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
+export function WithdrawScreen({ onNavigateBack, onTransactionSuccess }: WithdrawScreenProps) {
   const [amount, setAmount] = useState("")
   const [amountError, setAmountError] = useState("")
   const [recipientPhone, setRecipientPhone] = useState("")
@@ -103,6 +104,10 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
       // Show success modal
       setShowSuccessModal(true)
       setShowConfirmationModal(false)
+      // Trigger dashboard refresh
+      if (onTransactionSuccess) {
+        onTransactionSuccess()
+      }
       // Navigate back after modal delay
       setTimeout(() => {
         setShowSuccessModal(false)
@@ -225,7 +230,7 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -245,7 +250,7 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -256,7 +261,7 @@ export function WithdrawScreen({ onNavigateBack }: WithdrawScreenProps) {
           theme === "dark" ? "bg-red-500" : "bg-red-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`} style={{animationDelay: '1.5s'}}></div>
       </div>
 

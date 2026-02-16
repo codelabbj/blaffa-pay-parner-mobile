@@ -244,7 +244,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -264,7 +264,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -272,7 +272,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
           theme === "dark" ? "bg-blue-500" : "bg-blue-300"
@@ -351,8 +351,8 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`pl-10 h-12 text-sm rounded-xl border-2 transition-all duration-300 ${
                 theme === "dark" 
-                  ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:bg-gray-700" 
-                  : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-orange-500 focus:bg-white"
+                  ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700" 
+                  : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:bg-white"
               }`}
             />
             {searchQuery && (
@@ -466,7 +466,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
               <Button
                 size="sm"
                 onClick={() => setShowFilters(false)}
-                className="flex-1 h-10 sm:h-11 text-sm bg-orange-600 hover:bg-orange-700"
+                className="flex-1 h-10 sm:h-11 text-sm bg-blue-600 hover:bg-blue-700"
               >
                 Appliquer
               </Button>
@@ -489,7 +489,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-orange-500 mx-auto mb-4" />
+              <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-500 mx-auto mb-4" />
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                 Chargement des transferts...
               </p>
@@ -515,7 +515,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
                   {/* Left section - Icon and main info */}
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                      theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+                      theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
                     }`}>
                       <Send className="w-4 h-4 sm:w-6 sm:h-6" />
                     </div>
@@ -627,7 +627,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
           ...selectedTransfer,
           historyType: 'transfer',
           typeIcon: Send,
-          typeColor: theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600",
+          typeColor: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
           typeLabel: "Transfert",
           // Override display fields for consistent rendering
           display_recipient_name: selectedTransfer.receiver_name,

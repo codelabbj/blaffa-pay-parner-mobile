@@ -36,7 +36,7 @@ export function TransactionTypeSelectionScreen({
       className={`h-full relative overflow-hidden flex flex-col ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}
@@ -203,8 +203,8 @@ export function TransactionTypeSelectionScreen({
                   <div
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       theme === "dark"
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "bg-orange-100 text-orange-600"
+                        ? "bg-blue-500/20 text-blue-400"
+                        : "bg-blue-100 text-blue-600"
                     }`}
                   >
                     Commissions

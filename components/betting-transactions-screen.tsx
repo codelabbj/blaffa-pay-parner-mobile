@@ -251,7 +251,7 @@ export function BettingTransactionsScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}
@@ -263,7 +263,7 @@ export function BettingTransactionsScreen({
         ></div>
         <div
           className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+            theme === "dark" ? "bg-blue-500" : "bg-blue-300"
           } blur-2xl animate-pulse`}
           style={{ animationDelay: "2s" }}
         ></div>
@@ -376,8 +376,8 @@ export function BettingTransactionsScreen({
                       className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
                         typeFilter === ""
                           ? theme === "dark"
-                            ? "bg-orange-600 text-white"
-                            : "bg-orange-500 text-white"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
                           : theme === "dark"
                           ? "bg-gray-700 text-gray-300"
                           : "bg-gray-100 text-gray-700"
@@ -404,8 +404,8 @@ export function BettingTransactionsScreen({
                       className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
                         typeFilter === "withdrawal"
                           ? theme === "dark"
-                            ? "bg-orange-600 text-white"
-                            : "bg-orange-500 text-white"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
                           : theme === "dark"
                           ? "bg-gray-700 text-gray-300"
                           : "bg-gray-100 text-gray-700"
@@ -430,8 +430,8 @@ export function BettingTransactionsScreen({
                       className={`py-2 rounded-lg text-xs font-semibold transition-all ${
                         statusFilter === ""
                           ? theme === "dark"
-                            ? "bg-orange-600 text-white"
-                            : "bg-orange-500 text-white"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
                           : theme === "dark"
                           ? "bg-gray-700 text-gray-300"
                           : "bg-gray-100 text-gray-700"
@@ -493,7 +493,7 @@ export function BettingTransactionsScreen({
       <div className="relative z-10 px-4 pb-24">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
           </div>
         ) : filteredTransactions.length > 0 ? (
           <div className="space-y-3">
@@ -518,8 +518,8 @@ export function BettingTransactionsScreen({
                           ? "bg-green-500/20 text-green-400"
                           : "bg-green-100 text-green-600"
                         : theme === "dark"
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "bg-orange-100 text-orange-600"
+                        ? "bg-blue-500/20 text-blue-400"
+                        : "bg-blue-100 text-blue-600"
                     }`}
                   >
                     {transaction.transaction_type === "deposit" ? (
@@ -553,8 +553,8 @@ export function BettingTransactionsScreen({
                               ? "text-green-400"
                               : "text-green-600"
                             : theme === "dark"
-                            ? "text-orange-400"
-                            : "text-orange-600"
+                            ? "text-blue-400"
+                            : "text-blue-600"
                         }`}
                       >
                         {transaction.transaction_type === "deposit" ? "+" : "-"}
@@ -737,7 +737,7 @@ export function BettingTransactionsScreen({
           typeIcon: selectedTransaction.transaction_type === "deposit" ? TrendingUp : TrendingDown,
           typeColor: selectedTransaction.transaction_type === "deposit"
             ? (theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600")
-            : (theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"),
+            : (theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"),
           typeLabel: `${selectedTransaction.transaction_type === "deposit" ? "Dépôt" : "Retrait"} Paris`,
           // Override display fields for consistent rendering
           display_recipient_name: selectedTransaction.partner_name,

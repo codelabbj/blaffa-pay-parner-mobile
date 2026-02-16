@@ -23,11 +23,13 @@ import { formatNumberWithSpaces } from "@/lib/utils"
 interface BettingWithdrawScreenProps {
   onNavigateBack: () => void
   platformUid?: string
+  onTransactionSuccess?: () => void
 }
 
 export function BettingWithdrawScreen({
   onNavigateBack,
   platformUid,
+  onTransactionSuccess,
 }: BettingWithdrawScreenProps) {
   const { theme } = useTheme()
   const { toast } = useToast()
@@ -137,15 +139,26 @@ export function BettingWithdrawScreen({
         betting_user_id: bettingUserId,
       })
 
-      if (result.UserId === 0) {
+      const verifiedUserData = result.user
+
+      if (
+        !result.success ||
+        !verifiedUserData ||
+        verifiedUserData.user_id === 0 ||
+        verifiedUserData.currency_id !== 27
+      ) {
         setIdValidationError("ID de pari invalide")
         setVerifiedUser(null)
       } else {
-        setVerifiedUser(result)
+        setVerifiedUser({
+          UserId: verifiedUserData.user_id,
+          Name: verifiedUserData.name,
+          CurrencyId: verifiedUserData.currency_id,
+        })
         setIdValidationError("")
         toast({
           title: "Vérification Réussie",
-          description: result.Name ? `Utilisateur: ${result.Name}` : "ID vérifié",
+          description: verifiedUserData.name ? `Utilisateur: ${verifiedUserData.name}` : "ID vérifié",
         })
       }
     } catch (error) {
@@ -221,6 +234,10 @@ export function BettingWithdrawScreen({
           setBettingUserId("")
           setWithdrawalCode("")
           setShowConfirmation(false)
+          // Trigger dashboard refresh
+          if (onTransactionSuccess) {
+            onTransactionSuccess()
+          }
           // Navigate back after modal delay
           setTimeout(() => {
             setShowSuccessModal(false)
@@ -253,10 +270,10 @@ export function BettingWithdrawScreen({
         className={`min-h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
       >
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     )
   }
@@ -267,7 +284,7 @@ export function BettingWithdrawScreen({
         className={`min-h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
       >
         <p className={theme === "dark" ? "text-white" : "text-gray-900"}>
@@ -282,14 +299,14 @@ export function BettingWithdrawScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+            theme === "dark" ? "bg-blue-500" : "bg-blue-300"
           } blur-3xl animate-pulse`}
         ></div>
         <div
@@ -360,8 +377,8 @@ export function BettingWithdrawScreen({
               ) : (
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   theme === "dark"
-                    ? "bg-gradient-to-br from-orange-600 to-red-600"
-                    : "bg-gradient-to-br from-orange-500 to-red-500"
+                    ? "bg-gradient-to-br from-blue-600 to-red-600"
+                    : "bg-gradient-to-br from-blue-500 to-red-500"
                 }`}>
                   <Gamepad2 className="w-6 h-6 text-white" />
                 </div>
@@ -604,8 +621,8 @@ export function BettingWithdrawScreen({
               disabled={!bettingUserId || !withdrawalCode || isCreating}
               className={`w-full h-14 rounded-xl text-lg font-bold ${
                 theme === "dark"
-                  ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white"
-                  : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white"
+                  ? "bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white"
+                  : "bg-gradient-to-r from-blue-500 to-red-500 hover:from-blue-400 hover:to-red-400 text-white"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <TrendingDown className="w-6 h-6 mr-2" />
@@ -681,7 +698,7 @@ export function BettingWithdrawScreen({
                   </span>
                   <span
                     className={`text-xl font-bold ${
-                      theme === "dark" ? "text-orange-400" : "text-orange-600"
+                      theme === "dark" ? "text-blue-400" : "text-blue-600"
                     }`}
                   >
                     {withdrawalCode}
@@ -691,17 +708,17 @@ export function BettingWithdrawScreen({
 
               <div
                 className={`mt-4 p-3 rounded-xl flex items-start gap-2 ${
-                  theme === "dark" ? "bg-orange-500/20" : "bg-orange-100"
+                  theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
                 }`}
               >
                 <AlertCircle
                   className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                    theme === "dark" ? "text-orange-400" : "text-orange-600"
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
                   }`}
                 />
                 <p
                   className={`text-xs ${
-                    theme === "dark" ? "text-orange-300" : "text-orange-700"
+                    theme === "dark" ? "text-blue-300" : "text-blue-700"
                   }`}
                 >
                   Assurez-vous que le code de retrait est correct. Cette action ajoutera
@@ -728,8 +745,8 @@ export function BettingWithdrawScreen({
                 disabled={isCreating}
                 className={`flex-1 h-14 rounded-xl text-lg font-bold ${
                   theme === "dark"
-                    ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white"
-                    : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white"
+                    ? "bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white"
+                    : "bg-gradient-to-r from-blue-500 to-red-500 hover:from-blue-400 hover:to-red-400 text-white"
                 }`}
               >
                 {isCreating ? (
@@ -810,7 +827,7 @@ export function BettingWithdrawScreen({
                     Code de Retrait
                   </span>
                   <span className={`font-bold ${
-                    theme === "dark" ? "text-orange-400" : "text-orange-600"
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
                   }`}>
                     {withdrawalCode}
                   </span>

@@ -82,7 +82,7 @@
 //     const date = new Date(dateString)
 //     const now = new Date()
 //     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
+
 //     if (diffInHours < 1) {
 //       return "À l'instant"
 //     } else if (diffInHours < 24) {
@@ -177,7 +177,7 @@
 //                 theme === "dark" ? "bg-purple-500/30" : "bg-purple-400/20"
 //               }`}></div>
 //             </div>
-            
+
 //             <div className="relative z-10">
 //               <div className="flex items-center justify-between mb-4">
 //                 <div>
@@ -205,7 +205,7 @@
 //                   {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
 //                 </Button>
 //               </div>
-              
+
 //               <div className="flex items-center gap-3">
 //                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
 //                   theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-100"
@@ -311,7 +311,7 @@
 //                 >
 //                   <MoreHorizontal style={{ width: '30px', height: '30px' }} />
 //                 </Button>
-                
+
 //                 {showDropdown && (
 //                   <div className={`absolute right-0 top-10 w-56 rounded-md border shadow-lg z-[9999] ${
 //                     theme === "dark" 
@@ -512,14 +512,14 @@ interface DashboardScreenProps {
   onLogout: () => void
 }
 
-export function DashboardScreen({ 
-  onNavigateToSettings, 
-  onNavigateToDeposit, 
-  onNavigateToWithdraw, 
-  onNavigateToRecharge, 
+export function DashboardScreen({
+  onNavigateToSettings,
+  onNavigateToDeposit,
+  onNavigateToWithdraw,
+  onNavigateToRecharge,
   onNavigateToTransfer,
-  onNavigateToTransactionHistory, 
-  onNavigateToRechargeHistory, 
+  onNavigateToTransactionHistory,
+  onNavigateToRechargeHistory,
   onNavigateToTransferHistory,
   onNavigateToBettingPlatforms,
   onNavigateToBettingTransactions,
@@ -527,7 +527,7 @@ export function DashboardScreen({
   onNavigateToBettingDeposit,
   onNavigateToBettingWithdraw,
   onNavigateToNotifications,
-  onLogout 
+  onLogout
 }: DashboardScreenProps) {
   const [showBalance, setShowBalance] = useState(true)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -539,7 +539,7 @@ export function DashboardScreen({
   const [currentTransactionTypeSelection, setCurrentTransactionTypeSelection] = useState<"deposit" | "withdraw" | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
-  
+
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
     isPulling: false,
@@ -586,28 +586,28 @@ export function DashboardScreen({
         transferService.getTransfers(accessToken, "sent", "completed", "", "", "2025-03-01", "2025-09-30"),
         bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] }))
       ])
-      
+
       // Combine all history types with type indicators
       const combinedHistory = [
         // Add mobile transactions with type indicator
-        ...transactions.slice(0, 3).map(transaction => ({
+        ...transactions.slice(0, 10).map(transaction => ({
           ...transaction,
           historyType: 'transaction',
           typeIcon: transaction.type === "deposit" ? TrendingUp : TrendingDown,
-          typeColor: transaction.type === "deposit" 
+          typeColor: transaction.type === "deposit"
             ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
             : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"),
           typeLabel: transaction.type === "deposit" ? "Dépôt Mobile" : "Retrait Mobile"
         })),
-        
+
         // Add betting transactions with type indicator
-        ...bettingTransactions.results.slice(0, 3).map(bettingTransaction => ({
+        ...bettingTransactions.results.slice(0, 10).map(bettingTransaction => ({
           ...bettingTransaction,
           historyType: 'betting',
           typeIcon: bettingTransaction.transaction_type === "deposit" ? TrendingUp : TrendingDown,
           typeColor: bettingTransaction.transaction_type === "deposit"
             ? (theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600")
-            : (theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"),
+            : (theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"),
           typeLabel: `${bettingTransaction.transaction_type === "deposit" ? "Dépôt" : "Retrait"} Paris`,
           // Override display fields for consistent rendering
           display_recipient_name: bettingTransaction.partner_name,
@@ -616,18 +616,18 @@ export function DashboardScreen({
           amount: parseFloat(bettingTransaction.amount).toString(),
           type: bettingTransaction.transaction_type
         })),
-        
+
         // Add recharges with type indicator
-        ...recharges.slice(0, 3).map(recharge => ({
+        ...recharges.slice(0, 10).map(recharge => ({
           ...recharge,
           historyType: 'recharge',
           typeIcon: Battery,
           typeColor: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
           typeLabel: "Recharge Mobile"
         })),
-        
+
         // Add transfers with type indicator
-        ...transfersResponse.transfers.slice(0, 3).map(transfer => ({
+        ...transfersResponse.transfers.slice(0, 10).map(transfer => ({
           ...transfer,
           historyType: 'transfer',
           typeIcon: Send,
@@ -637,17 +637,17 @@ export function DashboardScreen({
         }))
       ]
 
-      // Sort by date (most recent first) and take top 5
+      // Sort by date (most recent first) and take top 10
       const sortedHistory = combinedHistory
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 5)
+        .slice(0, 10)
 
       setRecentHistory(sortedHistory)
     } catch (error) {
       console.error('Load recent history error:', error)
     } finally {
       setIsLoadingHistory(false)
-     }
+    }
   }
 
   // Handle refresh with loading state
@@ -669,7 +669,7 @@ export function DashboardScreen({
   // Pull-to-refresh handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const startY = e.touches[0].clientY
     setPullToRefreshState(prev => ({
       ...prev,
@@ -681,19 +681,19 @@ export function DashboardScreen({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const currentY = e.touches[0].clientY
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-    
+
     // Only allow pull-to-refresh when at the top of the page
     if (scrollTop > 0) {
       setPullToRefreshState(prev => ({ ...prev, canPull: false }))
       return
     }
-    
+
     const pullDistance = Math.max(0, currentY - pullToRefreshState.startY)
     const maxPullDistance = 120
-    
+
     if (pullDistance > 0) {
       e.preventDefault() // Prevent default scroll behavior
       setPullToRefreshState(prev => ({
@@ -707,10 +707,10 @@ export function DashboardScreen({
 
   const handleTouchEnd = () => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const { pullDistance } = pullToRefreshState
     const refreshThreshold = 80
-    
+
     if (pullDistance >= refreshThreshold && pullToRefreshState.isPulling) {
       handleRefresh()
     } else {
@@ -765,7 +765,7 @@ export function DashboardScreen({
     const date = new Date(dateString)
     const now = new Date()
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
+
     if (diffInHours < 1) {
       return t("additional.time.justNow")
     } else if (diffInHours < 24) {
@@ -798,12 +798,11 @@ export function DashboardScreen({
   }
 
   return (
-    <div 
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
-      }`}
+    <div
+      className={`min-h-screen relative overflow-hidden ${theme === "dark"
+          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
+        }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -815,29 +814,24 @@ export function DashboardScreen({
       {/* Pull-to-refresh indicator */}
       {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            theme === "dark" 
-              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50" 
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark"
+              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
               : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
-          } shadow-lg`}>
-            <RefreshCw className={`w-5 h-5 ${
-              pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } shadow-lg`}>
+            <RefreshCw className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? 'animate-spin' : ''
+              } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
 
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
-        } blur-3xl animate-pulse`}></div>
-        <div className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-        } blur-2xl animate-pulse`} style={{animationDelay: '2s'}}></div>
-        <div className={`absolute top-1/2 right-8 w-24 h-24 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-green-500" : "bg-green-300"
-        } blur-xl animate-pulse`} style={{animationDelay: '4s'}}></div>
+        <div className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
+          } blur-3xl animate-pulse`}></div>
+        <div className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
+          } blur-2xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
+        <div className={`absolute top-1/2 right-8 w-24 h-24 rounded-full opacity-10 ${theme === "dark" ? "bg-green-500" : "bg-green-300"
+          } blur-xl animate-pulse`} style={{ animationDelay: '4s' }}></div>
       </div>
 
       {/* Mobile Header */}
@@ -847,11 +841,10 @@ export function DashboardScreen({
             <div className="relative">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 ${
-                  theme === "dark" 
-                    ? "bg-gradient-to-br from-orange-600 to-blue-600 hover:from-orange-500 hover:to-blue-500" 
-                    : "bg-gradient-to-br from-orange-500 to-blue-500 hover:from-orange-400 hover:to-blue-400"
-                } shadow-lg hover:shadow-xl`}
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 ${theme === "dark"
+                    ? "bg-gradient-to-br from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500"
+                    : "bg-gradient-to-br from-blue-500 to-blue-500 hover:from-blue-400 hover:to-blue-400"
+                  } shadow-lg hover:shadow-xl`}
               >
                 <User className="w-6 h-6 text-white" />
               </button>
@@ -862,24 +855,23 @@ export function DashboardScreen({
                 {user?.first_name ? `${t("additional.hello")} ${user.first_name}` : t("additional.welcome")}
               </h1>
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                {new Date().toLocaleDateString('fr-FR', { 
-                  weekday: 'long', 
-                  month: 'short', 
-                  day: 'numeric' 
+                {new Date().toLocaleDateString('fr-FR', {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric'
                 })}
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 relative ${
-                theme === "dark" 
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20" 
+              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 relative ${theme === "dark"
+                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
                   : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
+                }`}
               onClick={onNavigateToNotifications}
             >
               <Bell className="w-5 h-5" />
@@ -887,11 +879,10 @@ export function DashboardScreen({
             <Button
               variant="ghost"
               size="sm"
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark" 
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20" 
+              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
+                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
                   : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
+                }`}
               onClick={onNavigateToSettings}
             >
               <Settings className="w-5 h-5" />
@@ -901,65 +892,65 @@ export function DashboardScreen({
 
 
         {/* Balance Card */}
-        <div className={`p-6 rounded-3xl border transition-all duration-300 mb-8 ${
-            theme === "dark" 
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
+        <div className={`p-6 rounded-3xl border transition-all duration-300 mb-8 ${theme === "dark"
+            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
             : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-xl"
-        }`}>
+          }`}>
           {/* Decorative gradient overlay */}
           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 ${
-              theme === "dark" ? "bg-gradient-to-br from-orange-400 to-blue-500" : "bg-gradient-to-br from-orange-300 to-blue-400"
-            } blur-2xl`}></div>
+            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 ${theme === "dark" ? "bg-gradient-to-br from-blue-400 to-blue-500" : "bg-gradient-to-br from-blue-300 to-blue-400"
+              } blur-2xl`}></div>
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-xl ${
-                  theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-                }`}>
+                <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                  }`}>
                   <Wallet className="w-4 h-4" />
                 </div>
-                <p className={`text-sm font-semibold ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}>
-                {t("dashboard.totalBalance")}
-              </p>
+                <p className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                  {t("dashboard.totalBalance")}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                  theme === "dark" 
-                    ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
+                className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
+                    ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
                     : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                }`}
+                  }`}
                 onClick={() => setShowBalance(!showBalance)}
               >
                 {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </Button>
             </div>
-            
-            <p className={`text-3xl font-black mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-            }`}>
+
+            <p className={`text-3xl font-black mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
               {showBalance ? (accountData?.formatted_balance || "Loading...") : "••••••••"}
             </p>
-            
+
             <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${
-                theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-100"
-              }`}>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-100"
+                }`}>
                 <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
                 <p className={`text-sm font-semibold ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`}>
                   {accountData ? `${accountData.utilization_rate.toFixed(1)}%` : t("additional.active")}
                 </p>
               </div>
-              
-              <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                {t("additional.updatedNow")}
-              </p>
+
+              <button
+                onClick={onNavigateToRecharge}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${theme === "dark"
+                    ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold">{t("dashboard.actions.recharge")}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -969,70 +960,64 @@ export function DashboardScreen({
       <div className="relative z-10 px-4 pb-24 overflow-y-auto">
         {/* Quick Actions */}
         <div className="mb-6 sm:mb-8">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {/* Deposit Button */}
             <button
-            onClick={() => {
-              // If user doesn't have USSD permission, go directly to MobCash
-              if (user && user.can_process_ussd_transaction === false) {
-                onNavigateToBettingPlatforms("deposit")
-              } else {
-                setCurrentTransactionTypeSelection("deposit")
-                setShowTransactionTypeSelection(true)
-              }
-            }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${
-              theme === "dark" 
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60" 
+              onClick={() => {
+                // If user doesn't have USSD permission, go directly to MobCash
+                if (user && user.can_process_ussd_transaction === false) {
+                  onNavigateToBettingPlatforms("deposit")
+                } else {
+                  setCurrentTransactionTypeSelection("deposit")
+                  setShowTransactionTypeSelection(true)
+                }
+              }}
+              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
+                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                   : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-              }`}
+                }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
-                } group-hover:scale-110 transition-transform duration-200`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
+                  } group-hover:scale-110 transition-transform duration-200`}>
                   <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}>
-              {t("dashboard.actions.deposit")}
+                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
+                  }`}>
+                  {t("dashboard.actions.deposit")}
                 </p>
               </div>
             </button>
 
             {/* Withdraw Button */}
             <button
-            onClick={() => {
-              // If user doesn't have USSD permission, go directly to MobCash
-              if (user && user.can_process_ussd_transaction === false) {
-                onNavigateToBettingPlatforms("withdraw")
-              } else {
-                setCurrentTransactionTypeSelection("withdraw")
-                setShowTransactionTypeSelection(true)
-              }
-            }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${
-              theme === "dark" 
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60" 
+              onClick={() => {
+                // If user doesn't have USSD permission, go directly to MobCash
+                if (user && user.can_process_ussd_transaction === false) {
+                  onNavigateToBettingPlatforms("withdraw")
+                } else {
+                  setCurrentTransactionTypeSelection("withdraw")
+                  setShowTransactionTypeSelection(true)
+                }
+              }}
+              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
+                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                   : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-              }`}
+                }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-                } group-hover:scale-110 transition-transform duration-200`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                  } group-hover:scale-110 transition-transform duration-200`}>
                   <Minus className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}>
-              {t("dashboard.actions.withdraw")}
+                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
+                  }`}>
+                  {t("dashboard.actions.withdraw")}
                 </p>
               </div>
             </button>
 
-          {/* Recharge Button */}
+            {/* Recharge Button */}
             {/* <button
             onClick={onNavigateToRecharge}
               className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${
@@ -1055,37 +1040,33 @@ export function DashboardScreen({
               </div>
             </button> */}
 
-          {/* Transfer Button */}
-            {/* <button
-            onClick={onNavigateToTransfer}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${
-              theme === "dark" 
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60" 
+            {/* Transfer Button */}
+            <button
+              onClick={onNavigateToTransfer}
+              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
+                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                   : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-              }`}
+                }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
-                } group-hover:scale-110 transition-transform duration-200`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
+                  } group-hover:scale-110 transition-transform duration-200`}>
                   <Send className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}>
+                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
+                  }`}>
                   Transfert UV
                 </p>
               </div>
-            </button> */}
+            </button>
           </div>
-      </div>
+        </div>
 
         {/* Recent Transactions Card */}
-        <div className={`rounded-2xl border transition-all duration-300 ${
-          theme === "dark" 
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
+        <div className={`rounded-2xl border transition-all duration-300 ${theme === "dark"
+            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
             : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-        }`}>
+          }`}>
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className={`text-base sm:text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
@@ -1097,277 +1078,272 @@ export function DashboardScreen({
                   size="sm"
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                    theme === "dark" 
-                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
+                  className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
+                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
                       : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
                 <div className="relative" ref={dropdownRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                    theme === "dark" 
-                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
-                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                  }`}
-                  onClick={() => setShowDropdown(!showDropdown)}
-                >
-                  <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
-                
-                {showDropdown && (
-                  <div className={`absolute right-0 top-10 w-48 sm:w-56 rounded-2xl border shadow-xl z-50 ${
-                    theme === "dark" 
-                      ? "bg-gray-800/95 border-gray-700/50 backdrop-blur-lg" 
-                      : "bg-white/95 border-gray-200/50 backdrop-blur-lg"
-                  }`}>
-                    <div className="p-2">
-                      <button
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${
-                          theme === "dark" 
-                            ? "hover:bg-gray-700/50 text-gray-200" 
-                            : "hover:bg-gray-100 text-gray-900"
-                        }`}
-                        onClick={() => {
-                          onNavigateToTransactionHistory();
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <History className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="truncate">{t("dashboard.transactionHistory")}</span>
-                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                      </button>
-                      <button
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${
-                          theme === "dark" 
-                            ? "hover:bg-gray-700/50 text-gray-200" 
-                            : "hover:bg-gray-100 text-gray-900"
-                        }`}
-                        onClick={() => {
-                          onNavigateToRechargeHistory();
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <Battery className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="truncate">{t("dashboard.rechargeHistory")}</span>
-                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                      </button>
-                      <button
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${
-                          theme === "dark" 
-                            ? "hover:bg-gray-700/50 text-gray-200" 
-                            : "hover:bg-gray-100 text-gray-900"
-                        }`}
-                        onClick={() => {
-                          onNavigateToTransferHistory();
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <Send className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="truncate">Historique des transferts</span>
-                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                      </button>
-                      <button
-                        className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${
-                          theme === "dark" 
-                            ? "hover:bg-gray-700/50 text-gray-200" 
-                            : "hover:bg-gray-100 text-gray-900"
-                        }`}
-                        onClick={() => {
-                          onNavigateToBettingTransactions();
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="truncate">Transactions de Paris</span>
-                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                      </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
+                        ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
+                        : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                      }`}
+                    onClick={() => setShowDropdown(!showDropdown)}
+                  >
+                    <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </Button>
+
+                  {showDropdown && (
+                    <div className={`absolute right-0 top-10 w-48 sm:w-56 rounded-2xl border shadow-xl z-50 ${theme === "dark"
+                        ? "bg-gray-800/95 border-gray-700/50 backdrop-blur-lg"
+                        : "bg-white/95 border-gray-200/50 backdrop-blur-lg"
+                      }`}>
+                      <div className="p-2">
+                        <button
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
+                              ? "hover:bg-gray-700/50 text-gray-200"
+                              : "hover:bg-gray-100 text-gray-900"
+                            }`}
+                          onClick={() => {
+                            onNavigateToTransactionHistory();
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="truncate">{t("dashboard.transactionHistory")}</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
+                        </button>
+                        <button
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
+                              ? "hover:bg-gray-700/50 text-gray-200"
+                              : "hover:bg-gray-100 text-gray-900"
+                            }`}
+                          onClick={() => {
+                            onNavigateToRechargeHistory();
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <Battery className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="truncate">{t("dashboard.rechargeHistory")}</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
+                        </button>
+                        <button
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
+                              ? "hover:bg-gray-700/50 text-gray-200"
+                              : "hover:bg-gray-100 text-gray-900"
+                            }`}
+                          onClick={() => {
+                            onNavigateToTransferHistory();
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="truncate">Historique des transferts</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
+                        </button>
+                        <button
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
+                              ? "hover:bg-gray-700/50 text-gray-200"
+                              : "hover:bg-gray-100 text-gray-900"
+                            }`}
+                          onClick={() => {
+                            onNavigateToBettingTransactions();
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="truncate">Transactions de Paris</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Unified Recent History List */}
             <div className="space-y-2 sm:space-y-1">
-            {isLoadingHistory ? (
-              <div className="flex items-center justify-center py-8">
-                <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
-              </div>
-            ) : recentHistory.length > 0 ? (
-              recentHistory.map((item, index) => {
-                const TypeIcon = item.typeIcon
-                return (
-                  <div
-                    key={`${item.historyType}-${item.uid}`}
-                    onClick={() => {
-                      setSelectedTransaction(item)
-                      setShowTransactionDetails(true)
-                    }}
-                    className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 active:scale-98 cursor-pointer ${
-                      theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-50"
-                    }`}
-                  >
-                    {/* Mobile-first responsive layout */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      {/* Left section - Icon and main info */}
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.typeColor}`}>
-                          <TypeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          {/* Title and type badge - responsive layout */}
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                            <div className="flex flex-col">
-                              <p className={`font-semibold text-sm sm:text-base truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                                {item.historyType === 'transaction' 
-                                  ? (item.display_recipient_name || item.recipient_phone)
-                                  : item.historyType === 'betting'
-                                  ? item.partner_name
-                                  : item.historyType === 'recharge'
-                                  ? item.recipient_phone
-                                  : item.receiver_name
-                                }
-                              </p>
-                              {item.historyType === 'betting' && (
-                                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} truncate`}>
-                                  {item.platform_name}
-                                </p>
-                              )}
-                            </div>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium self-start ${
-                              theme === "dark" 
-                                ? "bg-gray-700 text-gray-300" 
-                                : "bg-gray-100 text-gray-600"
-                            }`}>
-                              {item.typeLabel}
-                            </span>
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : recentHistory.length > 0 ? (
+                recentHistory.map((item, index) => {
+                  const TypeIcon = item.typeIcon
+                  return (
+                    <div
+                      key={`${item.historyType}-${item.uid}`}
+                      onClick={() => {
+                        setSelectedTransaction(item)
+                        setShowTransactionDetails(true)
+                      }}
+                      className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 active:scale-98 cursor-pointer ${theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-50"
+                        }`}
+                    >
+                      {/* Mobile-first responsive layout */}
+                      <div className="flex flex-row justify-between items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        {/* Left section - Icon and main info */}
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.typeColor}`}>
+                            <TypeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                           </div>
-                          
-                          {/* Date and status - mobile optimized */}
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                            <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                              {formatTransactionDate(item.created_at)}
-                            </p>
-                            <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></div>
-                            <p className={`text-xs ${getStatusColor(item.status)}`}>
-                              {item.status_display || item.status}
-                            </p>
-                          </div>
-                          
-                          {/* Reference - mobile optimized */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className={`text-xs font-mono truncate ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                              {item.reference}
-                            </p>
-                            <button
-                              onClick={() => copyReference(item.reference)}
-                              className={`p-1 rounded-lg transition-all duration-200 active:scale-90 flex-shrink-0 ${
-                                theme === "dark" 
-                                  ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300" 
-                                  : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
-                              }`}
-                              title={t("common.copy")}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Right section - Amount and status */}
-                      <div className="flex items-center justify-between sm:flex-col sm:items-end sm:gap-2">
-                        <div className="text-right">
 
-                          <p className={`font-bold text-sm sm:text-base ${
-                            item.historyType === 'transaction' && item.type === "deposit"
-                              ? "text-green-500"
-                              : item.historyType === 'transaction'
-                              ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                              : item.historyType === 'betting' && item.transaction_type === "deposit"
-                              ? "text-purple-500"
-                              : item.historyType === 'betting'
-                              ? (theme === "dark" ? "text-orange-400" : "text-orange-600")
-                              : item.historyType === 'recharge'
-                              ? "text-blue-500"
-                              : "text-cyan-500"
-                          }`}>
-                            {item.historyType === 'transaction' 
-                              ? formatTransactionAmount(item.amount, item.type)
-                              : item.historyType === 'betting' 
-                              ? formatTransactionAmount(item.amount, item.transaction_type)
-                              : item.historyType === 'recharge'
-                              ? `+${formatNumberWithSpaces(item.amount)} FCFA`
-                              : `-${formatNumberWithSpaces(item.amount)} FCFA`
-                            }
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            {/* Title and type badge - responsive layout */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                              <div className="flex flex-col">
+                                <p className={`font-semibold text-sm sm:text-base truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                                  {item.historyType === 'transaction'
+                                    ? (item.display_recipient_name || item.recipient_phone)
+                                    : item.historyType === 'betting'
+                                      ? item.partner_name
+                                      : item.historyType === 'recharge'
+                                        ? item.recipient_phone
+                                        : item.receiver_name
+                                  }
+                                </p>
+                                {item.historyType === 'betting' && (
+                                  <>
+                                    <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} truncate`}>
+                                      {item.platform_name}
+                                    </p>
+                                    {item.betting_user_id && (
+                                      <p className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"} truncate`}>
+                                        ID Paris: {item.betting_user_id}
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                                {item.historyType !== 'betting' && item.betting_user_id && (
+                                  <p className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"} truncate`}>
+                                    ID Paris: {item.betting_user_id}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium self-start ${theme === "dark"
+                                  ? "bg-gray-700 text-gray-300"
+                                  : "bg-gray-100 text-gray-600"
+                                }`}>
+                                {item.typeLabel}
+                              </span>
+                            </div>
+
+                            {/* Date and status - mobile optimized */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                {formatTransactionDate(item.created_at)}
+                              </p>
+                              <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></div>
+                              <p className={`text-xs ${getStatusColor(item.status)}`}>
+                                {item.status_display || item.status}
+                              </p>
+                            </div>
+
+                            {/* Reference - mobile optimized */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className={`text-xs font-mono truncate ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                                {item.reference}
+                              </p>
+                              <button
+                                onClick={() => copyReference(item.reference)}
+                                className={`p-1 rounded-lg transition-all duration-200 active:scale-90 flex-shrink-0 ${theme === "dark"
+                                    ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300"
+                                    : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
+                                  }`}
+                                title={t("common.copy")}
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div className={`w-2 h-2 rounded-full ${
-                          item.status === "success" || item.status === "sent_to_user" || item.status === "completed"
-                            ? "bg-green-500"
-                            : item.status === "pending"
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
-                        }`}></div>
+
+                        {/* Right section - Amount and status */}
+                        <div className="flex flex-col items-end gap-1 ml-auto text-right sm:gap-2">
+                          <div>
+                            <p className={`font-bold text-sm sm:text-base ${item.historyType === 'transaction' && item.type === "deposit"
+                                ? "text-green-500"
+                                : item.historyType === 'transaction'
+                                  ? (theme === "dark" ? "text-red-400" : "text-red-600")
+                                  : item.historyType === 'betting' && item.transaction_type === "deposit"
+                                    ? "text-purple-500"
+                                    : item.historyType === 'betting'
+                                      ? (theme === "dark" ? "text-blue-400" : "text-blue-600")
+                                      : item.historyType === 'recharge'
+                                        ? "text-blue-500"
+                                        : "text-cyan-500"
+                              }`}>
+                              {item.historyType === 'transaction'
+                                ? formatTransactionAmount(item.amount, item.type)
+                                : item.historyType === 'betting'
+                                  ? formatTransactionAmount(item.amount, item.transaction_type)
+                                  : item.historyType === 'recharge'
+                                    ? `+${formatNumberWithSpaces(item.amount)} FCFA`
+                                    : `-${formatNumberWithSpaces(item.amount)} FCFA`
+                              }
+                            </p>
+                          </div>
+                          <div className={`w-2 h-2 rounded-full ${item.status === "success" || item.status === "sent_to_user" || item.status === "completed"
+                              ? "bg-green-500"
+                              : item.status === "pending"
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}></div>
+                        </div>
                       </div>
                     </div>
+                  )
+                })
+              ) : (
+                <div className="text-center py-12">
+                  <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
+                    }`}>
+                    <History className={`w-8 h-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                   </div>
-                )
-              })
-            ) : (
-              <div className="text-center py-12">
-                <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-                  theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                }`}>
-                  <History className={`w-8 h-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                  <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Aucune activité récente
+                  </p>
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                    Vos transactions, recharges et transferts apparaîtront ici
+                  </p>
                 </div>
-                <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Aucune activité récente
-                </p>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                  Vos transactions, recharges et transferts apparaîtront ici
-                </p>
-              </div>
-            )}
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Mobile Sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ease-in-out ${
-        sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"
-      }`}>
+      <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}>
         {/* Backdrop with improved touch handling */}
         <div
           className="fixed inset-0 bg-black/70 backdrop-blur-md transition-all duration-300"
           onClick={() => setSidebarOpen(false)}
         />
-        
+
         {/* Sidebar with mobile-optimized design */}
-        <div className={`fixed inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col h-full shadow-2xl transition-all duration-300 ease-in-out ${
-          theme === "dark" 
-            ? "bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50" 
+        <div className={`fixed inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col h-full shadow-2xl transition-all duration-300 ease-in-out ${theme === "dark"
+            ? "bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50"
             : "bg-white/95 backdrop-blur-xl border-r border-gray-200/50"
-        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-          
+          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+
           {/* Header with improved mobile spacing */}
-          <div className={`flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 border-b ${
-            theme === "dark" ? "border-gray-700/50" : "border-gray-200/50"
-          }`}>
+          <div className={`flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 border-b ${theme === "dark" ? "border-gray-700/50" : "border-gray-200/50"
+            }`}>
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <img src="/logo.png" alt="Blaffa Pay Logo" className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shadow-lg" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
               </div>
               <div>
-                <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
                   Blaffa Pay
                 </span>
                 <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
@@ -1375,18 +1351,18 @@ export function DashboardScreen({
                 </p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setSidebarOpen(false)} 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(false)}
               className="h-10 w-10 rounded-xl active:scale-95 transition-all duration-200"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
-          
+
           {/* Navigation with custom scroll behavior for dashboard */}
-          <nav 
+          <nav
             className="flex-1 space-y-1 px-3 sm:px-4 py-4 sm:py-6 overflow-y-auto overflow-x-hidden scroll-smooth"
             style={{
               scrollbarWidth: 'thin',
@@ -1402,18 +1378,17 @@ export function DashboardScreen({
             }}
           >
             {/* General Section */}
-            
-            
+
+
             {/* Transaction Management Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            }`}>
+            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}>
               <Activity className="h-4 w-4" />
               {t("nav.transactionManagement")}
             </div>
-            
-            
-            
+
+
+
             {/* <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
                 theme === "dark" 
@@ -1432,187 +1407,168 @@ export function DashboardScreen({
               </div>
               <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
             </button> */}
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToRecharge()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
+                }`}>
                 <Zap className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.topup")}</span>
             </button>
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToTransfer()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
+                }`}>
                 <Send className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.transfer")}</span>
             </button>
 
             {/* History Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            }`}>
+            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}>
               <History className="h-4 w-4" />
               {t("nav.history")}
             </div>
-            
+
             {/* Only show transaction history if user has USSD permission */}
             {user && user.can_process_ussd_transaction !== false && (
               <button
-                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                  theme === "dark" 
-                    ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                    ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                     : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
+                  }`}
                 onClick={() => {
                   setSidebarOpen(false)
                   onNavigateToTransactionHistory()
                 }}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                  }`}>
                   <TrendingUp className="h-4 w-4" />
                 </div>
                 <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
               </button>
             )}
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToRechargeHistory()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
+                }`}>
                 <Battery className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.topupHistory")}</span>
             </button>
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-              ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
-              : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToTransferHistory()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
+                }`}>
                 <Send className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.transferHistory")}</span>
             </button>
-            
+
             {/* Betting Platforms Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            }`}>
+            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}>
               <Gamepad2 className="h-4 w-4" />
               {t("nav.bettingPlatforms")}
             </div>
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToBettingPlatforms()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-600"
+                }`}>
                 <Shield className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.platforms")}</span>
             </button>
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToBettingTransactions()
               }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                }`}>
                 <Activity className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.transactions")}</span>
             </button>
-            
+
             <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
                   : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
+                }`}
               onClick={() => {
                 setSidebarOpen(false)
                 onNavigateToBettingCommissions()
               }}
             >
-              
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600"
-              }`}>
+
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600"
+                }`}>
                 <DollarSign className="h-4 w-4" />
               </div>
               <span className="flex-1 text-left">{t("nav.commissions")}</span>
             </button>
           </nav>
-          
+
           {/* Fixed Footer with logout button */}
-          <div className={`mt-auto border-t ${
-            theme === "dark" ? "border-gray-700/50 bg-gray-900/95" : "border-gray-200/50 bg-white/95"
-          } p-4 sm:p-6`}>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start rounded-2xl h-12 text-sm font-medium transition-all duration-200 active:scale-98 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
+          <div className={`mt-auto border-t ${theme === "dark" ? "border-gray-700/50 bg-gray-900/95" : "border-gray-200/50 bg-white/95"
+            } p-4 sm:p-6`}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start rounded-2xl h-12 text-sm font-medium transition-all duration-200 active:scale-98 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
               onClick={() => {
                 setSidebarOpen(false)
                 onLogout()

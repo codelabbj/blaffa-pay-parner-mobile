@@ -20,7 +20,7 @@ export function PermissionDeniedScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Mobile-optimized background elements */}
@@ -29,7 +29,7 @@ export function PermissionDeniedScreen({
           theme === "dark" ? "bg-red-500" : "bg-red-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`} style={{animationDelay: '1.5s'}}></div>
       </div>
 
@@ -87,7 +87,7 @@ export function PermissionDeniedScreen({
               : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
           }`}>
             <div className="flex items-center gap-3 mb-3">
-              <Lock className={`w-5 h-5 ${theme === "dark" ? "text-orange-400" : "text-orange-600"}`} />
+              <Lock className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
               <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                 Permissions Requises
               </span>
@@ -100,7 +100,7 @@ export function PermissionDeniedScreen({
           {/* Back Button */}
           <Button
             onClick={onNavigateBack}
-            className="w-full h-12 sm:h-14 text-sm sm:text-base font-semibold bg-orange-600 hover:bg-orange-700 rounded-xl active:scale-95 transition-all duration-200"
+            className="w-full h-12 sm:h-14 text-sm sm:text-base font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl active:scale-95 transition-all duration-200"
           >
             Retour au Tableau de Bord
           </Button>

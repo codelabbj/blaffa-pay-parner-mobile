@@ -137,7 +137,7 @@ export function BettingCommissionsScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}

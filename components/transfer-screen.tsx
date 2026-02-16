@@ -16,9 +16,10 @@ import { formatNumberWithSpaces } from "@/lib/utils"
 
 interface TransferScreenProps {
   onNavigateBack: () => void
+  onTransactionSuccess?: () => void
 }
 
-export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
+export function TransferScreen({ onNavigateBack, onTransactionSuccess }: TransferScreenProps) {
   const [amount, setAmount] = useState("")
   const [amountError, setAmountError] = useState("")
   const [description, setDescription] = useState("")
@@ -155,7 +156,10 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
       setAmount("")
       setDescription("")
       clearReceiver()
-      
+      // Trigger dashboard refresh
+      if (onTransactionSuccess) {
+        onTransactionSuccess()
+      }
       // Navigate back after modal delay
       setTimeout(() => {
         setShowSuccessModal(false)
@@ -296,7 +300,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -316,7 +320,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -324,7 +328,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
           theme === "dark" ? "bg-blue-500" : "bg-blue-300"
@@ -358,7 +362,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
           </div>
           
           <div className={`p-2.5 rounded-xl ${
-            theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+            theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
           }`}>
             <Send className="w-5 h-5" />
           </div>
@@ -368,7 +372,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              selectedReceiver ? "bg-green-500" : theme === "dark" ? "bg-orange-500" : "bg-orange-600"
+              selectedReceiver ? "bg-green-500" : theme === "dark" ? "bg-blue-500" : "bg-blue-600"
             }`}></div>
             <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
               amount ? "bg-green-500" : theme === "dark" ? "bg-gray-600" : "bg-gray-300"
@@ -647,7 +651,7 @@ export function TransferScreen({ onNavigateBack }: TransferScreenProps) {
           className={`w-full h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-98 ${
             !amount || !selectedReceiver || !description || isProcessing
               ? "bg-gray-400/50 cursor-not-allowed text-gray-600"
-              : "bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg shadow-orange-500/25"
+              : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/25"
           }`}
         >
           {isProcessing ? (

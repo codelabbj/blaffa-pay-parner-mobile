@@ -707,7 +707,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -727,7 +727,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -807,7 +807,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
               onClick={() => setFilterStatus("all")}
               className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
                 filterStatus === "all" 
-                  ? "bg-orange-500 text-white shadow-lg" 
+                  ? "bg-blue-500 text-white shadow-lg" 
                   : theme === "dark" 
                     ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
                     : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"

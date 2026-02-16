@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { 
-  CheckCircle, 
-  Phone, 
-  CreditCard, 
-  Building2, 
-  FileText, 
+import {
+  CheckCircle,
+  Phone,
+  CreditCard,
+  Building2,
+  FileText,
   Copy,
   Clock,
   TrendingUp,
@@ -23,7 +23,14 @@ import {
   X,
   Calendar,
   Hash,
-  User
+  User,
+  Info,
+  Smartphone,
+  Globe,
+  DollarSign,
+  Wallet,
+  Gamepad,
+  Gamepad2
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
@@ -55,13 +62,9 @@ export function TransactionDetailsModal({
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      // Save current body overflow style
       const originalStyle = window.getComputedStyle(document.body).overflow
-      // Prevent body scroll
       document.body.style.overflow = 'hidden'
-      
       return () => {
-        // Restore original overflow on cleanup
         document.body.style.overflow = originalStyle
       }
     }
@@ -69,71 +72,53 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null
 
-  const getTransactionIcon = () => {
-    switch (transaction.historyType) {
-      case 'transaction':
-        return transaction.type === 'deposit' ? TrendingUp : TrendingDown
-      case 'betting':
-        return transaction.transaction_type === 'deposit' ? TrendingUp : TrendingDown
-      case 'recharge':
-        return Battery
-      case 'transfer':
-        return Send
-      default:
-        return CreditCard
-    }
-  }
-
-  const getTransactionColor = () => {
-    switch (transaction.historyType) {
-      case 'transaction':
-        return transaction.type === 'deposit' 
-          ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
-          : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600")
-      case 'betting':
-        return transaction.transaction_type === 'deposit'
-          ? (theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600")
-          : (theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600")
-      case 'recharge':
-        return theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-      case 'transfer':
-        return theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-      default:
-        return theme === "dark" ? "bg-gray-500/20 text-gray-400" : "bg-gray-100 text-gray-600"
-    }
-  }
-
   const getStatusColor = () => {
     switch (transaction.status) {
       case 'success':
       case 'completed':
       case 'sent_to_user':
-        return theme === "dark" ? "text-green-400" : "text-green-600"
+        return "text-green-500"
       case 'pending':
-        return theme === "dark" ? "text-yellow-400" : "text-yellow-600"
+        return "text-yellow-500"
       case 'failed':
-        return theme === "dark" ? "text-red-400" : "text-red-600"
+        return "text-red-500"
       default:
-        return theme === "dark" ? "text-gray-400" : "text-gray-600"
+        return "text-gray-500"
     }
   }
 
-  const getStatusIcon = () => {
+  const getStatusText = () => {
     switch (transaction.status) {
       case 'success':
       case 'completed':
       case 'sent_to_user':
-        return CheckCircle
+        return "Succès"
       case 'pending':
-        return Clock
+        return "En attente"
       case 'failed':
-        return X
+        return "Échoué"
       default:
-        return Clock
+        return transaction.status
+    }
+  }
+
+  const getStatusMessage = () => {
+    switch (transaction.status) {
+      case 'success':
+      case 'completed':
+      case 'sent_to_user':
+        return "Transaction réussie avec succès"
+      case 'pending':
+        return "Transaction en cours de traitement"
+      case 'failed':
+        return "La transaction a échoué"
+      default:
+        return "Statut de la transaction inconnu"
     }
   }
 
   const formatTransactionDate = (dateString: string) => {
+    if (!dateString) return "N/A"
     const date = new Date(dateString)
     return date.toLocaleDateString("fr-FR", {
       day: "2-digit",
@@ -144,11 +129,9 @@ export function TransactionDetailsModal({
     })
   }
 
-  const formatTransactionAmount = (amount: string, type: string) => {
-    const formattedAmount = formatNumberWithSpaces(amount)
-    return type === "deposit" 
-      ? `+${formattedAmount} FCFA`
-      : `-${formattedAmount} FCFA`
+  const formatAmount = (amount: string) => {
+    if (!amount) return "0"
+    return formatNumberWithSpaces(amount)
   }
 
   const copyToClipboard = async (text: string) => {
@@ -163,512 +146,194 @@ export function TransactionDetailsModal({
     }
   }
 
-  const TransactionIcon = getTransactionIcon();
-  const StatusIcon = getStatusIcon();
-  const colors = getTransactionColor();
-  const showAdvanced = false;
-
   if (!mounted || !isOpen) return null
+
+  // Determine Application Name
+  let appName = "Blaffa Pay"
+  if (transaction.historyType === 'betting') {
+    appName = transaction.partner_name || transaction.platform_name || "Paris Sportif"
+  } else if (transaction.historyType === 'recharge') {
+    appName = "Recharge Mobile"
+  } else if (transaction.historyType === 'transfer') {
+    appName = "Transfert"
+  }
+
+  // Determine Network Name
+  const networkName = transaction.network?.nom || transaction.operator || "N/A"
+
+  // Icon Helper for Details
+  const renderDetailRow = (
+    Icon: React.ElementType,
+    label: string,
+    value: string | number | null | undefined,
+    isCopyable: boolean = false,
+    copyValue?: string
+  ) => {
+    if (!value && value !== 0) return null;
+
+    return (
+      <div className={`flex items-start gap-4 py-3 border-b last:border-0 ${theme === "dark" ? "border-gray-800" : "border-gray-100"}`}>
+        <div className={`mt-0.5 p-2 rounded-full ${theme === "dark" ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-blue-600"}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <p className={`text-xs mb-1 font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+            {label}
+          </p>
+          <div className="flex items-center gap-2">
+            <p className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-gray-900"} break-all`}>
+              {value}
+            </p>
+            {isCopyable && copyValue && (
+              <button
+                onClick={() => copyToClipboard(copyValue)}
+                className={`p-1 rounded opacity-70 hover:opacity-100 transition-opacity ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-200"}`}
+              >
+                <Copy className="w-3.5 h-3.5 text-blue-500" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return createPortal(
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 overflow-hidden"
-        onClick={onClose}
-        onTouchMove={(e) => e.preventDefault()}
-      />
-      
       <div
-        className={`fixed bottom-0 left-0 right-0 w-full h-[50vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform flex flex-col ${
-          theme === "dark" 
-            ? "bg-gray-900" 
-            : "bg-white"
-        }`}
-        style={{ 
-          left: 0, 
-          right: 0, 
-          width: '100%',
-          maxWidth: '100vw'
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
+        onClick={onClose}
+      />
+
+      <div
+        className={`fixed left-0 right-0 bottom-0 z-50 transform transition-transform duration-300 ease-in-out ${theme === "dark" ? "bg-gray-900" : "bg-white"
+          } rounded-t-[2rem] shadow-2xl max-h-[90vh] flex flex-col`}
+        style={{
+          boxShadow: "0 -4px 20px rgba(0,0,0,0.1)"
         }}
       >
-        {/* Fixed Header Section (Non-scrollable) */}
-        <div className="flex-shrink-0">
-          {/* Drag Handle */}
-          <div className="flex justify-center pt-2 pb-1">
-            <div className={`w-10 h-1 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`}></div>
-          </div>
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2 px-4">
-            <h2
-              className={`text-sm font-bold ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
-              {transaction.typeLabel || transaction.historyType}
-            </h2>
-            <button
-              onClick={onClose}
-              className={`h-7 w-7 rounded-lg flex items-center justify-center ${
-                theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
-              }`}
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {/* Header */}
+        <div className={`relative px-6 py-4 flex items-center justify-center border-b ${theme === "dark" ? "border-gray-800" : "border-gray-100"}`}>
+          <button
+            onClick={onClose}
+            className={`absolute left-4 p-2 rounded-full transition-colors ${theme === "dark" ? "hover:bg-gray-800 text-gray-400" : "hover:bg-gray-100 text-gray-600"}`}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <h2 className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+            Détails de la transaction
+          </h2>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <div className="space-y-2 w-full">
+        <div className="overflow-y-auto px-6 py-6 pb-12 space-y-6">
 
-            {/* Transaction Info */}
+          {/* Status Section */}
+          <div className="flex flex-col items-center text-center space-y-1">
+            <h3 className={`text-xl font-bold ${getStatusColor()}`}>
+              {getStatusText()}
+            </h3>
+            <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              {getStatusMessage()}
+            </p>
+            <div className={`text-3xl font-black mt-4 mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              {/* Display sign based on type */}
+              XOF {formatAmount(transaction.amount)}
+            </div>
+          </div>
+
+          {/* Message Box */}
+          <div className={`rounded-2xl p-4 flex items-start gap-3 ${theme === "dark" ? "bg-blue-900/20 border border-blue-800/50" : "bg-blue-50 border border-blue-100"
+            }`}>
+            <Info className={`w-5 h-5 shrink-0 mt-0.5 ${theme === "dark" ? "text-blue-400" : "text-blue-500"
+              }`} />
             <div>
-              <h3
-                className={`text-sm font-bold mb-1.5 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-              
-              </h3>
-              <div className="space-y-2">
-                {/* Recipient Info (name and phone) - moved to top */}
-                {(transaction.recipient_name || transaction.display_recipient_name || transaction.recipient_phone || transaction.phone) && (
-                  <div
-                    className={`p-3 rounded-xl border ${
-                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} p-1.5 rounded-lg`}>
-                        <User className={`${theme === "dark" ? "text-gray-300" : "text-gray-700"} w-4 h-4`} />
-                      </div>
-                      <span className={`text-xs font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>Destinataire</span>
-                    </div>
-                    {transaction.recipient_name && (
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom</span>
-                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.recipient_name}</span>
-                      </div>
-                    )}
-                    {!transaction.recipient_name && transaction.display_recipient_name && (
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Nom</span>
-                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.display_recipient_name}</span>
-                      </div>
-                    )}
-                    {(transaction.recipient_phone || transaction.phone) && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Téléphone</span>
-                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.recipient_phone || transaction.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+              <p className={`text-sm font-bold mb-1 ${theme === "dark" ? "text-blue-300" : "text-gray-900"
+                }`}>
+                Message
+              </p>
+              <p className={`text-sm leading-relaxed ${theme === "dark" ? "text-blue-200" : "text-gray-600"
+                }`}>
+                {transaction.objet || transaction.description || transaction.message || getStatusMessage()}
+              </p>
+            </div>
+          </div>
 
-                {/* Betting Quick Info - moved to top */}
-                {transaction.historyType === 'betting' && ((transaction.betting_user_id || transaction.recipient_phone) || (transaction.platform_name || transaction.partner_name)) && (
-                  <div
-                    className={`p-3 rounded-xl border ${
-                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`${theme === "dark" ? "bg-purple-600/20" : "bg-purple-100"} p-1.5 rounded-lg`}>
-                        <CreditCard className={`${theme === "dark" ? "text-purple-300" : "text-purple-600"} w-4 h-4`} />
-                      </div>
-                      <span className={`text-xs font-semibold ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>Paris</span>
-                    </div>
-                    {(transaction.betting_user_id || transaction.recipient_phone) && (
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>ID Utilisateur</span>
-                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.betting_user_id || transaction.recipient_phone}</span>
-                      </div>
-                    )}
-                    {(transaction.platform_name || transaction.partner_name) && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Plateforme</span>
-                        <span className={`${theme === "dark" ? "text-white" : "text-gray-900"} font-bold`}>{transaction.platform_name || transaction.partner_name}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Amount */}
-                <div
-                  className={`p-3 rounded-xl flex items-center justify-between border ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Montant
-                  </span>
-                  <span className={`text-sm font-bold ${
-                    transaction.historyType === 'transaction' && transaction.type === "deposit"
-                      ? "text-green-500"
-                      : transaction.historyType === 'transaction'
-                      ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                      : transaction.historyType === 'betting' && transaction.transaction_type === "deposit"
-                      ? "text-purple-500"
-                      : transaction.historyType === 'betting'
-                      ? (theme === "dark" ? "text-orange-400" : "text-orange-600")
-                      : transaction.historyType === 'recharge'
-                      ? "text-blue-500"
-                      : "text-cyan-500"
-                  }`}>
-                    {transaction.historyType === 'transaction'
-                      ? formatTransactionAmount(transaction.amount, transaction.type)
-                      : transaction.historyType === 'betting'
-                      ? formatTransactionAmount(transaction.amount, transaction.transaction_type)
-                      : transaction.historyType === 'recharge'
-                      ? `+${formatNumberWithSpaces(transaction.amount)} FCFA`
-                      : `-${formatNumberWithSpaces(transaction.amount)} FCFA`
-                    }
-                  </span>
-                </div>
-
-                {/* Status */}
-                <div
-                  className={`p-3 rounded-xl flex items-center justify-between border ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Statut
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <StatusIcon className={`w-4 h-4 ${getStatusColor()}`} />
-                    <span className={`text-sm font-bold ${getStatusColor()}`}>
-                      {transaction.status === 'success' ? 'Réussi' :
-                       transaction.status === 'completed' ? 'Terminé' :
-                       transaction.status === 'sent_to_user' ? 'Envoyé' :
-                       transaction.status === 'pending' ? 'En attente' :
-                       transaction.status === 'failed' ? 'Échoué' : transaction.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Reference */}
-                {transaction.reference && (
-                  <div
-                    className={`p-3 rounded-xl flex items-center justify-between border ${
-                      theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                    }`}
-                  >
-                    <span
-                      className={`text-xs ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      Référence
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-mono ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                        {transaction.reference}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(transaction.reference)}
-                        className={`p-1 rounded ${
-                          theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-200"
-                        }`}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Date */}
-                <div
-                  className={`p-3 rounded-xl flex items-center justify-between border ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Date
-                  </span>
-                  <span className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                    {formatTransactionDate(transaction.created_at)}
-                  </span>
-                </div>
-
-                {/* Recipient Info (name and phone) */}
-                
-              </div>
+          {/* Details Card */}
+          <div className={`rounded-3xl border ${theme === "dark" ? "border-gray-800 bg-gray-900" : "border-gray-100 bg-white"
+            } shadow-sm`}>
+            <div className={`px-5 py-4 border-b ${theme === "dark" ? "border-gray-800" : "border-gray-100"}`}>
+              <h4 className={`font-bold text-sm ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                Informations de la transaction
+              </h4>
             </div>
 
-            {/* Complete API Response Details */}
-            {showAdvanced && (
-            <div>
-              <h3
-                className={`text-sm font-bold mb-1.5 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                DÉTAILS COMPLETS
-              </h3>
-              <div className="space-y-1">
-                {/* UID */}
-                {transaction.uid && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>UID</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.uid}</span>
-                  </div>
-                )}
+            <div className="px-5 py-2">
+              {/* Application */}
+              {renderDetailRow(
+                transaction.historyType === 'betting' ? Gamepad2 : Smartphone,
+                "Application",
+                appName
+              )}
 
-                {/* Type Display */}
-                {transaction.type_display && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Type Affiché</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.type_display}</span>
-                  </div>
-                )}
+              {/* Network */}
+              {renderDetailRow(
+                Globe,
+                "Réseau",
+                networkName
+              )}
 
-                {/* Formatted Amount */}
-                {transaction.formatted_amount && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Montant Formaté</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.formatted_amount}</span>
-                  </div>
-                )}
+              {/* Phone Number / ID */}
+              {renderDetailRow(
+                Phone,
+                "Numéro / ID",
+                transaction.recipient_phone || transaction.phone || transaction.betting_user_id || transaction.receiver_name
+              )}
 
-                {/* Status Display */}
-                {transaction.status_display && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Statut Affiché</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.status_display}</span>
-                  </div>
-                )}
+              {/* Montant (Redundant but requested) */}
+              {renderDetailRow(
+                DollarSign,
+                "Montant",
+                `XOF ${formatAmount(transaction.amount)}`
+              )}
 
-                {/* Network Details */}
-                {transaction.network && (
-                  <>
-                    <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Réseau</span>
-                      <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.network.nom}</span>
-                    </div>
-                    <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Code Réseau</span>
-                      <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.network.code}</span>
-                    </div>
-                    <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Pays</span>
-                      <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.network.country_name}</span>
-                    </div>
-                  </>
-                )}
+              {/* Reference */}
+              {renderDetailRow(
+                FileText,
+                "Référence",
+                transaction.reference,
+                true,
+                transaction.reference
+              )}
 
-                {/* Objet */}
-                {transaction.objet && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Objet</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.objet}</span>
-                  </div>
-                )}
+              {/* Date */}
+              {renderDetailRow(
+                Calendar,
+                "Date",
+                formatTransactionDate(transaction.created_at || transaction.date)
+              )}
 
-                {/* Timing Information */}
-                {transaction.started_at && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Démarré le</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatTransactionDate(transaction.started_at)}</span>
-                  </div>
-                )}
+              {/* Betting ID */}
+              {transaction.historyType === 'betting' && renderDetailRow(
+                User,
+                "ID Paris",
+                transaction.betting_user_id
+              )}
 
-                {transaction.completed_at && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Terminé le</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatTransactionDate(transaction.completed_at)}</span>
-                  </div>
-                )}
+              {/* Balance Before - Key Requirement */}
+              {renderDetailRow(
+                Wallet,
+                "Solde Avant",
+                transaction.balance_before ? `XOF ${formatAmount(transaction.balance_before)}` : null
+              )}
 
-                {transaction.processing_duration && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Durée Traitement</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.processing_duration}s</span>
-                  </div>
-                )}
-
-                {/* Retry Information */}
-                <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                  <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Tentatives</span>
-                  <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.retry_count || 0}/{transaction.max_retries || 0}</span>
-                </div>
-
-                {transaction.can_retry !== undefined && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Peut Réessayer</span>
-                    <span className={`text-xs font-bold ${transaction.can_retry ? "text-green-500" : "text-red-500"}`}>{transaction.can_retry ? "Oui" : "Non"}</span>
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {transaction.error_message && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-red-900/20" : "bg-red-50"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>Message d'Erreur</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>{transaction.error_message}</span>
-                  </div>
-                )}
-
-                {/* Processed By */}
-                {transaction.processed_by_name && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Traité par</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.processed_by_name}</span>
-                  </div>
-                )}
-
-                {/* Priority */}
-                {transaction.priority !== undefined && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Priorité</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.priority}</span>
-                  </div>
-                )}
-
-                {/* Fees */}
-                {transaction.fees && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Frais</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.fees} FCFA</span>
-                  </div>
-                )}
-
-                {/* Balance Information */}
-                {transaction.balance_before && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Solde Avant</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatNumberWithSpaces(transaction.balance_before)} FCFA</span>
-                  </div>
-                )}
-
-                {transaction.balance_after && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Solde Après</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatNumberWithSpaces(transaction.balance_after)} FCFA</span>
-                  </div>
-                )}
-
-                {/* Callback URL */}
-                {transaction.callback_url && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>URL Callback</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`} style={{wordBreak: 'break-all'}}>{transaction.callback_url}</span>
-                  </div>
-                )}
-
-                {/* Betting Specific Fields */}
-                {transaction.historyType === 'betting' && (
-                  <>
-                    {transaction.betting_user_id && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>ID Utilisateur</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.betting_user_id}</span>
-                      </div>
-                    )}
-                    {transaction.withdrawal_code && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Code Retrait</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.withdrawal_code}</span>
-                      </div>
-                    )}
-                    {transaction.external_transaction_id && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>ID Externe</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.external_transaction_id}</span>
-                      </div>
-                    )}
-                    {transaction.commission_rate && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Taux Commission</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{transaction.commission_rate}%</span>
-                      </div>
-                    )}
-                    {transaction.commission_amount && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Montant Commission</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatNumberWithSpaces(transaction.commission_amount)} FCFA</span>
-                      </div>
-                    )}
-                    {transaction.commission_paid !== undefined && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Commission Payée</span>
-                        <span className={`text-xs font-bold ${transaction.commission_paid ? "text-green-500" : "text-red-500"}`}>{transaction.commission_paid ? "Oui" : "Non"}</span>
-                      </div>
-                    )}
-                    {transaction.commission_paid_at && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Commission Payée le</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatTransactionDate(transaction.commission_paid_at)}</span>
-                      </div>
-                    )}
-                    {transaction.partner_refunded !== undefined && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Partenaire Remboursé</span>
-                        <span className={`text-xs font-bold ${transaction.partner_refunded ? "text-green-500" : "text-red-500"}`}>{transaction.partner_refunded ? "Oui" : "Non"}</span>
-                      </div>
-                    )}
-                    {transaction.partner_balance_before && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Solde Partenaire Avant</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatNumberWithSpaces(transaction.partner_balance_before)} FCFA</span>
-                      </div>
-                    )}
-                    {transaction.partner_balance_after && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Solde Partenaire Après</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatNumberWithSpaces(transaction.partner_balance_after)} FCFA</span>
-                      </div>
-                    )}
-                    {transaction.cancellation_requested_at && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-orange-900/20" : "bg-orange-50"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-orange-400" : "text-orange-600"}`}>Annulation Demandée le</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-orange-400" : "text-orange-600"}`}>{formatTransactionDate(transaction.cancellation_requested_at)}</span>
-                      </div>
-                    )}
-                    {transaction.cancelled_at && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-red-900/20" : "bg-red-50"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>Annulé le</span>
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>{formatTransactionDate(transaction.cancelled_at)}</span>
-                      </div>
-                    )}
-                    {transaction.is_cancellable !== undefined && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Peut être Annulé</span>
-                        <span className={`text-xs font-bold ${transaction.is_cancellable ? "text-green-500" : "text-red-500"}`}>{transaction.is_cancellable ? "Oui" : "Non"}</span>
-                      </div>
-                    )}
-                    {transaction.can_request_cancellation !== undefined && (
-                      <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Peut Demander Annulation</span>
-                        <span className={`text-xs font-bold ${transaction.can_request_cancellation ? "text-green-500" : "text-red-500"}`}>{transaction.can_request_cancellation ? "Oui" : "Non"}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-
-                {/* Updated Date */}
-                {transaction.updated_at && transaction.updated_at !== transaction.created_at && (
-                  <div className={`p-2 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Modifié le</span>
-                    <span className={`text-xs font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{formatTransactionDate(transaction.updated_at)}</span>
-                  </div>
-                )}
-              </div>
+              {/* Balance After - Key Requirement */}
+              {renderDetailRow(
+                Wallet,
+                "Solde Après",
+                transaction.balance_after ? `XOF ${formatAmount(transaction.balance_after)}` : null
+              )}
             </div>
-            )}
           </div>
         </div>
       </div>

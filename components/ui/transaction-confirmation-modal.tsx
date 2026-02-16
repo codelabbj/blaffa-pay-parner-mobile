@@ -73,9 +73,9 @@ export function TransactionConfirmationModal({
     switch (transactionData.type) {
       case 'deposit':
         return {
-          primary: theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600",
-          accent: theme === "dark" ? "bg-orange-500/10 border-orange-500/30" : "bg-orange-50 border-orange-200",
-          button: "bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600"
+          primary: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
+          accent: theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200",
+          button: "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600"
         }
       case 'withdrawal':
         return {
@@ -239,7 +239,7 @@ export function TransactionConfirmationModal({
             <div className={`p-4 rounded-xl border ${colors.accent}`}>
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-2 rounded-lg ${
-                  theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+                  theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
                 }`}>
                   <Image className="w-4 h-4" />
                 </div>

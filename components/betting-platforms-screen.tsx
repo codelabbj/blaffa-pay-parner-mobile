@@ -144,7 +144,7 @@ export function BettingPlatformsScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}
@@ -292,7 +292,7 @@ export function BettingPlatformsScreen({
       <div className="relative z-10 px-3 pb-20">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-5 h-5 animate-spin text-orange-500" />
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
           </div>
         ) : (
           <div className="space-y-3">
@@ -455,8 +455,8 @@ export function BettingPlatformsScreen({
                               className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
                                 platform.can_withdraw
                                   ? theme === "dark"
-                                    ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"
-                                    : "bg-orange-100 text-orange-600 hover:bg-orange-200"
+                                    ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
                                   : theme === "dark"
                                   ? "bg-gray-700/50 text-gray-500 cursor-not-allowed"
                                   : "bg-gray-100 text-gray-400 cursor-not-allowed"

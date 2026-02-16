@@ -5,74 +5,139 @@
 
 :root {
   /* Modern Purple & Blue Mobile Design System */
-  --background: #fafbff; /* Soft blue-white background */
-  --foreground: #1e1b4b; /* Deep purple text */
-  --card: #ffffff; /* Pure white cards */
-  --card-foreground: #1e1b4b; /* Purple card text */
-  --popover: #ffffff; /* White popover background */
-  --popover-foreground: #1e1b4b; /* Purple popover text */
-  --primary: #6366f1; /* Indigo primary */
-  --primary-foreground: #ffffff; /* White text on primary */
-  --secondary: #f1f5f9; /* Light gray secondary */
-  --secondary-foreground: #1e1b4b; /* Purple secondary text */
-  --muted: #f8fafc; /* Light muted background */
-  --muted-foreground: #64748b; /* Gray muted text */
-  --accent: #8b5cf6; /* Purple accent */
-  --accent-foreground: #ffffff; /* White text on accent */
-  --destructive: #ef4444; /* Red destructive */
-  --destructive-foreground: #ffffff; /* White destructive text */
-  --border: #e2e8f0; /* Light gray borders */
-  --input: #f8fafc; /* Light input backgrounds */
-  --ring: rgba(99, 102, 241, 0.3); /* Indigo focus ring */
-  --chart-1: #6366f1; /* Indigo chart color */
-  --chart-2: #8b5cf6; /* Purple chart color */
-  --chart-3: #06b6d4; /* Cyan chart color */
-  --chart-4: #ef4444; /* Red chart color */
-  --chart-5: #10b981; /* Emerald chart color */
-  --radius: 1.5rem; /* Large border radius */
-  --sidebar: #ffffff; /* White sidebar */
-  --sidebar-foreground: #1e1b4b; /* Purple sidebar text */
-  --sidebar-primary: #6366f1; /* Indigo sidebar primary */
-  --sidebar-primary-foreground: #ffffff; /* White sidebar primary text */
-  --sidebar-accent: #8b5cf6; /* Purple sidebar accent */
-  --sidebar-accent-foreground: #ffffff; /* White sidebar accent text */
-  --sidebar-border: #e2e8f0; /* Light sidebar borders */
-  --sidebar-ring: rgba(99, 102, 241, 0.3); /* Indigo sidebar ring */
+  --background: #fafbff;
+  /* Soft blue-white background */
+  --foreground: #1e1b4b;
+  /* Deep purple text */
+  --card: #ffffff;
+  /* Pure white cards */
+  --card-foreground: #1e1b4b;
+  /* Purple card text */
+  --popover: #ffffff;
+  /* White popover background */
+  --popover-foreground: #1e1b4b;
+  /* Purple popover text */
+  --primary: #3b82f6;
+  /* Blue primary */
+  --primary-foreground: #ffffff;
+  /* White text on primary */
+  --secondary: #f1f5f9;
+  /* Light gray secondary */
+  --secondary-foreground: #1e1b4b;
+  /* Purple secondary text */
+  --muted: #f8fafc;
+  /* Light muted background */
+  --muted-foreground: #64748b;
+  /* Gray muted text */
+  --accent: #8b5cf6;
+  /* Purple accent */
+  --accent-foreground: #ffffff;
+  /* White text on accent */
+  --destructive: #ef4444;
+  /* Red destructive */
+  --destructive-foreground: #ffffff;
+  /* White destructive text */
+  --border: #e2e8f0;
+  /* Light gray borders */
+  --input: #f8fafc;
+  /* Light input backgrounds */
+  --ring: rgba(59, 130, 246, 0.3);
+  /* Blue focus ring */
+  --chart-1: #3b82f6;
+  /* Blue chart color */
+  --chart-2: #8b5cf6;
+  /* Purple chart color */
+  --chart-3: #06b6d4;
+  /* Cyan chart color */
+  --chart-4: #ef4444;
+  /* Red chart color */
+  --chart-5: #10b981;
+  /* Emerald chart color */
+  --radius: 1.5rem;
+  /* Large border radius */
+  --sidebar: #ffffff;
+  /* White sidebar */
+  --sidebar-foreground: #1e1b4b;
+  /* Purple sidebar text */
+  --sidebar-primary: #3b82f6;
+  /* Blue sidebar primary */
+  --sidebar-primary-foreground: #ffffff;
+  /* White sidebar primary text */
+  --sidebar-accent: #8b5cf6;
+  /* Purple sidebar accent */
+  --sidebar-accent-foreground: #ffffff;
+  /* White sidebar accent text */
+  --sidebar-border: #e2e8f0;
+  /* Light sidebar borders */
+  --sidebar-ring: rgba(59, 130, 246, 0.3);
+  /* Blue sidebar ring */
 }
 
 .dark {
-  --background: #0f0b2e; /* Deep purple-black background */
-  --foreground: #ffffff; /* Pure white text */
-  --card: #1a1a2e; /* Dark purple cards */
-  --card-foreground: #ffffff; /* White card text */
-  --popover: #1a1a2e; /* Dark popover */
-  --popover-foreground: #ffffff; /* White popover text */
-  --primary: #6366f1; /* Indigo primary */
-  --primary-foreground: #ffffff; /* White text on primary */
-  --secondary: #2a2a3e; /* Dark purple secondary */
-  --secondary-foreground: #ffffff; /* White secondary text */
-  --muted: #2a2a3e; /* Dark muted */
-  --muted-foreground: #a1a1aa; /* Light gray muted text */
-  --accent: #8b5cf6; /* Purple accent */
-  --accent-foreground: #ffffff; /* White accent text */
-  --destructive: #ef4444; /* Red destructive */
-  --destructive-foreground: #ffffff; /* White destructive text */
-  --border: #374151; /* Dark gray border */
-  --input: #2a2a3e; /* Dark input */
-  --ring: rgba(99, 102, 241, 0.3); /* Indigo focus ring */
-  --chart-1: #6366f1; /* Indigo chart color */
-  --chart-2: #8b5cf6; /* Purple chart color */
-  --chart-3: #06b6d4; /* Cyan chart color */
-  --chart-4: #ef4444; /* Red chart color */
-  --chart-5: #10b981; /* Emerald chart color */
-  --sidebar: #1a1a2e; /* Dark sidebar */
-  --sidebar-foreground: #ffffff; /* White sidebar text */
-  --sidebar-primary: #6366f1; /* Indigo sidebar primary */
-  --sidebar-primary-foreground: #ffffff; /* White sidebar primary text */
-  --sidebar-accent: #8b5cf6; /* Purple sidebar accent */
-  --sidebar-accent-foreground: #ffffff; /* White sidebar accent text */
-  --sidebar-border: #374151; /* Dark sidebar borders */
-  --sidebar-ring: rgba(99, 102, 241, 0.3); /* Indigo sidebar ring */
+  --background: #0f0b2e;
+  /* Deep purple-black background */
+  --foreground: #ffffff;
+  /* Pure white text */
+  --card: #1a1a2e;
+  /* Dark purple cards */
+  --card-foreground: #ffffff;
+  /* White card text */
+  --popover: #1a1a2e;
+  /* Dark popover */
+  --popover-foreground: #ffffff;
+  /* White popover text */
+  --primary: #3b82f6;
+  /* Blue primary */
+  --primary-foreground: #ffffff;
+  /* White text on primary */
+  --secondary: #2a2a3e;
+  /* Dark purple secondary */
+  --secondary-foreground: #ffffff;
+  /* White secondary text */
+  --muted: #2a2a3e;
+  /* Dark muted */
+  --muted-foreground: #a1a1aa;
+  /* Light gray muted text */
+  --accent: #8b5cf6;
+  /* Purple accent */
+  --accent-foreground: #ffffff;
+  /* White accent text */
+  --destructive: #ef4444;
+  /* Red destructive */
+  --destructive-foreground: #ffffff;
+  /* White destructive text */
+  --border: #374151;
+  /* Dark gray border */
+  --input: #2a2a3e;
+  /* Dark input */
+  --ring: rgba(59, 130, 246, 0.3);
+  /* Blue focus ring */
+  --chart-1: #3b82f6;
+  /* Blue chart color */
+  --chart-2: #8b5cf6;
+  /* Purple chart color */
+  --chart-3: #06b6d4;
+  /* Cyan chart color */
+  --chart-4: #ef4444;
+  /* Red chart color */
+  --chart-5: #10b981;
+  /* Emerald chart color */
+  --sidebar: #1a1a2e;
+  /* Dark sidebar */
+  --sidebar-foreground: #ffffff;
+  /* White sidebar text */
+  --sidebar-primary: #3b82f6;
+  /* Blue sidebar primary */
+  --sidebar-primary-foreground: #ffffff;
+  /* White sidebar primary text */
+  --sidebar-accent: #8b5cf6;
+  /* Purple sidebar accent */
+  --sidebar-accent-foreground: #ffffff;
+  /* White sidebar accent text */
+  --sidebar-border: #374151;
+  /* Dark sidebar borders */
+  --sidebar-ring: rgba(59, 130, 246, 0.3);
+  /* Blue sidebar ring */
 }
 
 @theme inline {
@@ -120,6 +185,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply text-foreground;
     /* Removed bg-background to prevent overriding splash screen background */
@@ -132,6 +198,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -139,12 +206,14 @@
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
+
   50% {
-    box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
   }
 }
 

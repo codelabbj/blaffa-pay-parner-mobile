@@ -14,9 +14,10 @@ import { parseBackendError, formatErrorMessage } from "@/lib/error-utils"
 
 interface DepositScreenProps {
   onNavigateBack: () => void
+  onTransactionSuccess?: () => void
 }
 
-export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
+export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositScreenProps) {
   const [amount, setAmount] = useState("")
   const [amountError, setAmountError] = useState("")
   const [recipientPhone, setRecipientPhone] = useState("")
@@ -100,6 +101,10 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
       // Show success modal
       setShowSuccessModal(true)
       setShowConfirmationModal(false)
+      // Trigger dashboard refresh
+      if (onTransactionSuccess) {
+        onTransactionSuccess()
+      }
       // Navigate back after modal delay
       setTimeout(() => {
         setShowSuccessModal(false)
@@ -222,7 +227,7 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -242,7 +247,7 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -250,7 +255,7 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
           theme === "dark" ? "bg-blue-500" : "bg-blue-300"
@@ -284,7 +289,7 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
           </div>
           
           <div className={`p-2.5 rounded-xl ${
-            theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+            theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
           }`}>
             <Wallet className="w-5 h-5" />
           </div>
@@ -294,10 +299,10 @@ export function DepositScreen({ onNavigateBack }: DepositScreenProps) {
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              showNetworkSelection ? (theme === "dark" ? "bg-orange-500" : "bg-orange-600") : "bg-green-500"
+              showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : "bg-green-500"
             }`}></div>
             <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              !showNetworkSelection ? (theme === "dark" ? "bg-orange-500" : "bg-orange-600") : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
+              !showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
             }`}></div>
             <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
               amount && recipientPhone ? "bg-green-500" : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")

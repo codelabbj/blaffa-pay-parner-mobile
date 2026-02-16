@@ -203,7 +203,7 @@ export function NotificationScreen({ onNavigateBack }: NotificationScreenProps) 
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}
@@ -318,7 +318,7 @@ export function NotificationScreen({ onNavigateBack }: NotificationScreenProps) 
       <div className="relative z-10 px-3 sm:px-4 pb-24">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
           </div>
         ) : filteredNotifications.length > 0 ? (
           <div className="space-y-2 sm:space-y-3">
@@ -387,7 +387,7 @@ export function NotificationScreen({ onNavigateBack }: NotificationScreenProps) 
                                 {notification.transactionData.type === 'deposit' ? (
                                   <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
                                 ) : (
-                                  <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+                                  <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                                 )}
                                 <span className={`text-xs sm:text-sm font-medium ${
                                   theme === "dark" ? "text-gray-300" : "text-gray-700"
@@ -399,7 +399,7 @@ export function NotificationScreen({ onNavigateBack }: NotificationScreenProps) 
                                 <p className={`text-xs sm:text-sm font-bold ${
                                   notification.transactionData.type === 'deposit' 
                                     ? "text-green-500" 
-                                    : "text-orange-500"
+                                    : "text-blue-500"
                                 }`}>
                                   {notification.transactionData.type === 'deposit' ? '+' : '-'}
                                   {formatNumberWithSpaces(notification.transactionData.amount)} FCFA

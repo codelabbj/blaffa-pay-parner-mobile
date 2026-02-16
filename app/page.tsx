@@ -41,7 +41,7 @@ export default function Home() {
   const [navigationHistory, setNavigationHistory] = useState<string[]>([])
   const [bettingTransactionType, setBettingTransactionType] = useState<"deposit" | "withdraw" | undefined>(undefined)
   const { theme } = useTheme()
-  const { isAuthenticated, isLoading, logout, user } = useAuth()
+  const { isAuthenticated, isLoading, logout, user, refreshAccountData, refreshTransactions, refreshRecharges } = useAuth()
 
   const handleSplashComplete = () => {
     setSplashCompleted(true)
@@ -56,6 +56,20 @@ export default function Home() {
     logout()
     setCurrentScreen("login")
     setNavigationHistory([])
+  }
+
+  // Handle successful transaction - refresh all dashboard data
+  const handleTransactionSuccess = async () => {
+    try {
+      // Refresh all dashboard data in parallel
+      await Promise.all([
+        refreshAccountData(),
+        refreshTransactions(),
+        refreshRecharges()
+      ])
+    } catch (error) {
+      console.error('Failed to refresh dashboard data after transaction:', error)
+    }
   }
 
   // Navigation helper functions
@@ -139,7 +153,7 @@ export default function Home() {
         theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
       }`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-sm opacity-70">Loading...</p>
         </div>
       </div>
@@ -156,7 +170,7 @@ export default function Home() {
       <div className={`min-h-screen transition-colors duration-300 ${
         theme === "dark" 
           ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" 
-          : "bg-gradient-to-br from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
       }`}>
         {/* Mobile-First Layout Structure */}
         <div className="flex flex-col min-h-screen">
@@ -257,13 +271,22 @@ export default function Home() {
               />
             )}
             {currentScreen === "deposit" && (
-              <DepositScreen onNavigateBack={navigateBack} />
+              <DepositScreen 
+                onNavigateBack={navigateBack} 
+                onTransactionSuccess={handleTransactionSuccess}
+              />
             )}
             {currentScreen === "withdraw" && (
-              <WithdrawScreen onNavigateBack={navigateBack} />
+              <WithdrawScreen 
+                onNavigateBack={navigateBack} 
+                onTransactionSuccess={handleTransactionSuccess}
+              />
             )}
             {currentScreen === "recharge" && (
-              <RechargeScreen onNavigateBack={navigateBack} />
+              <RechargeScreen 
+                onNavigateBack={navigateBack} 
+                onTransactionSuccess={handleTransactionSuccess}
+              />
             )}
             {currentScreen === "settings" && (
               <SettingsScreen 
@@ -282,7 +305,10 @@ export default function Home() {
               <RechargeHistoryScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "transfer" && (
-              <TransferScreen onNavigateBack={navigateBack} />
+              <TransferScreen 
+                onNavigateBack={navigateBack} 
+                onTransactionSuccess={handleTransactionSuccess}
+              />
             )}
             {currentScreen === "transfer-history" && (
               <TransferHistoryScreen onNavigateBack={navigateBack} />
@@ -305,12 +331,14 @@ export default function Home() {
               <BettingDepositScreen 
                 onNavigateBack={navigateBack}
                 platformUid={selectedPlatformUid}
+                onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "betting-withdraw" && (
               <BettingWithdrawScreen 
                 onNavigateBack={navigateBack}
                 platformUid={selectedPlatformUid}
+                onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "betting-transactions" && (
@@ -375,8 +403,8 @@ export default function Home() {
                   className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                     currentScreen === "withdraw"
                       ? theme === "dark"
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "bg-orange-500/10 text-orange-600"
+                        ? "bg-blue-500/20 text-blue-400"
+                        : "bg-blue-500/10 text-blue-600"
                       : theme === "dark"
                         ? "text-slate-400 hover:text-white"
                         : "text-gray-500 hover:text-gray-900"

@@ -23,11 +23,13 @@ import { formatNumberWithSpaces } from "@/lib/utils"
 interface BettingDepositScreenProps {
   onNavigateBack: () => void
   platformUid?: string
+  onTransactionSuccess?: () => void
 }
 
 export function BettingDepositScreen({
   onNavigateBack,
   platformUid,
+  onTransactionSuccess,
 }: BettingDepositScreenProps) {
   const { theme } = useTheme()
   const { toast } = useToast()
@@ -140,15 +142,26 @@ export function BettingDepositScreen({
         betting_user_id: bettingUserId,
       })
 
-      if (result.UserId === 0) {
+      const verifiedUserData = result.user
+
+      if (
+        !result.success ||
+        !verifiedUserData ||
+        verifiedUserData.user_id === 0 ||
+        verifiedUserData.currency_id !== 27
+      ) {
         setIdValidationError("ID de pari invalide")
         setVerifiedUser(null)
       } else {
-        setVerifiedUser(result)
+        setVerifiedUser({
+          UserId: verifiedUserData.user_id,
+          Name: verifiedUserData.name,
+          CurrencyId: verifiedUserData.currency_id,
+        })
         setIdValidationError("")
         toast({
           title: "Vérification Réussie",
-          description: result.Name ? `Utilisateur: ${result.Name}` : "ID vérifié",
+          description: verifiedUserData.name ? `Utilisateur: ${verifiedUserData.name}` : "ID vérifié",
         })
       }
     } catch (error) {
@@ -267,6 +280,10 @@ export function BettingDepositScreen({
           setAmount("")
           setVerifiedUser(null)
           setShowConfirmation(false)
+          // Trigger dashboard refresh
+          if (onTransactionSuccess) {
+            onTransactionSuccess()
+          }
           // Navigate back after modal delay
           setTimeout(() => {
             setShowSuccessModal(false)
@@ -300,10 +317,10 @@ export function BettingDepositScreen({
         className={`min-h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
       >
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     )
   }
@@ -314,7 +331,7 @@ export function BettingDepositScreen({
         className={`min-h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
       >
         <p className={theme === "dark" ? "text-white" : "text-gray-900"}>
@@ -329,7 +346,7 @@ export function BettingDepositScreen({
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
     >
       {/* Background elements */}

@@ -222,7 +222,7 @@
 //         theme === "dark" ? "bg-gray-900" : "bg-gray-50"
 //       }`}>
 //         <div className="text-center">
-//           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+//           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
 //             {t("profile.loading")}
 //           </p>
@@ -778,10 +778,10 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
       <div className={`min-h-screen flex items-center justify-center ${
         theme === "dark"
           ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}>
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
             {t("profile.loading")}
           </p>
@@ -888,7 +888,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
       className={`min-h-screen relative overflow-hidden ${
         theme === "dark"
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-orange-50 via-white to-blue-50"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
       }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -908,7 +908,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
           } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${
               pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-orange-400" : "text-orange-500"}`} />
+            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
@@ -916,7 +916,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-orange-500" : "bg-orange-300"
+          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
         } blur-2xl animate-pulse`}></div>
         <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
           theme === "dark" ? "bg-blue-500" : "bg-blue-300"
@@ -950,7 +950,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
           </div>
           
           <div className={`p-2.5 rounded-xl ${
-            theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+            theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
           }`}>
             <Settings className="w-5 h-5" />
           </div>
@@ -966,8 +966,8 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
               className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-95 ${
                 activeTab === "profile"
                   ? theme === "dark"
-                    ? "bg-orange-500/20 text-orange-400 shadow-sm"
-                    : "bg-orange-100 text-orange-700 shadow-sm"
+                    ? "bg-blue-500/20 text-blue-400 shadow-sm"
+                    : "bg-blue-100 text-blue-700 shadow-sm"
                   : theme === "dark"
                     ? "text-gray-400 hover:text-gray-300"
                     : "text-gray-600 hover:text-gray-800"
@@ -1043,8 +1043,8 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 className={`h-12 text-base font-medium rounded-xl border-2 transition-all duration-300 ${
                   theme === "dark" 
-                    ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:bg-gray-700" 
-                    : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-orange-500 focus:bg-white"
+                    ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700" 
+                    : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:bg-white"
                 }`}
               />
             </div>
@@ -1140,7 +1140,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
                   onClick={() => setContactMethod("email")}
                   className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
                     contactMethod === "email"
-                      ? "bg-orange-500 text-white shadow-lg"
+                      ? "bg-blue-500 text-white shadow-lg"
                       : theme === "dark"
                         ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
                         : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
@@ -1152,7 +1152,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
                   onClick={() => setContactMethod("phone")}
                   className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
                     contactMethod === "phone"
-                      ? "bg-orange-500 text-white shadow-lg"
+                      ? "bg-blue-500 text-white shadow-lg"
                       : theme === "dark"
                         ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
                         : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
@@ -1250,8 +1250,8 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className={`pr-12 h-12 text-base font-medium rounded-xl border-2 transition-all duration-300 ${
                     theme === "dark" 
-                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:bg-gray-700" 
-                      : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-orange-500 focus:bg-white"
+                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700" 
+                      : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:bg-white"
                   }`}
                 />
                 <button
@@ -1320,7 +1320,7 @@ export function ProfileScreen({ onNavigateBack }: ProfileScreenProps) {
             className={`w-full h-12 text-base font-bold rounded-2xl transition-all duration-200 active:scale-98 ${
               isEditing
                 ? "bg-gray-400/50 cursor-not-allowed text-gray-600"
-                : "bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg shadow-orange-500/25"
+                : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/25"
             }`}
           >
             {isEditing ? (

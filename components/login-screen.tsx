@@ -39,7 +39,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   return (
     <div
       className={`min-h-screen ${
-        theme === "dark" ? "bg-slate-900" : "bg-gradient-to-br from-orange-50 via-white to-blue-50"
+        theme === "dark" ? "bg-slate-900" : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
       }`}
     >
       <div className="min-h-screen flex flex-col">
@@ -84,8 +84,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   className={`h-14 text-base rounded-xl border-2 ${
                     theme === "dark" 
-                      ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-orange-500" 
-                      : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-orange-500"
+                      ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500" 
+                      : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
                   }`}
                   required
                   disabled={isLoading}
@@ -100,8 +100,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   className={`h-14 text-base rounded-xl border-2 pr-14 ${
                     theme === "dark" 
-                      ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-orange-500" 
-                      : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-orange-500"
+                      ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500" 
+                      : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
                   }`}
                   required
                   disabled={isLoading}
@@ -130,8 +130,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : theme === "dark"
-                      ? "bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white"
-                      : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
                 }`}
                 disabled={isLoading}
               >
@@ -149,8 +149,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <div className="text-center">
               <button className={`text-sm font-medium ${
                 theme === "dark" 
-                  ? "text-orange-400 hover:text-orange-300" 
-                  : "text-orange-600 hover:text-orange-700"
+                  ? "text-blue-400 hover:text-blue-300" 
+                  : "text-blue-600 hover:text-blue-700"
               }`}>
                 {t("login.forgotPassword")}
               </button>
