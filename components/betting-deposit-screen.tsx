@@ -68,7 +68,31 @@ export function BettingDepositScreen({
       }
 
       const platformData = await bettingService.getPlatformDetails(accessToken, platformUid)
-      setPlatform(platformData)
+
+      // Enrich with external data if possible
+      try {
+        const externalData = await bettingService.getExternalPlatformData()
+        const match = externalData.find(ext =>
+          ext.id === platformData.external_id ||
+          ext.name.toLowerCase() === platformData.name.toLowerCase() ||
+          ext.public_name?.toLowerCase() === platformData.name.toLowerCase()
+        )
+
+        if (match) {
+          setPlatform({
+            ...platformData,
+            city: match.city || platformData.city,
+            street: match.street || platformData.street,
+            external_image: match.image || platformData.external_image,
+            // Use external image as logo if internal logo is missing
+            logo: platformData.logo || match.image
+          })
+        } else {
+          setPlatform(platformData)
+        }
+      } catch (e) {
+        setPlatform(platformData)
+      }
     } catch (error) {
       console.error("Load platform error:", error)
       onNavigateBack()
@@ -341,19 +365,38 @@ export function BettingDepositScreen({
                 <h3 className={`font-black text-xl leading-tight truncate ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
                   ID {bettingUserId}
                 </h3>
-                <span className="flex h-5 items-center px-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-wider animate-pulse">
-                  Vérifié
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 items-center px-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                    Vérifié
+                  </span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme === "dark" ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"}`}>
+                    {platform?.name}
+                  </span>
+                </div>
               </div>
               <p className={`text-sm font-bold truncate ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
                 {verifiedUser.Name || "Utilisateur vérifié"}
               </p>
+              {(platform.city || platform.street) && (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {platform.city && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme === "dark" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
+                      {platform.city}
+                    </span>
+                  )}
+                  {platform.street && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme === "dark" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
+                      {platform.street}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             {platform?.logo && (
               <div className={`w-14 h-14 rounded-2xl p-2 shrink-0 border ${theme === "dark" ? "bg-slate-700/50 border-slate-600" : "bg-white border-slate-100 shadow-sm"
                 }`}>
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
+                  src={platform.logo.startsWith('http') ? platform.logo : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
                   alt={platform.name}
                   className="w-full h-full object-contain"
                 />

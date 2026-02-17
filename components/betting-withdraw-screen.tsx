@@ -65,7 +65,30 @@ export function BettingWithdrawScreen({
       }
 
       const platformData = await bettingService.getPlatformDetails(accessToken, platformUid)
-      setPlatform(platformData)
+
+      // Enrich with external data if possible
+      try {
+        const externalData = await bettingService.getExternalPlatformData()
+        const match = externalData.find(ext =>
+          ext.id === platformData.external_id ||
+          ext.name.toLowerCase() === platformData.name.toLowerCase() ||
+          ext.public_name?.toLowerCase() === platformData.name.toLowerCase()
+        )
+
+        if (match) {
+          setPlatform({
+            ...platformData,
+            city: match.city || platformData.city,
+            street: match.street || platformData.street,
+            external_image: match.image || platformData.external_image,
+            logo: platformData.logo || match.image
+          })
+        } else {
+          setPlatform(platformData)
+        }
+      } catch (e) {
+        setPlatform(platformData)
+      }
     } catch (error) {
       console.error("Load platform error:", error)
       onNavigateBack()
@@ -280,22 +303,27 @@ export function BettingWithdrawScreen({
 
             {step === 3 && verifiedUser && (
               <div className="animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center flex-1">
-                <h2 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                {/* Platform Logo */}
+                {platform?.logo && (
+                  <div className={`w-16 h-16 rounded-2xl p-2 mb-4 border ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-white border-slate-100 shadow-sm"}`}>
+                    <img
+                      src={platform.logo.startsWith('http') ? platform.logo : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
+                      alt={platform.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+
+                <h2 className={`text-lg font-bold mb-2 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
                   Détails du retrait
                 </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${theme === "dark" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-blue-50 text-blue-600 border border-blue-100"}`}>
+                    {platform?.name}
+                  </span>
+                </div>
 
-                <span className={`text-2xl font-black mb-8 ${theme === "dark" ? "text-white" : "text-slate-800"}`}>
-                  --- F
-                </span>
-
-                <div className="w-full space-y-4 mb-10">
-                  <div className={`border-t border-dashed w-full my-4 ${theme === "dark" ? "border-slate-700" : "border-slate-200"}`} />
-
-                  <div className="flex justify-between items-center text-sm">
-                    <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Transaction</span>
-                    <span className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Retrait</span>
-                  </div>
-
+                <div className="w-full space-y-4 mb-8">
                   <div className="flex justify-between items-center text-sm">
                     <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Destinataire</span>
                     <span className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
@@ -309,6 +337,16 @@ export function BettingWithdrawScreen({
                       {bettingUserId}
                     </span>
                   </div>
+
+                  {(platform?.city || platform?.street) && (
+                    <div className="flex justify-between items-start text-sm">
+                      <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Agence / Adresse</span>
+                      <div className="text-right">
+                        <p className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>{platform.city}</p>
+                        <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>{platform.street}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button
