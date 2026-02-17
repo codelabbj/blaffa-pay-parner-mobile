@@ -1,4 +1,4 @@
-package com.example.app;
+package com.connectpro.app;
 
 import android.os.Bundle;
 import android.webkit.WebView;
@@ -11,5 +11,3 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
     }
 }
-
-

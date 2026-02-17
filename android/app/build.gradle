@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    namespace "com.example.app"
+    namespace "com.connectpro.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.example.app"
+        applicationId "com.connectpro.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -17,20 +17,28 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file("../../release-key.jks")
+            storePassword "CodeLab1992"
+            keyAlias "my-key-alias"
+            keyPassword "CodeLab1992"
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '21'
     }
-
 }
 
 repositories {

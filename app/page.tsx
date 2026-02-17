@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { SplashScreen as CapSplashScreen } from "@capacitor/splash-screen"
 import { SplashScreen } from "@/components/splash-screen"
 import { LoginScreen } from "@/components/login-screen"
 import { DashboardScreen } from "@/components/dashboard-screen"
@@ -24,14 +25,14 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { useTheme } from "@/lib/contexts"
 import { useAuth } from "@/lib/contexts"
 import { mobileBackButtonHandler } from "@/lib/mobile-back-button"
-import { 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  CreditCard, 
-  Settings, 
-  Bell, 
-  Clock, 
-  LogOut 
+import {
+  ArrowUpCircle,
+  ArrowDownCircle,
+  CreditCard,
+  Settings,
+  Bell,
+  Clock,
+  LogOut
 } from "lucide-react"
 
 export default function Home() {
@@ -42,6 +43,18 @@ export default function Home() {
   const [bettingTransactionType, setBettingTransactionType] = useState<"deposit" | "withdraw" | undefined>(undefined)
   const { theme } = useTheme()
   const { isAuthenticated, isLoading, logout, user, refreshAccountData, refreshTransactions, refreshRecharges } = useAuth()
+
+  // Hide native splash screen as soon as the app is mounted
+  useEffect(() => {
+    const hideNativeSplash = async () => {
+      try {
+        await CapSplashScreen.hide()
+      } catch (e) {
+        console.warn('Native splash hide failed', e)
+      }
+    }
+    hideNativeSplash()
+  }, [])
 
   const handleSplashComplete = () => {
     setSplashCompleted(true)
@@ -149,9 +162,8 @@ export default function Home() {
   // Show loading state while checking authentication after splash
   if (!splashCompleted || isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-      }`}>
+      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+        }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-sm opacity-70">Loading...</p>
@@ -167,11 +179,10 @@ export default function Home() {
 
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen transition-colors duration-300 ${
-        theme === "dark" 
-          ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" 
-          : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
-      }`}>
+      <div className={`min-h-screen transition-colors duration-300 ${theme === "dark"
+        ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+        : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
+        }`}>
         {/* Mobile-First Layout Structure */}
         <div className="flex flex-col min-h-screen">
           {/* Top Bar - Only show when authenticated */}
@@ -231,8 +242,8 @@ export default function Home() {
           {/* Main Content Area */}
           <div className="flex-1 overflow-auto ">
             {currentScreen === "dashboard" && (
-              <DashboardScreen 
-                onNavigateToSettings={() => navigateToScreen("settings")} 
+              <DashboardScreen
+                onNavigateToSettings={() => navigateToScreen("settings")}
                 onNavigateToDeposit={() => {
                   if (checkUSSDTransactionPermission()) {
                     navigateToScreen("deposit")
@@ -267,32 +278,32 @@ export default function Home() {
                 onNavigateToBettingDeposit={() => navigateToScreen("betting-deposit")}
                 onNavigateToBettingWithdraw={() => navigateToScreen("betting-withdraw")}
                 onNavigateToNotifications={() => navigateToScreen("notifications")}
-                onLogout={handleLogout} 
+                onLogout={handleLogout}
               />
             )}
             {currentScreen === "deposit" && (
-              <DepositScreen 
-                onNavigateBack={navigateBack} 
+              <DepositScreen
+                onNavigateBack={navigateBack}
                 onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "withdraw" && (
-              <WithdrawScreen 
-                onNavigateBack={navigateBack} 
+              <WithdrawScreen
+                onNavigateBack={navigateBack}
                 onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "recharge" && (
-              <RechargeScreen 
-                onNavigateBack={navigateBack} 
+              <RechargeScreen
+                onNavigateBack={navigateBack}
                 onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "settings" && (
-              <SettingsScreen 
-                onNavigateBack={navigateBack} 
+              <SettingsScreen
+                onNavigateBack={navigateBack}
                 onNavigateToProfile={() => navigateToScreen("profile")}
-                onLogout={handleLogout} 
+                onLogout={handleLogout}
               />
             )}
             {currentScreen === "profile" && (
@@ -305,8 +316,8 @@ export default function Home() {
               <RechargeHistoryScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "transfer" && (
-              <TransferScreen 
-                onNavigateBack={navigateBack} 
+              <TransferScreen
+                onNavigateBack={navigateBack}
                 onTransactionSuccess={handleTransactionSuccess}
               />
             )}
@@ -314,7 +325,7 @@ export default function Home() {
               <TransferHistoryScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "betting-platforms" && (
-              <BettingPlatformsScreen 
+              <BettingPlatformsScreen
                 onNavigateBack={navigateBack}
                 transactionType={bettingTransactionType}
                 onNavigateToBettingDeposit={(platformUid) => {
@@ -328,14 +339,14 @@ export default function Home() {
               />
             )}
             {currentScreen === "betting-deposit" && (
-              <BettingDepositScreen 
+              <BettingDepositScreen
                 onNavigateBack={navigateBack}
                 platformUid={selectedPlatformUid}
                 onTransactionSuccess={handleTransactionSuccess}
               />
             )}
             {currentScreen === "betting-withdraw" && (
-              <BettingWithdrawScreen 
+              <BettingWithdrawScreen
                 onNavigateBack={navigateBack}
                 platformUid={selectedPlatformUid}
                 onTransactionSuccess={handleTransactionSuccess}
@@ -351,7 +362,7 @@ export default function Home() {
               <NotificationScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "permission-denied" && (
-              <PermissionDeniedScreen 
+              <PermissionDeniedScreen
                 onNavigateBack={navigateBack}
                 message="Vous n'êtes pas autorisé à accéder aux transactions USSD. Contactez votre administrateur pour obtenir les permissions nécessaires."
               />
