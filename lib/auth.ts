@@ -52,12 +52,12 @@ class AuthService {
   constructor() {
     // You can set this from environment variables
     this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    
+
     // Load tokens from localStorage on initialization
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('access_token');
       this.refreshToken = localStorage.getItem('refresh_token');
-      
+
       // Start automatic refresh if we have tokens
       if (this.accessToken && this.refreshToken) {
         this.startTokenRefresh();
@@ -81,7 +81,7 @@ class AuthService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // Handle different types of errors
         if (response.status === 401) {
           throw new Error('Invalid credentials. Please check your email/phone and password.');
@@ -100,10 +100,10 @@ class AuthService {
       }
 
       const data: AuthResponse = await response.json();
-      
+
       // Store tokens
       this.setTokens(data.access, data.refresh);
-      
+
       return data;
     } catch (error) {
       console.error('Login error:', error);
@@ -134,10 +134,10 @@ class AuthService {
       }
 
       const data: RefreshResponse = await response.json();
-      
+
       // Update tokens
       this.setTokens(data.access, data.refresh);
-      
+
       return data;
     } catch (error) {
       console.error('Token refresh error:', error);
@@ -199,12 +199,12 @@ class AuthService {
   private setTokens(access: string, refresh: string): void {
     this.accessToken = access;
     this.refreshToken = refresh;
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
     }
-    
+
     // Start automatic refresh
     this.startTokenRefresh();
   }
@@ -218,7 +218,7 @@ class AuthService {
 
     // Refresh token 5 minutes before expiry (assuming 1 hour expiry)
     const refreshInterval = 55 * 60 * 1000; // 55 minutes in milliseconds
-    
+
     this.refreshTimer = setTimeout(async () => {
       try {
         await this.refreshAccessToken();
@@ -233,12 +233,12 @@ class AuthService {
   logout(): void {
     this.accessToken = null;
     this.refreshToken = null;
-    
+
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
     }
-    
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -263,12 +263,123 @@ class AuthService {
   // Get authenticated headers for API calls
   getAuthHeaders(): Record<string, string> {
     if (!this.accessToken) {
-      return {};
+      return {
+        'Content-Type': 'application/json',
+      };
     }
-    
+
     return {
       'Authorization': `Bearer ${this.accessToken}`,
+      'Content-Type': 'application/json',
     };
+  }
+
+  // Request password reset OTP
+  async requestPasswordReset(identifier: string): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/password-reset/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const parsedError = parseBackendError(data);
+        const formattedMessage = formatErrorMessage(parsedError);
+        throw new Error(formattedMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      throw error;
+    }
+  }
+
+  // Confirm password reset with OTP
+  async confirmPasswordReset(payload: { identifier: string, code: string, new_password: string }): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/password-reset/confirm/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const parsedError = parseBackendError(data);
+        const formattedMessage = formatErrorMessage(parsedError);
+        throw new Error(formattedMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Password reset confirm error:', error);
+      throw error;
+    }
+  }
+
+  // Update user profile
+  async updateProfile(updates: Partial<User>): Promise<{ message: string, user: User, changes: string[] }> {
+    if (!this.accessToken) {
+      throw new Error('No access token available');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/profile/`, {
+        method: 'PATCH',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(updates),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const parsedError = parseBackendError(data);
+        const formattedMessage = formatErrorMessage(parsedError);
+        throw new Error(formattedMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  }
+
+  // Update password (while logged in)
+  async updatePassword(payload: { old_password: string, new_password: string }): Promise<{ message: string }> {
+    if (!this.accessToken) {
+      throw new Error('No access token available');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/password-update/`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const parsedError = parseBackendError(data);
+        const formattedMessage = formatErrorMessage(parsedError);
+        throw new Error(formattedMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Update password error:', error);
+      throw error;
+    }
   }
 }
 

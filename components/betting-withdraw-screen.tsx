@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import {
   ArrowLeft,
-  TrendingDown,
-  Gamepad2,
-  AlertCircle,
+  ChevronLeft,
   Loader2,
-  CheckCircle,
-  Check,
   X,
+  Check,
+  Search,
+  Wallet,
+  Mail,
+  Gamepad2,
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
-import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingPlatform } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
@@ -32,25 +32,23 @@ export function BettingWithdrawScreen({
   onTransactionSuccess,
 }: BettingWithdrawScreenProps) {
   const { theme } = useTheme()
-  const { toast } = useToast()
 
-  const [platform, setPlatform] = useState<BettingPlatform | null>(null)
+  const [platform, setPlatform] = useState<BettingPlatform | any>(null)
   const [isLoadingPlatform, setIsLoadingPlatform] = useState(true)
+  const [step, setStep] = useState(1) // 1: User ID, 2: Withdrawal Code, 3: Confirmation
   const [bettingUserId, setBettingUserId] = useState("")
   const [withdrawalCode, setWithdrawalCode] = useState("")
-  const [isCreating, setIsCreating] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [showErrorModal, setShowErrorModal] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState<{
     UserId: number
     Name?: string
     CurrencyId?: number
   } | null>(null)
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null)
-  const [idValidationError, setIdValidationError] = useState("")
+
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [lastUserId, setLastUserId] = useState("")
+  const [error, setError] = useState("")
 
   useEffect(() => {
     if (platformUid) {
@@ -66,147 +64,57 @@ export function BettingWithdrawScreen({
         throw new Error("Missing credentials or platform ID")
       }
 
-      // Load platform details first
       const platformData = await bettingService.getPlatformDetails(accessToken, platformUid)
-
-      // Try to load external platform data, but don't fail if it doesn't work
-      let externalPlatform = null
-      try {
-        const externalData = await bettingService.getExternalPlatformData()
-        externalPlatform = externalData.find(ext => ext.id === platformData.external_id)
-      } catch (externalError) {
-        console.warn("External platform data failed to load:", externalError)
-        // Continue without external data - platform will still work
-      }
-      
-      // Merge platform data with external city/street/image data (if available)
-      const enrichedPlatform = {
-        ...platformData,
-        city: externalPlatform?.city,
-        street: externalPlatform?.street,
-        external_image: externalPlatform?.image
-      }
-
-      setPlatform(enrichedPlatform)
+      setPlatform(platformData)
     } catch (error) {
       console.error("Load platform error:", error)
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de charger la plateforme",
-        variant: "destructive",
-      })
       onNavigateBack()
     } finally {
       setIsLoadingPlatform(false)
     }
   }
 
-
-  // Debounced verification function
-  const debouncedVerifyUserId = useCallback(() => {
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout)
-    }
-    
-    if (!bettingUserId || !platform || bettingUserId.length < 3) {
-      setVerifiedUser(null)
-      setIdValidationError("")
-      return
-    }
-
-    const timeout = setTimeout(async () => {
-      await handleVerifyUserId()
-    }, 800) // 800ms delay
-    
-    setDebounceTimeout(timeout)
-  }, [bettingUserId, platform])
-
   const handleVerifyUserId = async () => {
     if (!bettingUserId || !platform) return
 
     setIsVerifying(true)
-    setVerifiedUser(null)
-    setIdValidationError("")
+    setError("")
 
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
       const result = await bettingService.verifyUserId(accessToken, {
         platform_uid: platform.uid,
         betting_user_id: bettingUserId,
       })
 
-      const verifiedUserData = result.user
-
-      if (
-        !result.success ||
-        !verifiedUserData ||
-        verifiedUserData.user_id === 0 ||
-        verifiedUserData.currency_id !== 27
-      ) {
-        setIdValidationError("ID de pari invalide")
-        setVerifiedUser(null)
-      } else {
+      if (result.success && result.user && result.user.user_id !== 0) {
         setVerifiedUser({
-          UserId: verifiedUserData.user_id,
-          Name: verifiedUserData.name,
-          CurrencyId: verifiedUserData.currency_id,
+          UserId: result.user.user_id,
+          Name: result.user.name,
+          CurrencyId: result.user.currency_id,
         })
-        setIdValidationError("")
-        toast({
-          title: "Vérification Réussie",
-          description: verifiedUserData.name ? `Utilisateur: ${verifiedUserData.name}` : "ID vérifié",
-        })
-      }
-    } catch (error) {
-      console.error("Verify user ID error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Impossible de vérifier l'ID"
-      
-      if (errorMessage === 'Invalid betting user ID') {
-        setIdValidationError("ID de pari invalide")
-        setVerifiedUser(null)
+        setStep(2)
       } else {
-        toast({
-          title: "Erreur de Vérification",
-          description: errorMessage,
-          variant: "destructive",
-        })
-        setIdValidationError("Erreur de vérification")
-        setVerifiedUser(null)
+        setError("ID de pari invalide")
       }
+    } catch (error: any) {
+      setError(error.message || "Impossible de vérifier l'ID")
     } finally {
       setIsVerifying(false)
     }
   }
 
-  // Auto-verify betting user ID when user stops typing
-  useEffect(() => {
-    if (bettingUserId && bettingUserId.length >= 3 && platform) {
-      debouncedVerifyUserId()
-    }
-    
-    // Cleanup timeout on unmount
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-      }
-    }
-  }, [bettingUserId, platform])
-
-
   const handleCreateWithdrawal = async () => {
-    if (!bettingUserId || !withdrawalCode || !platform) return
+    if (!verifiedUser || !withdrawalCode || !platform) return
 
     setIsCreating(true)
+    setError("")
 
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
       const result = await bettingService.createWithdrawal(accessToken, {
         platform_uid: platform.uid,
@@ -215,737 +123,206 @@ export function BettingWithdrawScreen({
       })
 
       if (result.success) {
-        // Check if transaction status is failed despite success being true
         if (result.transaction && result.transaction.status === "failed") {
-          // Extract error message from external_response
-          const errorMessage = result.transaction.external_response?.error || 
-                              result.transaction.notes || 
-                              "Le retrait a échoué"
-          setErrorMessage(errorMessage)
-          setShowErrorModal(true)
-          // Auto-hide error modal after 5 seconds
-          setTimeout(() => {
-            setShowErrorModal(false)
-          }, 5000)
+          setError(result.transaction.external_response?.error || result.transaction.notes || "Le retrait a échoué")
+          setStep(2)
         } else {
-          // Show success modal
-          setShowSuccessModal(true)
-          // Reset form
-          setBettingUserId("")
-          setWithdrawalCode("")
-          setShowConfirmation(false)
-          // Trigger dashboard refresh
-          if (onTransactionSuccess) {
-            onTransactionSuccess()
-          }
-          // Navigate back after modal delay
+          setLastUserId(bettingUserId)
+          setShowSuccessToast(true)
+
+          if (onTransactionSuccess) onTransactionSuccess()
+
           setTimeout(() => {
-            setShowSuccessModal(false)
-            setTimeout(() => {
-              onNavigateBack()
-            }, 300) // Small delay for modal close animation
-          }, 2500)
+            setShowSuccessToast(false)
+            onNavigateBack()
+          }, 3500)
         }
       } else {
         throw new Error(result.message || "Le retrait a échoué")
       }
-    } catch (error) {
-      console.error("Create withdrawal error:", error)
-      const errorMsg = error instanceof Error ? error.message : "Impossible de créer le retrait"
-      setErrorMessage(errorMsg)
-      setShowErrorModal(true)
-      // Auto-hide error modal after 5 seconds
-      setTimeout(() => {
-        setShowErrorModal(false)
-      }, 5000)
+    } catch (error: any) {
+      setError(error.message || "Impossible de créer le retrait")
+      setStep(2)
     } finally {
       setIsCreating(false)
     }
   }
 
-
   if (isLoadingPlatform) {
     return (
-      <div
-        className={`min-h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-      >
+      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-[#0f172a]" : "bg-[#f8fafc]"}`}>
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     )
   }
 
-  if (!platform) {
-    return (
-      <div
-        className={`min-h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-      >
-        <p className={theme === "dark" ? "text-white" : "text-gray-900"}>
-          Plateforme non trouvée
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
-    >
-      {/* Background elements */}
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${theme === "dark" ? "bg-[#0f172a]" : "bg-[#f8fafc]"
+      }`}>
+      {/* Premium Mesh Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-3xl animate-pulse`}
-        ></div>
-        <div
-          className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-red-500" : "bg-red-300"
-          } blur-2xl animate-pulse`}
-          style={{ animationDelay: "2s" }}
-        ></div>
+        <div className={`absolute -top-[10%] -right-[10%] w-[70%] h-[50%] rounded-[100%] opacity-20 blur-[120px] animate-pulse ${theme === "dark" ? "bg-red-500" : "bg-red-300"
+          }`} style={{ animationDuration: '8s' }} />
+        <div className={`absolute top-[20%] -left-[10%] w-[60%] h-[40%] rounded-[100%] opacity-10 blur-[100px] animate-pulse ${theme === "dark" ? "bg-blue-500" : "bg-blue-200"
+          }`} style={{ animationDuration: '12s', animationDelay: '2s' }} />
       </div>
+
+      {/* Success Toast Overlay */}
+      {showSuccessToast && (
+        <div className="fixed top-8 left-0 right-0 z-[100] px-4 animate-in slide-in-from-top duration-500">
+          <div className={`max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark" ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl" : "bg-white/90 border-slate-100 backdrop-blur-xl"
+            }`}>
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+              <Check className="w-7 h-7 text-white" strokeWidth={3} />
+            </div>
+            <div className="flex-1">
+              <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Retrait</h3>
+              <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                Votre demande de retrait pour le compte {lastUserId} a été créée.
+              </p>
+            </div>
+            <button onClick={() => setShowSuccessToast(false)} className="p-2 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-full">
+              <X className={`w-6 h-6 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
-      <div className="relative z-10 px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNavigateBack}
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1
-                className={`text-2xl font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Retrait de Paris
-              </h1>
-              <p
-                className={`text-sm ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                {platform.name}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Platform Info Card */}
-        <Card
-          className={`p-4 rounded-2xl border mb-6 ${
-            theme === "dark"
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}
+      <div className="p-4 flex items-center justify-between z-10 relative mt-2">
+        <Button
+          variant="ghost" size="sm"
+          onClick={step > 1 ? () => setStep(step - 1) : onNavigateBack}
+          className={`h-11 w-11 p-0 rounded-2xl transition-all active:scale-90 ${theme === "dark" ? "text-slate-300 hover:bg-slate-800/40" : "text-slate-600 hover:bg-slate-100"
+            }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center">
-              {platform.external_image ? (
-                <img
-                  src={platform.external_image}
-                  alt={platform.name}
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-              ) : platform.logo ? (
-                <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
-                  alt={platform.name}
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-              ) : (
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-blue-600 to-red-600"
-                    : "bg-gradient-to-br from-blue-500 to-red-500"
-                }`}>
-                  <Gamepad2 className="w-6 h-6 text-white" />
-                </div>
-              )}
-            </div>
-            <div>
-              <h3
-                className={`font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {platform.name}
-              </h3>
-              <p
-                className={`text-xs ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Min: {formatNumberWithSpaces(platform.min_withdrawal_amount)} - Max:{" "}
-                {formatNumberWithSpaces(platform.max_withdrawal_amount)} FCFA
-              </p>
-            </div>
-          </div>
-        </Card>
+          <ChevronLeft className="w-6 h-6" />
+        </Button>
+        <div className="text-center">
+          <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+            Retrait de paris
+          </p>
+        </div>
+        <div className="w-11" /> {/* Spacer */}
       </div>
 
-      {/* Form Content */}
-      <div className="relative z-10 px-4 pb-24">
-        {!showConfirmation ? (
-          <div className="space-y-6">
-            {/* City and Street Fields */}
-            <div>
-              <label
-                className={`block text-sm font-semibold mb-3 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}
-              >
-                Informations de Localisation
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label
-                    className={`block text-xs font-medium mb-1 ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-600"
-                    }`}
-                  >
-                    Ville
-                  </label>
-                  <div
-                    className={`h-12 rounded-xl px-4 flex items-center ${
-                      theme === "dark"
-                        ? "bg-gray-800/60 border border-gray-700 text-gray-300"
-                        : "bg-gray-100 border border-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {platform?.city || "Non spécifié"}
-                  </div>
-                </div>
-                <div>
-                  <label
-                    className={`block text-xs font-medium mb-1 ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-600"
-                    }`}
-                  >
-                    Rue
-                  </label>
-                  <div
-                    className={`h-12 rounded-xl px-4 flex items-center ${
-                      theme === "dark"
-                        ? "bg-gray-800/60 border border-gray-700 text-gray-300"
-                        : "bg-gray-100 border border-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {platform?.street || "Non spécifié"}
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="flex-1 flex flex-col items-center justify-end z-10 relative h-[calc(100vh-120px)]">
+        <div className={`w-full rounded-t-[2.5rem] shadow-2xl transition-all duration-700 transform animate-in slide-in-from-bottom-full overflow-hidden flex flex-col ${theme === "dark" ? "bg-slate-900/60 border-t border-slate-800/50 backdrop-blur-2xl" : "bg-white border-t border-white/50 backdrop-blur-2xl shadow-[0_-15px_50px_rgba(0,0,0,0.1)]"
+          }`}>
+          {/* Modal Handle */}
+          <div className="flex justify-center pt-4 pb-2">
+            <div className={`w-12 h-1 rounded-full ${theme === "dark" ? "bg-slate-700" : "bg-slate-200"}`} />
+          </div>
 
-            {/* Betting User ID */}
-            <div>
-              <label
-                className={`block text-sm font-semibold mb-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}
-              >
-                ID Utilisateur de Paris
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={bettingUserId}
-                  onChange={(e) => {
-                    setBettingUserId(e.target.value)
-                    setVerifiedUser(null)
-                    setIdValidationError("")
-                  }}
-                  placeholder="Entrez l'ID utilisateur"
-                  className={`flex-1 h-12 rounded-xl ${
-                    idValidationError
-                      ? theme === "dark"
-                        ? "bg-red-900/20 border-red-500 text-white"
-                        : "bg-red-50 border-red-300 text-gray-900"
-                      : verifiedUser
-                      ? theme === "dark"
-                        ? "bg-green-900/20 border-green-500 text-white"
-                        : "bg-green-50 border-green-300 text-gray-900"
-                      : theme === "dark"
-                      ? "bg-gray-800/60 border-gray-700 text-white"
-                      : "bg-white border-gray-200 text-gray-900"
-                  }`}
-                  disabled={isVerifying || isCreating}
-                />
+          {/* Stepper Content */}
+          <div className="p-8 flex-1 flex flex-col">
+            {step === 1 && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col flex-1">
+                <h2 className={`text-xl font-bold text-center mb-10 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                  Retirer
+                </h2>
+                <div className="space-y-6 flex-1">
+                  <div className="space-y-2">
+                    <label className={`text-xs font-medium ml-1 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                      Saisissez l'ID Utilisateur
+                    </label>
+                    <Input
+                      type="tel" inputMode="numeric"
+                      value={bettingUserId}
+                      onChange={(e) => setBettingUserId(e.target.value)}
+                      placeholder="Enter user id"
+                      className={`h-14 rounded-2xl border-none outline-none text-lg ${theme === "dark" ? "bg-slate-800/50 text-white" : "bg-slate-50 text-slate-900"
+                        }`}
+                    />
+                  </div>
+                  {error && <p className="text-red-500 text-xs font-bold text-center">{error}</p>}
+                </div>
                 <Button
                   onClick={handleVerifyUserId}
-                  disabled={!bettingUserId || isVerifying || isCreating}
-                  className={`h-12 px-6 rounded-xl font-semibold ${
-                    theme === "dark"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                  }`}
+                  disabled={!bettingUserId || isVerifying}
+                  className="w-full h-14 rounded-2xl bg-[#4d69ec] hover:bg-[#3f57d1] text-white font-bold text-base mt-8 shadow-lg shadow-blue-500/20"
                 >
-                  {isVerifying ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Vérifier"
-                  )}
+                  {isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : "Suivant"}
                 </Button>
               </div>
+            )}
 
-              {/* Verification Status */}
-              {verifiedUser && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-green-500/20" : "bg-green-100"
-                  }`}
-                >
-                  <CheckCircle
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-green-400" : "text-green-600"
-                    }`}
-                  />
-                  <div>
-                    <p
-                      className={`text-sm font-semibold ${
-                        theme === "dark" ? "text-green-400" : "text-green-600"
-                      }`}
-                    >
-                      ID Vérifié
-                    </p>
-                    {verifiedUser.Name && (
-                      <p
-                        className={`text-xs ${
-                          theme === "dark" ? "text-green-300" : "text-green-700"
+            {step === 2 && verifiedUser && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 flex flex-col flex-1">
+                <h2 className={`text-xl font-bold text-center mb-10 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                  Retirer
+                </h2>
+                <div className="space-y-6 flex-1">
+                  <div className="space-y-2">
+                    <label className={`text-xs font-medium ml-1 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                      Saisissez le code de retrait
+                    </label>
+                    <Input
+                      type="text"
+                      value={withdrawalCode}
+                      onChange={(e) => setWithdrawalCode(e.target.value)}
+                      placeholder="Code de retrait"
+                      className={`h-14 rounded-2xl border-none outline-none text-lg ${theme === "dark" ? "bg-slate-800/50 text-white" : "bg-slate-50 text-slate-900"
                         }`}
-                      >
-                        {verifiedUser.Name}
-                      </p>
-                    )}
+                    />
+                  </div>
+                  {error && <p className="text-red-500 text-xs font-bold text-center">{error}</p>}
+                </div>
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={!withdrawalCode}
+                  className="w-full h-14 rounded-2xl bg-[#4d69ec] hover:bg-[#3f57d1] text-white font-bold text-base mt-8 shadow-lg shadow-blue-500/20"
+                >
+                  Suivant
+                </Button>
+              </div>
+            )}
+
+            {step === 3 && verifiedUser && (
+              <div className="animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center flex-1">
+                <h2 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                  Détails du retrait
+                </h2>
+
+                <span className={`text-2xl font-black mb-8 ${theme === "dark" ? "text-white" : "text-slate-800"}`}>
+                  --- F
+                </span>
+
+                <div className="w-full space-y-4 mb-10">
+                  <div className={`border-t border-dashed w-full my-4 ${theme === "dark" ? "border-slate-700" : "border-slate-200"}`} />
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Transaction</span>
+                    <span className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Retrait</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Destinataire</span>
+                    <span className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                      {verifiedUser.Name || "yao ahou"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>Identifiant WebUser</span>
+                    <span className={`font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                      {bettingUserId}
+                    </span>
                   </div>
                 </div>
-              )}
 
-              {/* Error Message */}
-              {idValidationError && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-                  }`}
-                >
-                  <AlertCircle
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
-                    }`}
-                  />
-                  <p
-                    className={`text-sm font-semibold ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
-                    }`}
-                  >
-                    {idValidationError}
-                  </p>
-                </div>
-              )}
-
-              {/* Verification Loading */}
-              {isVerifying && !verifiedUser && !idValidationError && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
-                  }`}
-                >
-                  <Loader2 className={`w-5 h-5 animate-spin ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  <p
-                    className={`text-sm font-semibold ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-600"
-                    }`}
-                  >
-                    Vérification en cours...
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Withdrawal Code */}
-            <div>
-              <label
-                className={`block text-sm font-semibold mb-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}
-              >
-                Code de Retrait
-              </label>
-              <Input
-                type="text"
-                value={withdrawalCode}
-                onChange={(e) => setWithdrawalCode(e.target.value)}
-                placeholder="Entrez le code de retrait"
-                className={`h-14 rounded-xl text-lg font-semibold ${
-                  theme === "dark"
-                    ? "bg-gray-800/60 border-gray-700 text-white"
-                    : "bg-white border-gray-200 text-gray-900"
-                }`}
-                disabled={isCreating}
-              />
-              <p
-                className={`mt-2 text-xs ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Le code de retrait est fourni par la plateforme de paris
-              </p>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              onClick={() => setShowConfirmation(true)}
-              disabled={!bettingUserId || !withdrawalCode || isCreating}
-              className={`w-full h-14 rounded-xl text-lg font-bold ${
-                theme === "dark"
-                  ? "bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white"
-                  : "bg-gradient-to-r from-blue-500 to-red-500 hover:from-blue-400 hover:to-red-400 text-white"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <TrendingDown className="w-6 h-6 mr-2" />
-              Continuer
-            </Button>
-          </div>
-        ) : (
-          /* Confirmation Screen */
-          <div className="space-y-6">
-            <Card
-              className={`p-6 rounded-2xl border ${
-                theme === "dark"
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                  : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-            >
-              <h2
-                className={`text-lg font-bold mb-4 ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Confirmer le Retrait
-              </h2>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Plateforme
-                  </span>
-                  <span
-                    className={`font-semibold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {platform.name}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    ID Utilisateur
-                  </span>
-                  <span
-                    className={`font-semibold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {bettingUserId}
-                  </span>
-                </div>
-
-                <div
-                  className={`h-px ${
-                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                  }`}
-                ></div>
-
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Code de Retrait
-                  </span>
-                  <span
-                    className={`text-xl font-bold ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-600"
-                    }`}
-                  >
-                    {withdrawalCode}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                className={`mt-4 p-3 rounded-xl flex items-start gap-2 ${
-                  theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
-                }`}
-              >
-                <AlertCircle
-                  className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                    theme === "dark" ? "text-blue-400" : "text-blue-600"
-                  }`}
-                />
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-blue-300" : "text-blue-700"
-                  }`}
-                >
-                  Assurez-vous que le code de retrait est correct. Cette action ajoutera
-                  des fonds à votre compte.
-                </p>
-              </div>
-            </Card>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setShowConfirmation(false)}
-                disabled={isCreating}
-                variant="outline"
-                className={`flex-1 h-14 rounded-xl text-lg font-bold ${
-                  theme === "dark"
-                    ? "border-gray-700 text-gray-300 hover:bg-gray-800"
-                    : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Retour
-              </Button>
-              <Button
-                onClick={handleCreateWithdrawal}
-                disabled={isCreating}
-                className={`flex-1 h-14 rounded-xl text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white"
-                    : "bg-gradient-to-r from-blue-500 to-red-500 hover:from-blue-400 hover:to-red-400 text-white"
-                }`}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                    Traitement...
-                  </>
-                ) : (
-                  "Confirmer"
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowSuccessModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div 
-            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
-              showSuccessModal 
-                ? 'translate-y-0 opacity-100' 
-                : 'translate-y-full opacity-0'
-            } ${
-              theme === "dark"
-                ? "bg-gray-800 border-t border-gray-700"
-                : "bg-white border-t border-gray-200"
-            }`}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-center pt-8 pb-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                theme === "dark" 
-                  ? "bg-green-500/20" 
-                  : "bg-green-100"
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  theme === "dark" 
-                    ? "bg-green-500" 
-                    : "bg-green-500"
-                }`}>
-                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 pb-8 text-center">
-              <h2 className={`text-2xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Retrait Réussi !
-              </h2>
-              <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                Votre retrait a été effectué avec succès
-              </p>
-              
-              {/* Transaction Details */}
-              <div className={`mt-6 p-4 rounded-2xl ${
-                theme === "dark" 
-                  ? "bg-gray-700/50" 
-                  : "bg-gray-50"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    Code de Retrait
-                  </span>
-                  <span className={`font-bold ${
-                    theme === "dark" ? "text-blue-400" : "text-blue-600"
-                  }`}>
-                    {withdrawalCode}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    Plateforme
-                  </span>
-                  <span className={`text-sm font-semibold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {platform?.name}
-                  </span>
-                </div>
-              </div>
-
-              {/* Success Animation */}
-              <div className="mt-6 flex justify-center">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowErrorModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div 
-            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
-              showErrorModal 
-                ? 'translate-y-0 opacity-100' 
-                : 'translate-y-full opacity-0'
-            } ${
-              theme === "dark"
-                ? "bg-gray-800 border-t border-gray-700"
-                : "bg-white border-t border-gray-200"
-            }`}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-center pt-8 pb-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                theme === "dark" 
-                  ? "bg-red-500/20" 
-                  : "bg-red-100"
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  theme === "dark" 
-                    ? "bg-red-500" 
-                    : "bg-red-500"
-                }`}>
-                  <X className="w-10 h-10 text-white" strokeWidth={3} />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 pb-8 text-center">
-              <h2 className={`text-2xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Erreur de Retrait
-              </h2>
-              <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                {errorMessage}
-              </p>
-              
-              {/* Error Details */}
-              <div className={`mt-6 p-4 rounded-2xl ${
-                theme === "dark" 
-                  ? "bg-red-500/10 border border-red-500/20" 
-                  : "bg-red-50 border border-red-200"
-              }`}>
-                <div className="flex items-center justify-center gap-2">
-                  <AlertCircle className={`w-5 h-5 ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`}>
-                    Veuillez réessayer
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="mt-6">
                 <Button
-                  onClick={() => setShowErrorModal(false)}
-                  className={`w-full h-12 rounded-xl font-semibold ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-white"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-900"
-                  }`}
+                  onClick={handleCreateWithdrawal}
+                  disabled={isCreating}
+                  className="w-full h-14 rounded-2xl bg-[#4d69ec] hover:bg-[#3f57d1] text-white font-bold text-base shadow-lg shadow-blue-500/20"
                 >
-                  Fermer
+                  {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmer"}
                 </Button>
               </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
-

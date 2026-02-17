@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import {
   ArrowLeft,
-  TrendingUp,
-  Gamepad2,
-  AlertCircle,
+  Search,
   CheckCircle,
   Loader2,
-  Check,
   X,
+  User,
+  Mail,
+  Wallet,
+  Check,
+  ChevronLeft,
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
-import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingPlatform } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
@@ -32,12 +33,12 @@ export function BettingDepositScreen({
   onTransactionSuccess,
 }: BettingDepositScreenProps) {
   const { theme } = useTheme()
-  const { toast } = useToast()
 
   const [platform, setPlatform] = useState<BettingPlatform | null>(null)
   const [isLoadingPlatform, setIsLoadingPlatform] = useState(true)
+  const [step, setStep] = useState(1) // 1: User ID, 2: Amount
   const [bettingUserId, setBettingUserId] = useState("")
-  const [amount, setAmount] = useState("")
+  const [amount, setAmount] = useState("0")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState<{
@@ -45,21 +46,18 @@ export function BettingDepositScreen({
     Name?: string
     CurrencyId?: number
   } | null>(null)
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [showErrorModal, setShowErrorModal] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
-  const [amountError, setAmountError] = useState("")
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null)
-  const [idValidationError, setIdValidationError] = useState("")
+
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [lastAmount, setLastAmount] = useState("")
+  const [lastUserId, setLastUserId] = useState("")
+
+  const [error, setError] = useState("")
 
   useEffect(() => {
     if (platformUid) {
       loadPlatformDetails()
     }
   }, [platformUid])
-
-
 
   const loadPlatformDetails = async () => {
     setIsLoadingPlatform(true)
@@ -69,959 +67,362 @@ export function BettingDepositScreen({
         throw new Error("Missing credentials or platform ID")
       }
 
-      // Load platform details first
       const platformData = await bettingService.getPlatformDetails(accessToken, platformUid)
-
-      // Try to load external platform data, but don't fail if it doesn't work
-      let externalPlatform = null
-      try {
-        const externalData = await bettingService.getExternalPlatformData()
-        externalPlatform = externalData.find(ext => ext.id === platformData.external_id)
-      } catch (externalError) {
-        console.warn("External platform data failed to load:", externalError)
-        // Continue without external data - platform will still work
-      }
-      
-      // Merge platform data with external city/street/image data (if available)
-      const enrichedPlatform = {
-        ...platformData,
-        city: externalPlatform?.city,
-        street: externalPlatform?.street,
-        external_image: externalPlatform?.image
-      }
-
-      setPlatform(enrichedPlatform)
+      setPlatform(platformData)
     } catch (error) {
       console.error("Load platform error:", error)
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de charger la plateforme",
-        variant: "destructive",
-      })
       onNavigateBack()
     } finally {
       setIsLoadingPlatform(false)
     }
   }
 
-
-  // Debounced verification function
-  const debouncedVerifyUserId = useCallback(() => {
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout)
-    }
-    
-    if (!bettingUserId || !platform || bettingUserId.length < 3) {
-      setVerifiedUser(null)
-      setIdValidationError("")
-      return
-    }
-
-    const timeout = setTimeout(async () => {
-      await handleVerifyUserId()
-    }, 800) // 800ms delay
-    
-    setDebounceTimeout(timeout)
-  }, [bettingUserId, platform])
-
   const handleVerifyUserId = async () => {
     if (!bettingUserId || !platform) return
 
     setIsVerifying(true)
-    setVerifiedUser(null)
-    setIdValidationError("")
+    setError("")
 
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
       const result = await bettingService.verifyUserId(accessToken, {
         platform_uid: platform.uid,
         betting_user_id: bettingUserId,
       })
 
-      const verifiedUserData = result.user
-
-      if (
-        !result.success ||
-        !verifiedUserData ||
-        verifiedUserData.user_id === 0 ||
-        verifiedUserData.currency_id !== 27
-      ) {
-        setIdValidationError("ID de pari invalide")
-        setVerifiedUser(null)
-      } else {
+      if (result.success && result.user && result.user.user_id !== 0) {
         setVerifiedUser({
-          UserId: verifiedUserData.user_id,
-          Name: verifiedUserData.name,
-          CurrencyId: verifiedUserData.currency_id,
+          UserId: result.user.user_id,
+          Name: result.user.name,
+          CurrencyId: result.user.currency_id,
         })
-        setIdValidationError("")
-        toast({
-          title: "Vérification Réussie",
-          description: verifiedUserData.name ? `Utilisateur: ${verifiedUserData.name}` : "ID vérifié",
-        })
-      }
-    } catch (error) {
-      console.error("Verify user ID error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Impossible de vérifier l'ID"
-      
-      if (errorMessage === 'Invalid betting user ID') {
-        setIdValidationError("ID de pari invalide")
-        setVerifiedUser(null)
+        setStep(2)
       } else {
-        toast({
-          title: "Erreur de Vérification",
-          description: errorMessage,
-          variant: "destructive",
-        })
-        setIdValidationError("Erreur de vérification")
-        setVerifiedUser(null)
+        setError("ID de pari invalide")
       }
+    } catch (error: any) {
+      setError(error.message || "Impossible de vérifier l'ID")
     } finally {
       setIsVerifying(false)
     }
   }
 
-  // Auto-verify betting user ID when user stops typing
-  useEffect(() => {
-    if (bettingUserId && bettingUserId.length >= 3 && platform) {
-      debouncedVerifyUserId()
-    }
-    
-    // Cleanup timeout on unmount
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-      }
-    }
-  }, [bettingUserId, platform])
-
-  // Amount validation function
-  const validateAmount = (value: string) => {
-    if (!platform) return ""
-    
-    const numericAmount = parseFloat(value.replace(/\s/g, ""))
-    if (isNaN(numericAmount)) return ""
-    
-    const minAmount = parseFloat(platform.min_deposit_amount)
-    const maxAmount = parseFloat(platform.max_deposit_amount)
-    
-    if (numericAmount < minAmount) {
-      return `Le montant minimum est ${formatNumberWithSpaces(platform.min_deposit_amount)} FCFA`
-    }
-    if (numericAmount > maxAmount) {
-      return `Le montant maximum est ${formatNumberWithSpaces(platform.max_deposit_amount)} FCFA`
-    }
-    return ""
-  }
-
-
   const handleCreateDeposit = async () => {
-    if (!verifiedUser || !amount || !platform) return
-
-    const numericAmount = parseFloat(amount.replace(/\s/g, ""))
-
-    if (isNaN(numericAmount)) {
-      toast({
-        title: "Montant Invalide",
-        description: "Veuillez entrer un montant valide",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const minAmount = parseFloat(platform.min_deposit_amount)
-    const maxAmount = parseFloat(platform.max_deposit_amount)
-
-    if (numericAmount < minAmount || numericAmount > maxAmount) {
-      toast({
-        title: "Montant Invalide",
-        description: `Le montant doit être entre ${formatNumberWithSpaces(platform.min_deposit_amount)} et ${formatNumberWithSpaces(platform.max_deposit_amount)} FCFA`,
-        variant: "destructive",
-      })
-      return
-    }
+    if (!verifiedUser || !amount || parseFloat(amount) <= 0 || !platform) return
 
     setIsCreating(true)
+    setError("")
 
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
       const result = await bettingService.createDeposit(accessToken, {
         platform_uid: platform.uid,
         betting_user_id: bettingUserId,
-        amount: amount.replace(/\s/g, ""), // Remove spaces but preserve leading zeros
+        amount: amount,
       })
 
       if (result.success) {
-        // Check if transaction status is failed despite success being true
         if (result.transaction && result.transaction.status === "failed") {
-          // Extract error message from external_response
-          const errorMessage = result.transaction.external_response?.error || 
-                              result.transaction.notes || 
-                              "Le dépôt a échoué"
-          setErrorMessage(errorMessage)
-          setShowErrorModal(true)
-          // Auto-hide error modal after 5 seconds
-          setTimeout(() => {
-            setShowErrorModal(false)
-          }, 5000)
+          setError(result.transaction.external_response?.error || result.transaction.notes || "Le dépôt a échoué")
         } else {
-          // Show success modal
-          setShowSuccessModal(true)
-          // Reset form
-          setBettingUserId("")
-          setAmount("")
-          setVerifiedUser(null)
-          setShowConfirmation(false)
-          // Trigger dashboard refresh
-          if (onTransactionSuccess) {
-            onTransactionSuccess()
-          }
-          // Navigate back after modal delay
+          setLastAmount(amount)
+          setLastUserId(bettingUserId)
+          setShowSuccessToast(true)
+
+          if (onTransactionSuccess) onTransactionSuccess()
+
+          // Auto close after 3 seconds
           setTimeout(() => {
-            setShowSuccessModal(false)
-            setTimeout(() => {
-              onNavigateBack()
-            }, 300) // Small delay for modal close animation
-          }, 2500)
+            setShowSuccessToast(false)
+            onNavigateBack()
+          }, 3500)
         }
       } else {
         throw new Error(result.message || "Le dépôt a échoué")
       }
-    } catch (error) {
-      console.error("Create deposit error:", error)
-      const errorMsg = error instanceof Error ? error.message : "Impossible de créer le dépôt"
-      setErrorMessage(errorMsg)
-      setShowErrorModal(true)
-      // Auto-hide error modal after 5 seconds
-      setTimeout(() => {
-        setShowErrorModal(false)
-      }, 5000)
+    } catch (error: any) {
+      setError(error.message || "Impossible de créer le dépôt")
     } finally {
       setIsCreating(false)
     }
   }
 
-
+  const handleKeyPress = (key: string) => {
+    if (key === "backspace") {
+      setAmount(prev => {
+        if (prev.length <= 1) return "0"
+        return prev.slice(0, -1)
+      })
+    } else {
+      setAmount(prev => {
+        if (prev === "0") return key
+        return prev + key
+      })
+    }
+  }
 
   if (isLoadingPlatform) {
     return (
-      <div
-        className={`min-h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-      >
+      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-blue-50"}`}>
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     )
   }
 
-  if (!platform) {
-    return (
-      <div
-        className={`min-h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-            : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-      >
-        <p className={theme === "dark" ? "text-white" : "text-gray-900"}>
-          Plateforme non trouvée
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
-    >
-      {/* Background elements */}
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${theme === "dark"
+      ? "bg-[#0f172a]"
+      : "bg-[#f8fafc]"
+      }`}>
+      {/* Premium Mesh Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-green-500" : "bg-green-300"
-          } blur-3xl animate-pulse`}
-        ></div>
-        <div
-          className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-2xl animate-pulse`}
-          style={{ animationDelay: "2s" }}
-        ></div>
+        <div className={`absolute -top-[10%] -right-[10%] w-[70%] h-[50%] rounded-[100%] opacity-20 blur-[120px] animate-pulse ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
+          }`} style={{ animationDuration: '8s' }} />
+        <div className={`absolute top-[20%] -left-[10%] w-[60%] h-[40%] rounded-[100%] opacity-10 blur-[100px] animate-pulse ${theme === "dark" ? "bg-purple-500" : "bg-purple-200"
+          }`} style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        <div className={`absolute -bottom-[10%] right-[20%] w-[50%] h-[40%] rounded-[100%] opacity-15 blur-[110px] animate-pulse ${theme === "dark" ? "bg-emerald-500" : "bg-emerald-200"
+          }`} style={{ animationDuration: '10s', animationDelay: '1s' }} />
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNavigateBack}
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1
-                className={`text-2xl font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Dépôt de Paris
-              </h1>
-              <p
-                className={`text-sm ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                {platform.name}
+      {/* Success Toast Overlay */}
+      {showSuccessToast && (
+        <div className="fixed top-8 left-0 right-0 z-[100] px-4 animate-in slide-in-from-top duration-500">
+          <div className={`max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark"
+            ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl"
+            : "bg-white/90 border-slate-100 backdrop-blur-xl"
+            }`}>
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+              <Check className="w-7 h-7 text-white" strokeWidth={3} />
+            </div>
+            <div className="flex-1">
+              <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Dépôt</h3>
+              <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                Vous avez déposé {parseFloat(lastAmount).toFixed(2)} F sur le compte {lastUserId}
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Platform Info Card */}
-        <Card
-          className={`p-4 rounded-2xl border mb-6 ${
-            theme === "dark"
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center">
-              {platform.external_image ? (
-                <img
-                  src={platform.external_image}
-                  alt={platform.name}
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-              ) : platform.logo ? (
-                <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
-                  alt={platform.name}
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-              ) : (
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-green-600 to-blue-600"
-                    : "bg-gradient-to-br from-green-500 to-blue-500"
-                }`}>
-                  <Gamepad2 className="w-6 h-6 text-white" />
-                </div>
-              )}
-            </div>
-            <div>
-              <h3
-                className={`font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {platform.name}
-              </h3>
-              <p
-                className={`text-xs ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Min: {formatNumberWithSpaces(platform.min_deposit_amount)} - Max:{" "}
-                {formatNumberWithSpaces(platform.max_deposit_amount)} FCFA
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Form Content */}
-      <div className="relative z-10 px-4 pb-24">
-        {!showConfirmation ? (
-          <div className="space-y-6">
-            {/* Betting User ID */}
-            <div>
-              <label
-                className={`block text-sm font-semibold mb-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}
-              >
-                ID Utilisateur de Paris
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={bettingUserId}
-                  onChange={(e) => {
-                    setBettingUserId(e.target.value)
-                    setVerifiedUser(null)
-                    setIdValidationError("")
-                  }}
-                  placeholder="Entrez l'ID utilisateur"
-                  className={`flex-1 h-12 rounded-xl ${
-                    idValidationError
-                      ? theme === "dark"
-                        ? "bg-red-900/20 border-red-500 text-white"
-                        : "bg-red-50 border-red-300 text-gray-900"
-                      : verifiedUser
-                      ? theme === "dark"
-                        ? "bg-green-900/20 border-green-500 text-white"
-                        : "bg-green-50 border-green-300 text-gray-900"
-                      : theme === "dark"
-                      ? "bg-gray-800/60 border-gray-700 text-white"
-                      : "bg-white border-gray-200 text-gray-900"
-                  }`}
-                  disabled={isVerifying || isCreating}
-                />
-                <Button
-                  onClick={handleVerifyUserId}
-                  disabled={!bettingUserId || isVerifying || isCreating}
-                  className={`h-12 px-6 rounded-xl font-semibold ${
-                    theme === "dark"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                  }`}
-                >
-                  {isVerifying ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Vérifier"
-                  )}
-                </Button>
-              </div>
-
-              {/* Verification Status */}
-              {verifiedUser && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-green-500/20" : "bg-green-100"
-                  }`}
-                >
-                  <CheckCircle
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-green-400" : "text-green-600"
-                    }`}
-                  />
-                  <div>
-                    <p
-                      className={`text-sm font-semibold ${
-                        theme === "dark" ? "text-green-400" : "text-green-600"
-                      }`}
-                    >
-                      ID Vérifié
-                    </p>
-                    {verifiedUser.Name && (
-                      <p
-                        className={`text-xs ${
-                          theme === "dark" ? "text-green-300" : "text-green-700"
-                        }`}
-                      >
-                        {verifiedUser.Name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {idValidationError && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-                  }`}
-                >
-                  <AlertCircle
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
-                    }`}
-                  />
-                  <p
-                    className={`text-sm font-semibold ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
-                    }`}
-                  >
-                    {idValidationError}
-                  </p>
-                </div>
-              )}
-
-              {/* Verification Loading */}
-              {isVerifying && !verifiedUser && !idValidationError && (
-                <div
-                  className={`mt-3 p-3 rounded-xl flex items-center gap-2 ${
-                    theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
-                  }`}
-                >
-                  <Loader2 className={`w-5 h-5 animate-spin ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  <p
-                    className={`text-sm font-semibold ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-600"
-                    }`}
-                  >
-                    Vérification en cours...
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Amount Input */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label
-                  className={`text-sm font-semibold ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-800"
-                  }`}
-                >
-                  Montant (FCFA)
-                </label>
-                
-              </div>
-              
-              <div className="relative">
-                <Input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={amount}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\s/g, "")
-                    if (/^\d*$/.test(value)) {
-                      const formattedAmount = formatNumberWithSpaces(value)
-                      setAmount(formattedAmount)
-                      setAmountError(validateAmount(formattedAmount))
-                    }
-                  }}
-                  placeholder="Entrez le montant"
-                  className={`h-14 rounded-xl text-lg font-semibold pr-12 ${
-                    amountError
-                      ? theme === "dark"
-                        ? "bg-red-900/20 border-red-500 text-white"
-                        : "bg-red-50 border-red-300 text-gray-900"
-                      : theme === "dark"
-                      ? "bg-gray-800/60 border-gray-700 text-white"
-                      : "bg-white border-gray-200 text-gray-900"
-                  }`}
-                  disabled={!verifiedUser || isCreating}
-                />
-                
-                {/* Currency indicator */}
-                <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                }`}>
-                  <span className="text-sm font-medium">FCFA</span>
-                </div>
-              </div>
-
-              {/* Amount validation error */}
-              {amountError && (
-                <div className={`mt-2 p-2 rounded-lg flex items-center gap-2 ${
-                  theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-                }`}>
-                  <AlertCircle className={`w-4 h-4 ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`} />
-                  <p className={`text-xs ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`}>
-                    {amountError}
-                  </p>
-                </div>
-              )}
-
-              {/* Amount range indicator */}
-              {platform && amount && !amountError && (
-                <div className="mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}>
-                      Min: {formatNumberWithSpaces(platform.min_deposit_amount)}
-                    </span>
-                    <span className={`text-sm font-medium ${
-                      theme === "dark" ? "text-green-400" : "text-green-600"
-                    }`}>
-                      {amount} FCFA
-                    </span>
-                    <span className={`text-xs ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}>
-                      Max: {formatNumberWithSpaces(platform.max_deposit_amount)}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-
-            {/* Submit Button */}
-            <Button
-              onClick={() => setShowConfirmation(true)}
-              disabled={!verifiedUser || !amount || !!amountError || isCreating}
-              className={`w-full h-14 rounded-xl text-lg font-bold ${
-                theme === "dark"
-                  ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white"
-                  : "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-400 hover:to-blue-400 text-white"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="p-2 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
             >
-              <TrendingUp className="w-6 h-6 mr-2" />
-              Continuer
-            </Button>
-          </div>
-        ) : (
-          /* Confirmation Screen */
-          <div className="space-y-6">
-            <Card
-              className={`p-6 rounded-2xl border ${
-                theme === "dark"
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                  : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-            >
-              <h2
-                className={`text-lg font-bold mb-4 ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Confirmer le Dépôt
-              </h2>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Plateforme
-                  </span>
-                  <span
-                    className={`font-semibold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {platform.name}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    ID Utilisateur
-                  </span>
-                  <span
-                    className={`font-semibold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {bettingUserId}
-                  </span>
-                </div>
-
-                {verifiedUser?.Name && (
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      Nom
-                    </span>
-                    <span
-                      className={`font-semibold ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {verifiedUser.Name}
-                    </span>
-                  </div>
-                )}
-
-                <div
-                  className={`h-px ${
-                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                  }`}
-                ></div>
-
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Montant
-                  </span>
-                  <span
-                    className={`text-xl font-bold ${
-                      theme === "dark" ? "text-green-400" : "text-green-600"
-                    }`}
-                  >
-                    {amount} FCFA
-                  </span>
-                </div>
-              </div>
-
-              <div
-                className={`mt-4 p-3 rounded-xl flex items-start gap-2 ${
-                  theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
-                }`}
-              >
-                <AlertCircle
-                  className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                    theme === "dark" ? "text-blue-400" : "text-blue-600"
-                  }`}
-                />
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-blue-300" : "text-blue-700"
-                  }`}
-                >
-                  Veuillez vérifier tous les détails avant de confirmer. Cette action
-                  ne peut pas être annulée.
-                </p>
-              </div>
-            </Card>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setShowConfirmation(false)}
-                disabled={isCreating}
-                variant="outline"
-                className={`flex-1 h-14 rounded-xl text-lg font-bold ${
-                  theme === "dark"
-                    ? "border-gray-700 text-gray-300 hover:bg-gray-800"
-                    : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Retour
-              </Button>
-              <Button
-                onClick={handleCreateDeposit}
-                disabled={isCreating}
-                className={`flex-1 h-14 rounded-xl text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white"
-                    : "bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-400 hover:to-blue-400 text-white"
-                }`}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                    Traitement...
-                  </>
-                ) : (
-                  "Confirmer"
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowSuccessModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div 
-            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
-              showSuccessModal 
-                ? 'translate-y-0 opacity-100' 
-                : 'translate-y-full opacity-0'
-            } ${
-              theme === "dark"
-                ? "bg-gray-800 border-t border-gray-700"
-                : "bg-white border-t border-gray-200"
-            }`}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-center pt-8 pb-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                theme === "dark" 
-                  ? "bg-green-500/20" 
-                  : "bg-green-100"
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  theme === "dark" 
-                    ? "bg-green-500" 
-                    : "bg-green-500"
-                }`}>
-                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 pb-8 text-center">
-              <h2 className={`text-2xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Transaction Réussie !
-              </h2>
-              <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                Votre dépôt a été effectué avec succès
-              </p>
-              
-              {/* Transaction Details */}
-              <div className={`mt-6 p-4 rounded-2xl ${
-                theme === "dark" 
-                  ? "bg-gray-700/50" 
-                  : "bg-gray-50"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    Montant
-                  </span>
-                  <span className={`font-bold ${
-                    theme === "dark" ? "text-green-400" : "text-green-600"
-                  }`}>
-                    {amount} FCFA
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    Plateforme
-                  </span>
-                  <span className={`text-sm font-semibold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {platform?.name}
-                  </span>
-                </div>
-              </div>
-
-              {/* Success Animation */}
-              <div className="mt-6 flex justify-center">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
+              <X className={`w-6 h-6 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`} />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowErrorModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div 
-            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
-              showErrorModal 
-                ? 'translate-y-0 opacity-100' 
-                : 'translate-y-full opacity-0'
-            } ${
-              theme === "dark"
-                ? "bg-gray-800 border-t border-gray-700"
-                : "bg-white border-t border-gray-200"
+      {/* Step Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1.5 flex gap-1 px-1 pt-1">
+        <div className={`h-full flex-1 rounded-full transition-all duration-700 ${step >= 1 ? "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "bg-slate-200 dark:bg-slate-800"
+          }`} />
+        <div className={`h-full flex-1 rounded-full transition-all duration-700 ${step >= 2 ? "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "bg-slate-200 dark:bg-slate-800"
+          }`} />
+      </div>
+
+      {/* Header */}
+      <div className="p-4 flex items-center justify-between z-10 relative mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={step === 2 ? () => setStep(1) : onNavigateBack}
+          className={`h-11 w-11 p-0 rounded-2xl transition-all active:scale-90 ${theme === "dark"
+            ? "text-slate-300 hover:bg-slate-800/80 bg-slate-800/40"
+            : "text-slate-600 bg-white/80 hover:bg-white shadow-sm border border-slate-100"
             }`}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-center pt-8 pb-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                theme === "dark" 
-                  ? "bg-red-500/20" 
-                  : "bg-red-100"
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  theme === "dark" 
-                    ? "bg-red-500" 
-                    : "bg-red-500"
-                }`}>
-                  <X className="w-10 h-10 text-white" strokeWidth={3} />
-                </div>
+        >
+          {step === 2 ? <ChevronLeft className="w-6 h-6" /> : <ArrowLeft className="w-6 h-6" />}
+        </Button>
+        <div className="text-center">
+          <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+            Depot de paris
+          </p>
+        </div>
+        <div className={`h-11 w-11 rounded-2xl flex items-center justify-center transition-all ${theme === "dark" ? "bg-slate-800/40" : "bg-white/80 shadow-sm border border-slate-100"
+          }`}>
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+        </div>
+      </div>
+
+      {/* Step 1: User ID */}
+      {step === 1 && (
+        <div className="flex flex-col h-[calc(100vh-100px)] px-6 pt-10 z-10 relative">
+          <div className="text-center mb-12">
+            <h1 className={`text-4xl font-black tracking-tighter mb-2 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+              Déposer
+            </h1>
+          </div>
+
+          <div className="space-y-8 flex-1">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <label className={`text-[11px] font-black uppercase tracking-widest ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                  ID Utilisateur de paris
+                </label>
+                <div className={`w-2 h-2 rounded-full ${bettingUserId ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-700'}`} />
+              </div>
+              <div className="relative group">
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  value={bettingUserId}
+                  onChange={(e) => setBettingUserId(e.target.value)}
+                  placeholder="Entrez l'ID utilisateur"
+                  className={`h-20 text-3xl font-black rounded-[2rem] border-2 px-8 pr-16 transition-all duration-300 outline-none ${theme === "dark"
+                    ? "bg-slate-800/50 border-slate-700/50 text-white focus:border-blue-500 focus:bg-slate-900/80 focus:shadow-[0_0_30px_rgba(59,130,246,0.1)]"
+                    : "bg-white border-slate-100 shadow-xl shadow-slate-200/40 text-slate-900 focus:border-blue-500 focus:shadow-[0_15px_30px_rgba(0,0,0,0.05)]"
+                    }`}
+                />
+                {bettingUserId && (
+                  <button
+                    onClick={() => setBettingUserId("")}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all active:scale-75"
+                  >
+                    <X className="w-7 h-7 text-slate-400" />
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Modal Body */}
-            <div className="px-6 pb-8 text-center">
-              <h2 className={`text-2xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Erreur de Dépôt
-              </h2>
-              <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                {errorMessage}
-              </p>
-              
-              {/* Error Details */}
-              <div className={`mt-6 p-4 rounded-2xl ${
-                theme === "dark" 
-                  ? "bg-red-500/10 border border-red-500/20" 
-                  : "bg-red-50 border border-red-200"
-              }`}>
+            {error && (
+              <div className="p-5 rounded-3xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-black text-center animate-in fade-in slide-in-from-bottom-4">
                 <div className="flex items-center justify-center gap-2">
-                  <AlertCircle className={`w-5 h-5 ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    theme === "dark" ? "text-red-400" : "text-red-600"
-                  }`}>
-                    Veuillez réessayer
-                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                  {error}
                 </div>
               </div>
+            )}
 
-              {/* Action Button */}
-              <div className="mt-6">
-                <Button
-                  onClick={() => setShowErrorModal(false)}
-                  className={`w-full h-12 rounded-xl font-semibold ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-white"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-900"
-                  }`}
-                >
-                  Fermer
-                </Button>
+            <Button
+              onClick={handleVerifyUserId}
+              disabled={!bettingUserId || isVerifying}
+              className={`w-full h-20 rounded-[2.5rem] text-xl font-black transition-all active:scale-[0.97] group overflow-hidden relative ${theme === "dark"
+                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_20px_40px_rgba(37,99,235,0.3)]"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-[0_20px_40px_rgba(37,99,235,0.25)]"
+                }`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              {isVerifying ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-7 h-7 animate-spin" />
+                  <span>Vérification...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Search className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <span>Rechercher le compte</span>
+                </div>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Amount */}
+      {step === 2 && verifiedUser && (
+        <div className="flex flex-col h-[calc(100vh-100px)] px-4 z-10 relative">
+          {/* User Card with Platform Logo */}
+          <div className={`p-5 rounded-[3rem] border mb-6 flex items-center gap-4 transition-all animate-in zoom-in-95 duration-500 ${theme === "dark"
+            ? "bg-slate-800/60 border-slate-700/50 backdrop-blur-md shadow-2xl"
+            : "bg-white border-slate-50 shadow-[0_20px_40px_rgba(0,0,0,0.03)]"
+            }`}>
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Check className="w-9 h-9 text-white" strokeWidth={4} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-600 border-4 border-slate-800 flex items-center justify-center animate-bounce-subtle">
+                <div className="w-2 h-2 rounded-full bg-white" />
               </div>
             </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={`font-black text-xl leading-tight truncate ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                  ID {bettingUserId}
+                </h3>
+                <span className="flex h-5 items-center px-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                  Vérifié
+                </span>
+              </div>
+              <p className={`text-sm font-bold truncate ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                {verifiedUser.Name || "Utilisateur vérifié"}
+              </p>
+            </div>
+            {platform?.logo && (
+              <div className={`w-14 h-14 rounded-2xl p-2 shrink-0 border ${theme === "dark" ? "bg-slate-700/50 border-slate-600" : "bg-white border-slate-100 shadow-sm"
+                }`}>
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
+                  alt={platform.name}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Amount Display Area */}
+          <div className="flex flex-col items-center justify-center flex-1 max-h-[300px]">
+            <span className={`text-xl font-black mb-2 ${theme === "dark" ? "text-slate-600" : "text-slate-300"}`}>
+              F
+            </span>
+            <div className="relative w-full text-center">
+              <input
+                type="tel"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "")
+                  // Prevent multiple dots
+                  if ((val.match(/\./g) || []).length > 1) return
+                  setAmount(val || "0")
+                }}
+                onFocus={(e) => {
+                  if (amount === "0") setAmount("")
+                }}
+                onBlur={(e) => {
+                  if (amount === "" || amount === ".") setAmount("0")
+                }}
+                autoFocus
+                className={`w-full bg-transparent border-none text-center text-7xl font-black tracking-tighter outline-none caret-blue-500 ${theme === "dark" ? "text-white" : "text-slate-900"
+                  }`}
+                style={{ fontSize: amount.length > 8 ? '4rem' : '4.5rem' }}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 rounded-[2rem] bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center mb-6">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="mt-auto mb-10">
+            <Button
+              onClick={handleCreateDeposit}
+              disabled={parseFloat(amount) <= 0 || isCreating}
+              className={`w-full h-18 rounded-[2.5rem] text-2xl font-black transition-all active:scale-95 group relative overflow-hidden ${theme === "dark"
+                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_20px_50px_rgba(37,99,235,0.4)]"
+                : "bg-blue-600 hover:bg-blue-700 text-white shadow-[0_20px_50px_rgba(37,99,235,0.3)]"
+                }`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              {isCreating ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span>Traitement...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Wallet className="w-7 h-7 group-hover:rotate-12 transition-transform" />
+                  <span>Déposer</span>
+                </div>
+              )}
+            </Button>
           </div>
         </div>
       )}
     </div>
   )
 }
-
