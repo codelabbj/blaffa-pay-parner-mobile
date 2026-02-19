@@ -583,7 +583,14 @@ export function DashboardScreen({
 
       // Fetch transfers and betting transactions
       const [transfersResponse, bettingTransactions] = await Promise.all([
-        transferService.getTransfers(accessToken, "sent", "completed", "", "", "2025-03-01", "2025-09-30"),
+        transferService.getTransfers(accessToken, {
+          type: "sent",
+          status: "completed",
+          minAmount: "",
+          maxAmount: "",
+          dateFrom: "2025-03-01",
+          dateTo: "2025-09-30"
+        }),
         bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] }))
       ])
 
@@ -627,14 +634,20 @@ export function DashboardScreen({
         })),
 
         // Add transfers with type indicator
-        ...transfersResponse.transfers.slice(0, 10).map(transfer => ({
-          ...transfer,
-          historyType: 'transfer',
-          typeIcon: Send,
-          typeColor: theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600",
-          typeLabel: "Transfert UV",
-          receiver_name: transfer.receiver_name
-        }))
+        ...transfersResponse.transfers.slice(0, 10).map(transfer => {
+          const isReceived = transfer.receiver_email === user?.email;
+          return {
+            ...transfer,
+            historyType: 'transfer',
+            typeIcon: Send,
+            typeColor: isReceived
+              ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
+              : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"),
+            typeLabel: isReceived ? "Transfert Reçu" : "Transfert Envoyé",
+            receiver_name: transfer.receiver_name,
+            isTransferReceived: isReceived
+          };
+        })
       ]
 
       // Sort by date (most recent first) and take top 10
@@ -800,8 +813,8 @@ export function DashboardScreen({
   return (
     <div
       className={`min-h-screen relative overflow-hidden ${theme === "dark"
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
+        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -815,8 +828,8 @@ export function DashboardScreen({
       {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark"
-              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
-              : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
+            ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
+            : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
             } shadow-lg`}>
             <RefreshCw className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? 'animate-spin' : ''
               } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
@@ -842,8 +855,8 @@ export function DashboardScreen({
               <button
                 onClick={() => setSidebarOpen(true)}
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 ${theme === "dark"
-                    ? "bg-gradient-to-br from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500"
-                    : "bg-gradient-to-br from-blue-500 to-blue-500 hover:from-blue-400 hover:to-blue-400"
+                  ? "bg-gradient-to-br from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500"
+                  : "bg-gradient-to-br from-blue-500 to-blue-500 hover:from-blue-400 hover:to-blue-400"
                   } shadow-lg hover:shadow-xl`}
               >
                 <User className="w-6 h-6 text-white" />
@@ -869,8 +882,8 @@ export function DashboardScreen({
               variant="ghost"
               size="sm"
               className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 relative ${theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
+                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
+                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
                 }`}
               onClick={onNavigateToNotifications}
             >
@@ -880,8 +893,8 @@ export function DashboardScreen({
               variant="ghost"
               size="sm"
               className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
+                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
+                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
                 }`}
               onClick={onNavigateToSettings}
             >
@@ -893,8 +906,8 @@ export function DashboardScreen({
 
         {/* Balance Card */}
         <div className={`p-6 rounded-3xl border transition-all duration-300 mb-8 ${theme === "dark"
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-            : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-xl"
+          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
+          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-xl"
           }`}>
           {/* Decorative gradient overlay */}
           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
@@ -918,8 +931,8 @@ export function DashboardScreen({
                 variant="ghost"
                 size="sm"
                 className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                    ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                  ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
+                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
                   }`}
                 onClick={() => setShowBalance(!showBalance)}
               >
@@ -944,8 +957,8 @@ export function DashboardScreen({
               <button
                 onClick={onNavigateToRecharge}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${theme === "dark"
-                    ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                  : "bg-blue-100 text-blue-600 hover:bg-blue-200"
                   }`}
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -973,8 +986,8 @@ export function DashboardScreen({
                 }
               }}
               className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                  : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
+                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
@@ -1001,8 +1014,8 @@ export function DashboardScreen({
                 }
               }}
               className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                  : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
+                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
@@ -1044,8 +1057,8 @@ export function DashboardScreen({
             <button
               onClick={onNavigateToTransfer}
               className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                  : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
+                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
@@ -1064,8 +1077,8 @@ export function DashboardScreen({
 
         {/* Recent Transactions Card */}
         <div className={`rounded-2xl border transition-all duration-300 ${theme === "dark"
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-            : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
+          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
+          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
           }`}>
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -1079,8 +1092,8 @@ export function DashboardScreen({
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                   className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                    ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
+                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
                     }`}
                 >
                   <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -1090,8 +1103,8 @@ export function DashboardScreen({
                     variant="ghost"
                     size="sm"
                     className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                        ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                        : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
+                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
                       }`}
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
@@ -1100,14 +1113,14 @@ export function DashboardScreen({
 
                   {showDropdown && (
                     <div className={`absolute right-0 top-10 w-48 sm:w-56 rounded-2xl border shadow-xl z-50 ${theme === "dark"
-                        ? "bg-gray-800/95 border-gray-700/50 backdrop-blur-lg"
-                        : "bg-white/95 border-gray-200/50 backdrop-blur-lg"
+                      ? "bg-gray-800/95 border-gray-700/50 backdrop-blur-lg"
+                      : "bg-white/95 border-gray-200/50 backdrop-blur-lg"
                       }`}>
                       <div className="p-2">
                         <button
                           className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                              ? "hover:bg-gray-700/50 text-gray-200"
-                              : "hover:bg-gray-100 text-gray-900"
+                            ? "hover:bg-gray-700/50 text-gray-200"
+                            : "hover:bg-gray-100 text-gray-900"
                             }`}
                           onClick={() => {
                             onNavigateToTransactionHistory();
@@ -1120,8 +1133,8 @@ export function DashboardScreen({
                         </button>
                         <button
                           className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                              ? "hover:bg-gray-700/50 text-gray-200"
-                              : "hover:bg-gray-100 text-gray-900"
+                            ? "hover:bg-gray-700/50 text-gray-200"
+                            : "hover:bg-gray-100 text-gray-900"
                             }`}
                           onClick={() => {
                             onNavigateToRechargeHistory();
@@ -1134,8 +1147,8 @@ export function DashboardScreen({
                         </button>
                         <button
                           className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                              ? "hover:bg-gray-700/50 text-gray-200"
-                              : "hover:bg-gray-100 text-gray-900"
+                            ? "hover:bg-gray-700/50 text-gray-200"
+                            : "hover:bg-gray-100 text-gray-900"
                             }`}
                           onClick={() => {
                             onNavigateToTransferHistory();
@@ -1148,8 +1161,8 @@ export function DashboardScreen({
                         </button>
                         <button
                           className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                              ? "hover:bg-gray-700/50 text-gray-200"
-                              : "hover:bg-gray-100 text-gray-900"
+                            ? "hover:bg-gray-700/50 text-gray-200"
+                            : "hover:bg-gray-100 text-gray-900"
                             }`}
                           onClick={() => {
                             onNavigateToBettingTransactions();
@@ -1227,8 +1240,8 @@ export function DashboardScreen({
                                 )}
                               </div>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium self-start ${theme === "dark"
-                                  ? "bg-gray-700 text-gray-300"
-                                  : "bg-gray-100 text-gray-600"
+                                ? "bg-gray-700 text-gray-300"
+                                : "bg-gray-100 text-gray-600"
                                 }`}>
                                 {item.typeLabel}
                               </span>
@@ -1253,8 +1266,8 @@ export function DashboardScreen({
                               <button
                                 onClick={() => copyReference(item.reference)}
                                 className={`p-1 rounded-lg transition-all duration-200 active:scale-90 flex-shrink-0 ${theme === "dark"
-                                    ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300"
-                                    : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
+                                  ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300"
+                                  : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
                                   }`}
                                 title={t("common.copy")}
                               >
@@ -1267,16 +1280,19 @@ export function DashboardScreen({
                         {/* Right section - Amount and status */}
                         <div className="flex flex-col items-end gap-1 ml-auto text-right sm:gap-2">
                           <div>
-                            <p className={`font-bold text-sm sm:text-base ${item.historyType === 'transaction' && item.type === "deposit"
-                                ? "text-green-500"
-                                : item.historyType === 'transaction'
-                                  ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                                  : item.historyType === 'betting' && item.transaction_type === "deposit"
-                                    ? "text-purple-500"
-                                    : item.historyType === 'betting'
-                                      ? (theme === "dark" ? "text-blue-400" : "text-blue-600")
-                                      : item.historyType === 'recharge'
-                                        ? "text-blue-500"
+                            <p className={`font-bold text-sm sm:text-base ${(item.historyType === 'transaction' && item.type === "deposit") ||
+                              (item.historyType === 'transfer' && item.isTransferReceived)
+                              ? "text-green-500"
+                              : item.historyType === 'transaction'
+                                ? (theme === "dark" ? "text-red-400" : "text-red-600")
+                                : item.historyType === 'betting' && item.transaction_type === "deposit"
+                                  ? "text-purple-500"
+                                  : item.historyType === 'betting'
+                                    ? (theme === "dark" ? "text-blue-400" : "text-blue-600")
+                                    : item.historyType === 'recharge'
+                                      ? "text-blue-500"
+                                      : item.historyType === 'transfer'
+                                        ? (theme === "dark" ? "text-red-400" : "text-red-600")
                                         : "text-cyan-500"
                               }`}>
                               {item.historyType === 'transaction'
@@ -1285,15 +1301,17 @@ export function DashboardScreen({
                                   ? formatTransactionAmount(item.amount, item.transaction_type)
                                   : item.historyType === 'recharge'
                                     ? `+${formatNumberWithSpaces(item.amount)} FCFA`
-                                    : `-${formatNumberWithSpaces(item.amount)} FCFA`
+                                    : item.historyType === 'transfer'
+                                      ? `${item.isTransferReceived ? '+' : '-'}${formatNumberWithSpaces(item.amount)} FCFA`
+                                      : `-${formatNumberWithSpaces(item.amount)} FCFA`
                               }
                             </p>
                           </div>
                           <div className={`w-2 h-2 rounded-full ${item.status === "success" || item.status === "sent_to_user" || item.status === "completed"
-                              ? "bg-green-500"
-                              : item.status === "pending"
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
+                            ? "bg-green-500"
+                            : item.status === "pending"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
                             }`}></div>
                         </div>
                       </div>
@@ -1330,8 +1348,8 @@ export function DashboardScreen({
 
         {/* Sidebar with mobile-optimized design */}
         <div className={`fixed inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col h-full shadow-2xl transition-all duration-300 ease-in-out ${theme === "dark"
-            ? "bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50"
-            : "bg-white/95 backdrop-blur-xl border-r border-gray-200/50"
+          ? "bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50"
+          : "bg-white/95 backdrop-blur-xl border-r border-gray-200/50"
           } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
 
           {/* Header with improved mobile spacing */}
@@ -1410,8 +1428,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1427,8 +1445,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1453,8 +1471,8 @@ export function DashboardScreen({
             {user && user.can_process_ussd_transaction !== false && (
               <button
                 className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                    ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                    : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                   }`}
                 onClick={() => {
                   setSidebarOpen(false)
@@ -1471,8 +1489,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1488,8 +1506,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1512,8 +1530,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1529,8 +1547,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)
@@ -1546,8 +1564,8 @@ export function DashboardScreen({
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
                 }`}
               onClick={() => {
                 setSidebarOpen(false)

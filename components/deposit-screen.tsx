@@ -28,7 +28,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [showNetworkSelection, setShowNetworkSelection] = useState(true)
-  
+
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
     isPulling: false,
@@ -38,7 +38,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
     currentY: 0,
     canPull: true
   })
-  
+
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { networks, createTransaction } = useAuth()
@@ -81,7 +81,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
       setError(t("additional.pleaseFillInAllFields"))
       return
     }
-    
+
     // Show confirmation modal instead of directly processing
     setShowConfirmationModal(true)
   }
@@ -89,7 +89,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
   const handleConfirmDeposit = async () => {
     setIsProcessing(true)
     setError("")
-    
+
     try {
       await createTransaction({
         type: "deposit",
@@ -97,7 +97,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
         recipient_phone: recipientPhone,
         network: selectedNetwork
       })
-      
+
       // Show success modal
       setShowSuccessModal(true)
       setShowConfirmationModal(false)
@@ -114,7 +114,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
       }, 2500)
     } catch (error) {
       console.error('Deposit error:', error)
-      
+
       // Parse backend errors using the new error parsing utility
       const parsedError = parseBackendError(error)
       const formattedMessage = formatErrorMessage(parsedError)
@@ -146,7 +146,7 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
   // Pull-to-refresh handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const touch = e.touches[0]
     setPullToRefreshState(prev => ({
       ...prev,
@@ -157,20 +157,20 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const touch = e.touches[0]
     const currentY = touch.clientY
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-    
+
     // Only allow pull-to-refresh when at the top of the page
     if (scrollTop > 0) {
       setPullToRefreshState(prev => ({ ...prev, canPull: false }))
       return
     }
-    
+
     const pullDistance = Math.max(0, currentY - pullToRefreshState.startY)
     const maxPullDistance = 120
-    
+
     if (pullDistance > 0) {
       e.preventDefault() // Prevent default scroll behavior
       setPullToRefreshState(prev => ({
@@ -184,10 +184,10 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
 
   const handleTouchEnd = () => {
     if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-    
+
     const { pullDistance } = pullToRefreshState
     const refreshThreshold = 80
-    
+
     if (pullDistance >= refreshThreshold && pullToRefreshState.isPulling) {
       handleRefresh()
     } else {
@@ -223,12 +223,11 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
   }, [])
 
   return (
-    <div 
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
+    <div
+      className={`min-h-screen relative overflow-hidden ${theme === "dark"
+          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
+        }`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -240,26 +239,22 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
       {/* Pull-to-refresh indicator */}
       {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            theme === "dark" 
-              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50" 
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark"
+              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
               : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
-          } shadow-lg`}>
-            <RefreshCw className={`w-5 h-5 ${
-              pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
+            } shadow-lg`}>
+            <RefreshCw className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? 'animate-spin' : ''
+              } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
           </div>
         </div>
       )}
 
       {/* Mobile-optimized background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-        } blur-2xl animate-pulse`}></div>
-        <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-        } blur-2xl animate-pulse`} style={{animationDelay: '1.5s'}}></div>
+        <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
+          } blur-2xl animate-pulse`}></div>
+        <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
+          } blur-2xl animate-pulse`} style={{ animationDelay: '1.5s' }}></div>
       </div>
 
       {/* Mobile-first header with safe area */}
@@ -269,16 +264,15 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
           <Button
             variant="ghost"
             size="sm"
-            className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-              theme === "dark" 
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20" 
+            className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
+                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
                 : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-            }`}
+              }`}
             onClick={showNetworkSelection ? onNavigateBack : handleBackToNetworkSelection}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          
+
           <div className="text-center flex-1 mx-4">
             <h1 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
               {showNetworkSelection ? "Sélectionner le Réseau" : t("deposit.title")}
@@ -287,10 +281,9 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
               {showNetworkSelection ? "Choisissez votre réseau mobile money" : t("deposit.subtitle")}
             </p>
           </div>
-          
-          <div className={`p-2.5 rounded-xl ${
-            theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-          }`}>
+
+          <div className={`p-2.5 rounded-xl ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+            }`}>
             <Wallet className="w-5 h-5" />
           </div>
         </div>
@@ -298,15 +291,12 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
         {/* Progress indicator */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
-            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : "bg-green-500"
-            }`}></div>
-            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              !showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
-            }`}></div>
-            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${
-              amount && recipientPhone ? "bg-green-500" : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
-            }`}></div>
+            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : "bg-green-500"
+              }`}></div>
+            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${!showNetworkSelection ? (theme === "dark" ? "bg-blue-500" : "bg-blue-600") : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
+              }`}></div>
+            <div className={`w-8 h-1 rounded-full transition-all duration-300 ${amount && recipientPhone ? "bg-green-500" : (theme === "dark" ? "bg-gray-600" : "bg-gray-300")
+              }`}></div>
           </div>
         </div>
       </div>
@@ -316,67 +306,67 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
         <div className="space-y-6">
           {showNetworkSelection ? (
             /* Network Selection Step */
-            <div className={`p-6 rounded-2xl border transition-all duration-300 ${
-              theme === "dark" 
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
+            <div className={`p-6 rounded-2xl border transition-all duration-300 ${theme === "dark"
+                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
                 : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}>
-              <Label className={`text-sm font-semibold mb-5 flex items-center gap-2 ${
-                theme === "dark" ? "text-gray-200" : "text-gray-800"
               }`}>
-                <div className={`p-2 rounded-lg ${
-                  theme === "dark" ? "bg-slate-600/50 text-slate-300" : "bg-slate-100 text-slate-600"
+              <Label className={`text-sm font-semibold mb-5 flex items-center gap-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"
                 }`}>
+                <div className={`p-2 rounded-lg ${theme === "dark" ? "bg-slate-600/50 text-slate-300" : "bg-slate-100 text-slate-600"
+                  }`}>
                   <Building2 className="w-4 h-4" />
                 </div>
                 {t("deposit.selectNetwork")}
               </Label>
-            
+
               <div className="grid grid-cols-2 gap-4">
                 {availableNetworks.map((network) => (
                   <button
                     key={network.uid}
                     onClick={() => handleNetworkSelect(network.uid)}
-                    className={`p-5 rounded-xl border-2 transition-all duration-200 active:scale-98 ${
-                      selectedNetwork === network.uid
+                    className={`p-5 rounded-xl border-2 transition-all duration-200 active:scale-98 ${selectedNetwork === network.uid
                         ? theme === "dark"
-                        ? "border-slate-400 bg-slate-700/50 shadow-lg"
-                        : "border-slate-300 bg-slate-50 shadow-lg"
+                          ? "border-slate-400 bg-slate-700/50 shadow-lg"
+                          : "border-slate-300 bg-slate-50 shadow-lg"
                         : theme === "dark"
-                        ? "border-gray-600 bg-gray-700/20 active:bg-gray-700/40"
-                        : "border-gray-200 bg-gray-50/50 active:bg-gray-100"
-                    }`}
+                          ? "border-gray-600 bg-gray-700/20 active:bg-gray-700/40"
+                          : "border-gray-200 bg-gray-50/50 active:bg-gray-100"
+                      }`}
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        selectedNetwork === network.uid
-                        ? theme === "dark"
-                          ? "bg-slate-600 text-slate-100"
-                          : "bg-slate-200 text-slate-700"
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 overflow-hidden ${selectedNetwork === network.uid
+                          ? theme === "dark"
+                            ? "bg-slate-600 text-slate-100"
+                            : "bg-slate-200 text-slate-700"
                           : theme === "dark"
-                          ? "bg-gray-600/50 text-gray-300"
+                            ? "bg-gray-600/50 text-gray-300"
                             : "bg-gray-200 text-gray-600"
-                      }`}>
-                        <Building2 className="w-7 h-7" />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <p className={`font-semibold text-base leading-tight ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
                         }`}>
+                        {network.image ? (
+                          <img
+                            src={network.image.startsWith('http') ? network.image : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${network.image}`}
+                            alt={network.nom}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Building2 className="w-7 h-7" />
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className={`font-semibold text-base leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}>
                           {network.nom}
                         </p>
-                        <p className={`text-xs ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-500"
-                        }`}>
+                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+                          }`}>
                           {network.code}
                         </p>
                       </div>
 
                       {selectedNetwork === network.uid && (
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          theme === "dark" ? "bg-slate-500" : "bg-slate-400"
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-slate-500" : "bg-slate-400"
+                          }`}>
                           <CheckCircle className="w-3 h-3 text-white" />
                         </div>
                       )}
@@ -389,17 +379,23 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
             /* Transaction Form Step */
             <>
               {/* Selected Network Display */}
-              <div className={`p-4 rounded-xl border transition-all duration-300 ${
-                theme === "dark" 
-                  ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm" 
+              <div className={`p-4 rounded-xl border transition-all duration-300 ${theme === "dark"
+                  ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm"
                   : "bg-green-50 border-green-200/50 backdrop-blur-sm"
-              }`}>
+                }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      theme === "dark" ? "bg-green-600/30 text-green-400" : "bg-green-100 text-green-600"
-                    }`}>
-                      <Building2 className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${theme === "dark" ? "bg-green-600/30 text-green-400" : "bg-green-100 text-green-600"
+                      }`}>
+                      {selectedNetworkDetails?.image ? (
+                        <img
+                          src={selectedNetworkDetails.image.startsWith('http') ? selectedNetworkDetails.image : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${selectedNetworkDetails.image}`}
+                          alt={selectedNetworkDetails.nom}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Building2 className="w-5 h-5" />
+                      )}
                     </div>
                     <div>
                       <p className={`font-semibold text-sm ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
@@ -412,11 +408,10 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
                   </div>
                   <button
                     onClick={handleBackToNetworkSelection}
-                    className={`text-xs px-3 py-1 rounded-lg transition-all duration-200 ${
-                      theme === "dark" 
-                        ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700/50" 
+                    className={`text-xs px-3 py-1 rounded-lg transition-all duration-200 ${theme === "dark"
+                        ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700/50"
                         : "text-gray-600 hover:text-gray-700 hover:bg-gray-100"
-                    }`}
+                      }`}
                   >
                     Changer
                   </button>
@@ -424,17 +419,14 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
               </div>
 
               {/* Recipient Phone Card - Second */}
-              <div className={`p-5 rounded-2xl border transition-all duration-300 ${
-                theme === "dark" 
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
+              <div className={`p-5 rounded-2xl border transition-all duration-300 ${theme === "dark"
+                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
                   : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}>
-                <Label className={`text-sm font-semibold mb-3 flex items-center gap-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
                 }`}>
-                  <div className={`p-1.5 rounded-lg ${
-                    theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                <Label className={`text-sm font-semibold mb-3 flex items-center gap-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"
                   }`}>
+                  <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                    }`}>
                     <Phone className="w-4 h-4" />
                   </div>
                   {t("deposit.recipientPhone")}
@@ -444,32 +436,28 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
                   placeholder={t("deposit.recipientPhonePlaceholder")}
                   value={recipientPhone}
                   onChange={(e) => setRecipientPhone(e.target.value.replace(/\s/g, ''))}
-                  className={`h-14 text-lg font-medium rounded-xl border-2 transition-all duration-300 ${
-                    theme === "dark" 
-                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700" 
+                  className={`h-14 text-lg font-medium rounded-xl border-2 transition-all duration-300 ${theme === "dark"
+                      ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700"
                       : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:bg-white"
-                  }`}
+                    }`}
                 />
               </div>
 
               {/* Amount Card - Third */}
-              <div className={`p-5 rounded-2xl border transition-all duration-300 ${
-                theme === "dark" 
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
+              <div className={`p-5 rounded-2xl border transition-all duration-300 ${theme === "dark"
+                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
                   : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}>
+                }`}>
                 <div className="flex items-center justify-between mb-3">
-                  <Label className={`text-sm font-semibold flex items-center gap-2 ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-800"
-                  }`}>
-                    <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
+                  <Label className={`text-sm font-semibold flex items-center gap-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"
                     }`}>
+                    <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
+                      }`}>
                       <Wallet className="w-4 h-4" />
                     </div>
                     {t("deposit.amount")}
                   </Label>
-                  
+
                 </div>
 
                 {/* Amount input with better mobile UX */}
@@ -488,36 +476,31 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
                         setAmountError(validateAmount(formattedAmount))
                       }
                     }}
-                    className={`h-16 text-xl font-bold rounded-xl border-2 pr-12 transition-all duration-300 ${
-                      amountError
+                    className={`h-16 text-xl font-bold rounded-xl border-2 pr-12 transition-all duration-300 ${amountError
                         ? theme === "dark"
                           ? "bg-red-900/20 border-red-500 text-white"
                           : "bg-red-50 border-red-300 text-gray-900"
-                        : theme === "dark" 
-                        ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:bg-gray-700" 
-                        : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:bg-white"
-                    }`}
+                        : theme === "dark"
+                          ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:bg-gray-700"
+                          : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:bg-white"
+                      }`}
                   />
-                  
+
                   {/* Currency indicator */}
-                  <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}>
+                  <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    }`}>
                     <span className="text-sm font-medium">FCFA</span>
                   </div>
                 </div>
 
                 {/* Amount validation error */}
                 {amountError && (
-                  <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${
-                    theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-                  }`}>
-                    <AlertCircle className={`w-4 h-4 ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
-                    }`} />
-                    <p className={`text-sm ${
-                      theme === "dark" ? "text-red-400" : "text-red-600"
+                  <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${theme === "dark" ? "bg-red-500/20" : "bg-red-100"
                     }`}>
+                    <AlertCircle className={`w-4 h-4 ${theme === "dark" ? "text-red-400" : "text-red-600"
+                      }`} />
+                    <p className={`text-sm ${theme === "dark" ? "text-red-400" : "text-red-600"
+                      }`}>
                       {amountError}
                     </p>
                   </div>
@@ -527,19 +510,16 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
                 {amount && !amountError && (
                   <div className="mt-3">
                     <div className="flex justify-between items-center">
-                      <span className={`text-xs ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
+                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}>
                         Min: 100 FCFA
                       </span>
-                      <span className={`text-sm font-medium ${
-                        theme === "dark" ? "text-green-400" : "text-green-600"
-                      }`}>
+                      <span className={`text-sm font-medium ${theme === "dark" ? "text-green-400" : "text-green-600"
+                        }`}>
                         {amount} FCFA
                       </span>
-                      <span className={`text-xs ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
+                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}>
                         Max: 1 000 000 FCFA
                       </span>
                     </div>
@@ -556,11 +536,10 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
               />
 
               {success && (
-                <div className={`flex items-center gap-3 p-4 rounded-xl border animate-in slide-in-from-top-2 ${
-                  theme === "dark" 
-                    ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm" 
+                <div className={`flex items-center gap-3 p-4 rounded-xl border animate-in slide-in-from-top-2 ${theme === "dark"
+                    ? "bg-green-900/20 border-green-700/50 backdrop-blur-sm"
                     : "bg-green-50 border-green-200/50 backdrop-blur-sm"
-                }`}>
+                  }`}>
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className={`text-sm font-medium ${theme === "dark" ? "text-green-400" : "text-green-600"}`}>
                     {t("deposit.successMessage")}
@@ -574,19 +553,17 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
 
       {/* Fixed bottom button - Mobile optimized - Only show when not in network selection */}
       {!showNetworkSelection && (
-        <div className={`fixed bottom-0 left-0 right-0 z-50 p-4 ${
-          theme === "dark" 
-            ? "bg-slate-900/95 border-t border-gray-700/50" 
+        <div className={`fixed bottom-0 left-0 right-0 z-50 p-4 ${theme === "dark"
+            ? "bg-slate-900/95 border-t border-gray-700/50"
             : "bg-white/95 border-t border-gray-200/50"
-        } backdrop-blur-lg`}>
+          } backdrop-blur-lg`}>
           <Button
             onClick={handleDeposit}
             disabled={!amount || !recipientPhone || !selectedNetwork || !!amountError || isProcessing}
-            className={`w-full h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-98 ${
-              !amount || !recipientPhone || !selectedNetwork || !!amountError || isProcessing
+            className={`w-full h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-98 ${!amount || !recipientPhone || !selectedNetwork || !!amountError || isProcessing
                 ? "bg-gray-400/50 cursor-not-allowed text-gray-600"
                 : "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-lg shadow-green-500/25"
-            }`}
+              }`}
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">
@@ -616,35 +593,31 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowSuccessModal(false)}
           />
-          
+
           {/* Modal Content */}
-          <div 
-            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${
-              showSuccessModal 
-                ? 'translate-y-0 opacity-100' 
+          <div
+            className={`relative w-full max-w-sm mx-4 mb-8 rounded-t-3xl transform transition-all duration-500 ease-out ${showSuccessModal
+                ? 'translate-y-0 opacity-100'
                 : 'translate-y-full opacity-0'
-            } ${
-              theme === "dark"
+              } ${theme === "dark"
                 ? "bg-gray-800 border-t border-gray-700"
                 : "bg-white border-t border-gray-200"
-            }`}
+              }`}
           >
             {/* Modal Header */}
             <div className="flex justify-center pt-8 pb-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                theme === "dark" 
-                  ? "bg-green-500/20" 
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${theme === "dark"
+                  ? "bg-green-500/20"
                   : "bg-green-100"
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  theme === "dark" 
-                    ? "bg-green-500" 
-                    : "bg-green-500"
                 }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${theme === "dark"
+                    ? "bg-green-500"
+                    : "bg-green-500"
+                  }`}>
                   <Check className="w-10 h-10 text-white" strokeWidth={3} />
                 </div>
               </div>
@@ -652,56 +625,47 @@ export function DepositScreen({ onNavigateBack, onTransactionSuccess }: DepositS
 
             {/* Modal Body */}
             <div className="px-6 pb-8 text-center">
-              <h2 className={`text-2xl font-bold mb-2 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
+              <h2 className={`text-2xl font-bold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
                 Dépôt Réussi !
               </h2>
-              <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
+              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
                 Votre dépôt a été effectué avec succès
               </p>
-              
+
               {/* Transaction Details */}
-              <div className={`mt-6 p-4 rounded-2xl ${
-                theme === "dark" 
-                  ? "bg-gray-700/50" 
+              <div className={`mt-6 p-4 rounded-2xl ${theme === "dark"
+                  ? "bg-gray-700/50"
                   : "bg-gray-50"
-              }`}>
+                }`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
+                  <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
                     Montant
                   </span>
-                  <span className={`font-bold ${
-                    theme === "dark" ? "text-green-400" : "text-green-600"
-                  }`}>
+                  <span className={`font-bold ${theme === "dark" ? "text-green-400" : "text-green-600"
+                    }`}>
                     {amount} FCFA
                   </span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
+                  <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
                     Réseau
                   </span>
-                  <span className={`text-sm font-semibold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
+                  <span className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
                     {selectedNetworkDetails?.nom}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
+                  <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
                     Téléphone
                   </span>
-                  <span className={`text-sm font-semibold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
+                  <span className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
                     {recipientPhone}
                   </span>
                 </div>

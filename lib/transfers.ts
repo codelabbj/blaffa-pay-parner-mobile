@@ -127,27 +127,33 @@ class TransferService {
 
   // Get transfer history with filters
   async getTransfers(
-    accessToken: string, 
-    type: string = 'sent', 
-    status: string = 'completed', 
-    minAmount: string = '', 
-    maxAmount: string = '', 
-    dateFrom: string = '2025-03-01', 
-    dateTo: string = '2025-09-30', 
-    ordering: string = '-created_at'
+    accessToken: string,
+    filters: {
+      type?: string;
+      status?: string;
+      minAmount?: string;
+      maxAmount?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      ordering?: string;
+    } = {}
   ): Promise<TransfersResponse> {
     try {
-      const params = new URLSearchParams({
-        type,
-        status,
-        min_amount: minAmount,
-        max_amount: maxAmount,
-        date_from: dateFrom,
-        date_to: dateTo,
-        ordering
-      });
+      const params = new URLSearchParams();
 
-      const response = await fetch(`${this.baseUrl}/api/payments/betting/user/transfers/?${params}`, {
+      if (filters.type) params.append('type', filters.type);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.minAmount) params.append('min_amount', filters.minAmount);
+      if (filters.maxAmount) params.append('max_amount', filters.maxAmount);
+      if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+      if (filters.dateTo) params.append('date_to', filters.dateTo);
+      if (filters.ordering) params.append('ordering', filters.ordering);
+      else params.append('ordering', '-created_at');
+
+      const queryString = params.toString();
+      const url = `${this.baseUrl}/api/payments/betting/user/transfers/${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

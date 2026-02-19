@@ -269,69 +269,81 @@ export function TransactionDetailsModal({
             </div>
 
             <div className="px-5 py-2">
-              {/* Application */}
-              {renderDetailRow(
-                transaction.historyType === 'betting' ? Gamepad2 : Smartphone,
-                "Application",
-                appName
+              {/* Transfer Specific Fields */}
+              {transaction.historyType === 'transfer' && (
+                <>
+                  {renderDetailRow(User, "Expéditeur", `${transaction.sender_name} (${transaction.sender_email})`)}
+                  {renderDetailRow(User, "Bénéficiaire", `${transaction.receiver_name} (${transaction.receiver_email})`)}
+                  {renderDetailRow(DollarSign, "Frais", `XOF ${formatAmount(transaction.fees)}`)}
+                  {renderDetailRow(Wallet, "Solde Expéditeur Avant", `XOF ${formatAmount(transaction.sender_balance_before)}`)}
+                  {renderDetailRow(Wallet, "Solde Expéditeur Après", `XOF ${formatAmount(transaction.sender_balance_after)}`)}
+                  {renderDetailRow(Wallet, "Solde Bénéficiaire Avant", `XOF ${formatAmount(transaction.receiver_balance_before)}`)}
+                  {renderDetailRow(Wallet, "Solde Bénéficiaire Après", `XOF ${formatAmount(transaction.receiver_balance_after)}`)}
+                  {transaction.failed_reason && renderDetailRow(AlertCircle, "Raison de l'échec", transaction.failed_reason)}
+                  {renderDetailRow(Calendar, "Date de création", formatTransactionDate(transaction.created_at))}
+                  {renderDetailRow(Calendar, "Date de complétion", formatTransactionDate(transaction.completed_at))}
+                </>
               )}
 
-              {/* Network */}
-              {renderDetailRow(
-                Globe,
-                "Réseau",
-                networkName
+              {/* Betting Specific Fields */}
+              {transaction.historyType === 'betting' && (
+                <>
+                  {renderDetailRow(Smartphone, "Plateforme", transaction.platform_name)}
+                  {renderDetailRow(Hash, "ID Utilisateur Paris", transaction.betting_user_id)}
+                  {transaction.withdrawal_code && renderDetailRow(FileText, "Code de retrait", transaction.withdrawal_code, true, transaction.withdrawal_code)}
+                  {renderDetailRow(Hash, "ID Transaction Externe", transaction.external_transaction_id, true, transaction.external_transaction_id)}
+                  {renderDetailRow(TrendingUp, "Taux de commission", `${transaction.commission_rate}%`)}
+                  {renderDetailRow(DollarSign, "Montant commission", `XOF ${formatAmount(transaction.commission_amount)}`)}
+                  {renderDetailRow(CheckCircle, "Commission payée", transaction.commission_paid ? "Oui" : "Non")}
+                  {transaction.partner_balance_before && renderDetailRow(Wallet, "Solde Partenaire Avant", `XOF ${formatAmount(transaction.partner_balance_before)}`)}
+                  {transaction.partner_balance_after && renderDetailRow(Wallet, "Solde Partenaire Après", `XOF ${formatAmount(transaction.partner_balance_after)}`)}
+
+                  {/* External Response Logs */}
+                  {transaction.external_response?.data?.logs && transaction.external_response.data.logs.length > 0 && (
+                    <div className={`mt-4 p-4 rounded-xl ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-50"}`}>
+                      <p className={`text-xs font-bold mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                        LOGS DE LA TRANSACTION
+                      </p>
+                      <div className="space-y-3">
+                        {transaction.external_response.data.logs.map((log: any, index: number) => (
+                          <div key={index} className="flex gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                            <div>
+                              <p className={`text-xs font-medium ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{log.message}</p>
+                              <p className={`text-[10px] ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>{formatTransactionDate(log.created_at)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
-              {/* Phone Number / ID */}
-              {renderDetailRow(
-                Phone,
-                "Numéro / ID",
-                transaction.recipient_phone || transaction.phone || transaction.betting_user_id || transaction.receiver_name
+              {/* Recharge Specific Fields */}
+              {transaction.historyType === 'recharge' && (
+                <>
+                  {renderDetailRow(FileText, "Description de la preuve", transaction.proof_description)}
+                  {transaction.processed_at && renderDetailRow(Calendar, "Traité le", formatTransactionDate(transaction.processed_at))}
+                  {transaction.reviewed_at && renderDetailRow(Calendar, "Revu le", formatTransactionDate(transaction.reviewed_at))}
+                  {transaction.rejection_reason && renderDetailRow(AlertCircle, "Raison du rejet", transaction.rejection_reason)}
+                  {transaction.admin_notes && renderDetailRow(Info, "Notes Admin", transaction.admin_notes)}
+                  {renderDetailRow(Clock, "Expire le", formatTransactionDate(transaction.expires_at))}
+                </>
               )}
 
-              {/* Montant (Redundant but requested) */}
-              {renderDetailRow(
-                DollarSign,
-                "Montant",
-                `XOF ${formatAmount(transaction.amount)}`
-              )}
-
-              {/* Reference */}
-              {renderDetailRow(
-                FileText,
-                "Référence",
-                transaction.reference,
-                true,
-                transaction.reference
-              )}
-
-              {/* Date */}
-              {renderDetailRow(
-                Calendar,
-                "Date",
-                formatTransactionDate(transaction.created_at || transaction.date)
-              )}
-
-              {/* Betting ID */}
-              {transaction.historyType === 'betting' && renderDetailRow(
-                User,
-                "ID Paris",
-                transaction.betting_user_id
-              )}
-
-              {/* Balance Before - Key Requirement */}
-              {renderDetailRow(
-                Wallet,
-                "Solde Avant",
-                transaction.balance_before ? `XOF ${formatAmount(transaction.balance_before)}` : null
-              )}
-
-              {/* Balance After - Key Requirement */}
-              {renderDetailRow(
-                Wallet,
-                "Solde Après",
-                transaction.balance_after ? `XOF ${formatAmount(transaction.balance_after)}` : null
+              {/* User Transaction (Mobile) Specific Fields */}
+              {transaction.historyType === 'transaction' && (
+                <>
+                  {renderDetailRow(Smartphone, "Type", transaction.type_display)}
+                  {renderDetailRow(Globe, "Réseau", transaction.network?.nom)}
+                  {renderDetailRow(Phone, "Numéro destinataire", transaction.recipient_phone)}
+                  {transaction.display_recipient_name && renderDetailRow(User, "Nom destinataire", transaction.display_recipient_name)}
+                  {transaction.processed_by_name && renderDetailRow(User, "Traité par", transaction.processed_by_name)}
+                  {transaction.error_message && renderDetailRow(AlertCircle, "Erreur", transaction.error_message)}
+                  {transaction.balance_before && renderDetailRow(Wallet, "Solde Avant", `XOF ${formatAmount(transaction.balance_before)}`)}
+                  {transaction.balance_after && renderDetailRow(Wallet, "Solde Après", `XOF ${formatAmount(transaction.balance_after)}`)}
+                </>
               )}
             </div>
           </div>
