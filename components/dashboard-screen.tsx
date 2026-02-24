@@ -480,7 +480,8 @@ import {
   Gamepad2,
   Shield,
   DollarSign,
-  LogOut
+  LogOut,
+  FileSpreadsheet
 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useTheme } from "@/lib/contexts"
@@ -491,6 +492,7 @@ import { authService } from "@/lib/auth"
 import { transferService, Transfer } from "@/lib/transfers"
 import { bettingService } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
+import { bulkPaymentService } from "@/lib/bulk-payments"
 import { TransactionTypeSelectionScreen } from "@/components/transaction-type-selection-screen"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
 
@@ -509,6 +511,7 @@ interface DashboardScreenProps {
   onNavigateToBettingDeposit: () => void
   onNavigateToBettingWithdraw: () => void
   onNavigateToNotifications: () => void
+  onNavigateToBulkPayment: () => void
   onLogout: () => void
 }
 
@@ -527,6 +530,7 @@ export function DashboardScreen({
   onNavigateToBettingDeposit,
   onNavigateToBettingWithdraw,
   onNavigateToNotifications,
+  onNavigateToBulkPayment,
   onLogout
 }: DashboardScreenProps) {
   const [showBalance, setShowBalance] = useState(true)
@@ -539,6 +543,8 @@ export function DashboardScreen({
   const [currentTransactionTypeSelection, setCurrentTransactionTypeSelection] = useState<"deposit" | "withdraw" | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
+  const [canUseBulkPayment, setCanUseBulkPayment] = useState(false)
+  const [isCheckingBulk, setIsCheckingBulk] = useState(false)
 
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
@@ -772,6 +778,28 @@ export function DashboardScreen({
     }
   }, [showDropdown])
 
+  // Check for bulk payment authorization
+  useEffect(() => {
+    const checkBulkAuthorization = async () => {
+      if (showTransactionTypeSelection && currentTransactionTypeSelection === 'deposit') {
+        const accessToken = authService.getAccessToken()
+        if (!accessToken) return
+
+        setIsCheckingBulk(true)
+        try {
+          const response = await bulkPaymentService.getAuthorizedNetworks(accessToken)
+          setCanUseBulkPayment(response.networks && response.networks.length > 0)
+        } catch (error) {
+          console.error('Error checking bulk authorization:', error)
+          setCanUseBulkPayment(false)
+        } finally {
+          setIsCheckingBulk(false)
+        }
+      }
+    }
+
+    checkBulkAuthorization()
+  }, [showTransactionTypeSelection, currentTransactionTypeSelection])
 
   // Helper function to format transaction date
   const formatTransactionDate = (dateString: string) => {
@@ -1459,6 +1487,22 @@ export function DashboardScreen({
               </div>
               <span className="flex-1 text-left">{t("nav.transfer")}</span>
             </button>
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                }`}
+              onClick={() => {
+                setSidebarOpen(false)
+                onNavigateToBulkPayment()
+              }}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+                }`}>
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+              <span className="flex-1 text-left">Paiement Groupé</span>
+            </button>
 
             {/* History Section */}
             <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
@@ -1619,6 +1663,7 @@ export function DashboardScreen({
             <TransactionTypeSelectionScreen
               transactionType={currentTransactionTypeSelection}
               user={user || undefined}
+              showBulkPayment={canUseBulkPayment}
               onNavigateBack={() => {
                 setShowTransactionTypeSelection(false)
                 setCurrentTransactionTypeSelection(null)
@@ -1635,6 +1680,10 @@ export function DashboardScreen({
                 setShowTransactionTypeSelection(false)
                 // Pass transaction type to betting platforms
                 onNavigateToBettingPlatforms(currentTransactionTypeSelection)
+              }}
+              onSelectBulkPayment={() => {
+                setShowTransactionTypeSelection(false)
+                onNavigateToBulkPayment()
               }}
             />
           </div>

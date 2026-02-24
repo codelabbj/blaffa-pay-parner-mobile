@@ -20,6 +20,7 @@ import { BettingWithdrawScreen } from "@/components/betting-withdraw-screen"
 import { BettingTransactionsScreen } from "@/components/betting-transactions-screen"
 import { BettingCommissionsScreen } from "@/components/betting-commissions-screen"
 import { NotificationScreen } from "@/components/notification-screen"
+import { BulkPaymentScreen } from "@/components/bulk-payment-screen"
 import { PermissionDeniedScreen } from "@/components/permission-denied-screen"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useTheme } from "@/lib/contexts"
@@ -36,7 +37,7 @@ import {
 } from "lucide-react"
 
 export default function Home() {
-  const [currentScreen, setCurrentScreen] = useState<"splash" | "login" | "dashboard" | "deposit" | "withdraw" | "recharge" | "settings" | "profile" | "transaction-history" | "recharge-history" | "transfer" | "transfer-history" | "betting-platforms" | "betting-deposit" | "betting-withdraw" | "betting-transactions" | "betting-commissions" | "notifications" | "permission-denied">("splash")
+  const [currentScreen, setCurrentScreen] = useState<"splash" | "login" | "dashboard" | "deposit" | "withdraw" | "recharge" | "settings" | "profile" | "transaction-history" | "recharge-history" | "transfer" | "transfer-history" | "betting-platforms" | "betting-deposit" | "betting-withdraw" | "betting-transactions" | "betting-commissions" | "notifications" | "permission-denied" | "bulk-payment">("splash")
   const [selectedPlatformUid, setSelectedPlatformUid] = useState<string | undefined>(undefined)
   const [splashCompleted, setSplashCompleted] = useState(false)
   const [navigationHistory, setNavigationHistory] = useState<string[]>([])
@@ -278,6 +279,7 @@ export default function Home() {
                 onNavigateToBettingDeposit={() => navigateToScreen("betting-deposit")}
                 onNavigateToBettingWithdraw={() => navigateToScreen("betting-withdraw")}
                 onNavigateToNotifications={() => navigateToScreen("notifications")}
+                onNavigateToBulkPayment={() => navigateToScreen("bulk-payment")}
                 onLogout={handleLogout}
               />
             )}
@@ -360,6 +362,9 @@ export default function Home() {
             )}
             {currentScreen === "notifications" && (
               <NotificationScreen onNavigateBack={navigateBack} />
+            )}
+            {currentScreen === "bulk-payment" && (
+              <BulkPaymentScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "permission-denied" && (
               <PermissionDeniedScreen
