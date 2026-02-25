@@ -42,6 +42,7 @@ export default function Home() {
   const [splashCompleted, setSplashCompleted] = useState(false)
   const [navigationHistory, setNavigationHistory] = useState<string[]>([])
   const [bettingTransactionType, setBettingTransactionType] = useState<"deposit" | "withdraw" | undefined>(undefined)
+  const [bulkPaymentInitialView, setBulkPaymentInitialView] = useState<"create" | "history">("create")
   const { theme } = useTheme()
   const { isAuthenticated, isLoading, logout, user, refreshAccountData, refreshTransactions, refreshRecharges } = useAuth()
 
@@ -279,7 +280,10 @@ export default function Home() {
                 onNavigateToBettingDeposit={() => navigateToScreen("betting-deposit")}
                 onNavigateToBettingWithdraw={() => navigateToScreen("betting-withdraw")}
                 onNavigateToNotifications={() => navigateToScreen("notifications")}
-                onNavigateToBulkPayment={() => navigateToScreen("bulk-payment")}
+                onNavigateToBulkPayment={(view = "create") => {
+                  setBulkPaymentInitialView(view)
+                  navigateToScreen("bulk-payment")
+                }}
                 onLogout={handleLogout}
               />
             )}
@@ -364,7 +368,10 @@ export default function Home() {
               <NotificationScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "bulk-payment" && (
-              <BulkPaymentScreen onNavigateBack={navigateBack} />
+              <BulkPaymentScreen
+                onNavigateBack={navigateBack}
+                initialView={bulkPaymentInitialView}
+              />
             )}
             {currentScreen === "permission-denied" && (
               <PermissionDeniedScreen

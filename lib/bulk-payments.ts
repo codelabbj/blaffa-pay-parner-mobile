@@ -52,6 +52,51 @@ export interface BulkHistoryResponse {
     results: BulkHistoryItem[];
 }
 
+export interface BulkLedgerTransaction {
+    uid: string;
+    type: string;
+    type_display: string;
+    amount: string;
+    formatted_amount: string;
+    recipient_phone: string;
+    recipient_name: string;
+    display_recipient_name: string | null;
+    network: {
+        uid: string;
+        nom: string;
+        code: string;
+        country_name: string;
+        country_code: string;
+        image: string | null;
+    };
+    objet: string;
+    status: string;
+    status_display: string;
+    reference: string;
+    created_at: string;
+    started_at: string | null;
+    completed_at: string | null;
+    processing_duration: number | null;
+    retry_count: number;
+    max_retries: number;
+    can_retry: boolean;
+    error_message: string | null;
+    processed_by_name: string;
+    priority: number;
+    fees: string | null;
+    balance_before: string | null;
+    balance_after: string | null;
+    callback_url: string;
+    external_id: string | null;
+}
+
+export interface BulkLedgerResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: BulkLedgerTransaction[];
+}
+
 class BulkPaymentService {
     private baseUrl: string;
 
@@ -87,6 +132,7 @@ class BulkPaymentService {
         page_size?: number;
         status?: string;
         network?: string;
+        search?: string;
         date_from?: string;
         date_to?: string;
     }): Promise<BulkHistoryResponse> {
@@ -96,6 +142,7 @@ class BulkPaymentService {
             if (params.page_size) queryParams.append('page_size', params.page_size.toString());
             if (params.status) queryParams.append('status', params.status);
             if (params.network) queryParams.append('network', params.network);
+            if (params.search) queryParams.append('search', params.search);
             if (params.date_from) queryParams.append('date_from', params.date_from);
             if (params.date_to) queryParams.append('date_to', params.date_to);
 
@@ -141,6 +188,40 @@ class BulkPaymentService {
             return data;
         } catch (error) {
             console.error('Submit bulk payment error:', error);
+            throw error;
+        }
+    }
+
+    async getBulkLedger(accessToken: string, bulkUid: string, params: {
+        page?: number;
+        page_size?: number;
+        status?: string;
+        search?: string;
+    }): Promise<BulkLedgerResponse> {
+        try {
+            const queryParams = new URLSearchParams();
+            if (params.page) queryParams.append('page', params.page.toString());
+            if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+            if (params.status) queryParams.append('status', params.status);
+            if (params.search) queryParams.append('search', params.search);
+
+            const response = await fetch(`${this.baseUrl}/api/payments/user/transactions/bulk-deposit/${bulkUid}/transactions/?${queryParams.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const parsedError = parseBackendError(errorData);
+                throw new Error(formatErrorMessage(parsedError));
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Get bulk ledger error:', error);
             throw error;
         }
     }

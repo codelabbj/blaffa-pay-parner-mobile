@@ -511,7 +511,7 @@ interface DashboardScreenProps {
   onNavigateToBettingDeposit: () => void
   onNavigateToBettingWithdraw: () => void
   onNavigateToNotifications: () => void
-  onNavigateToBulkPayment: () => void
+  onNavigateToBulkPayment: (view?: "create" | "history") => void
   onLogout: () => void
 }
 
@@ -587,8 +587,8 @@ export function DashboardScreen({
       const accessToken = authService.getAccessToken()
       if (!accessToken) return
 
-      // Fetch transfers and betting transactions
-      const [transfersResponse, bettingTransactions] = await Promise.all([
+      // Fetch transfers, betting and bulk transactions
+      const [transfersResponse, bettingTransactions, bulkPaymentResponse] = await Promise.all([
         transferService.getTransfers(accessToken, {
           type: "sent",
           status: "completed",
@@ -597,7 +597,8 @@ export function DashboardScreen({
           dateFrom: "2025-03-01",
           dateTo: "2025-09-30"
         }),
-        bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] }))
+        bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] })),
+        bulkPaymentService.getBulkHistory({ page: 1, page_size: 10 }).catch(() => ({ results: [] }))
       ])
 
       // Combine all history types with type indicators
@@ -653,7 +654,21 @@ export function DashboardScreen({
             receiver_name: transfer.receiver_name,
             isTransferReceived: isReceived
           };
-        })
+        }),
+
+        // Add bulk payments with type indicator
+        ...(bulkPaymentResponse as any).results?.slice(0, 10).map((batch: any) => ({
+          ...batch,
+          historyType: 'bulk',
+          typeIcon: FileSpreadsheet,
+          typeColor: theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600",
+          typeLabel: "Dépôt Groupé",
+          // Map bulk batch fields to activity list fields
+          display_recipient_name: `Lot #${batch.uid.split('-')[0]}`,
+          recipient_phone: `${batch.total_count} transactions`,
+          amount: parseFloat(batch.total_amount).toString(),
+          type: "deposit" // Bulks are always deposits for now
+        })) || []
       ]
 
       // Sort by date (most recent first) and take top 10
@@ -1201,6 +1216,20 @@ export function DashboardScreen({
                           <span className="truncate">Transactions de Paris</span>
                           <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
                         </button>
+                        <button
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
+                            ? "hover:bg-gray-700/50 text-gray-200"
+                            : "hover:bg-gray-100 text-gray-900"
+                            }`}
+                          onClick={() => {
+                            onNavigateToBulkPayment("history");
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <FileSpreadsheet className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="truncate">Historique Dépôts Groupés</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1246,7 +1275,9 @@ export function DashboardScreen({
                                       ? item.partner_name
                                       : item.historyType === 'recharge'
                                         ? item.recipient_phone
-                                        : item.receiver_name
+                                        : item.historyType === 'bulk'
+                                          ? (item.display_recipient_name || item.uid)
+                                          : item.receiver_name
                                   }
                                 </p>
                                 {item.historyType === 'betting' && (
@@ -1321,7 +1352,9 @@ export function DashboardScreen({
                                       ? "text-blue-500"
                                       : item.historyType === 'transfer'
                                         ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                                        : "text-cyan-500"
+                                        : item.historyType === 'bulk'
+                                          ? "text-orange-500"
+                                          : "text-cyan-500"
                               }`}>
                               {item.historyType === 'transaction'
                                 ? formatTransactionAmount(item.amount, item.type)

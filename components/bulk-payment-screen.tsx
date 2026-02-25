@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import {
@@ -17,7 +17,10 @@ import {
     History,
     Send,
     AlertTriangle,
-    Info
+    Info,
+    Search,
+    Filter,
+    Calendar
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,13 +43,14 @@ import {
 } from "@/components/ui/dialog"
 import { useTheme, useTranslation } from "@/lib/contexts"
 import { authService } from "@/lib/auth"
-import { bulkPaymentService, BulkNetwork, BulkTransaction, BulkHistoryItem } from "@/lib/bulk-payments"
+import { bulkPaymentService, BulkNetwork, BulkTransaction, BulkHistoryItem, BulkLedgerTransaction } from "@/lib/bulk-payments"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'
 
 interface BulkPaymentScreenProps {
     onNavigateBack: () => void
+    initialView?: "create" | "history"
 }
 
 interface RowErrors {
@@ -65,8 +69,8 @@ interface RowData {
     errors: RowErrors
 }
 
-export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
-    const [view, setView] = useState<"create" | "history">("create")
+export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: BulkPaymentScreenProps) {
+    const [view, setView] = useState<"create" | "history" | "ledger">(initialView)
     const { theme } = useTheme()
     const { t } = useTranslation()
     const accessToken = authService.getAccessToken()
@@ -92,6 +96,21 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
     const [totalHistoryItems, setTotalHistoryItems] = useState(0)
     const [historyLoading, setHistoryLoading] = useState(false)
     const [selectedHistoryItem, setSelectedHistoryItem] = useState<BulkHistoryItem | null>(null)
+    const [filters, setFilters] = useState({
+        status: "all",
+        search: "",
+        network_uid: "all",
+        date_from: "",
+        date_to: ""
+    })
+    const [showFilters, setShowFilters] = useState(false)
+
+    // Ledger State
+    const [ledgerItems, setLedgerItems] = useState<BulkLedgerTransaction[]>([])
+    const [ledgerLoading, setLedgerLoading] = useState(false)
+    const [ledgerPage, setLedgerPage] = useState(1)
+    const [ledgerTotal, setLedgerTotal] = useState(0)
+    const [ledgerFilters, setLedgerFilters] = useState({ status: "all", search: "" })
 
     // Initialization
     useEffect(() => {
@@ -322,10 +341,19 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
     }
 
     // History Fetching
-    const fetchHistory = async (page: number) => {
+    const fetchHistory = async (page: number, currentFilters = filters) => {
         setHistoryLoading(true)
         try {
-            const response = await bulkPaymentService.getBulkHistory(accessToken!, { page, page_size: 10 })
+            const params = {
+                page,
+                page_size: 10,
+                status: currentFilters.status !== "all" ? currentFilters.status : undefined,
+                network: currentFilters.network_uid !== "all" ? currentFilters.network_uid : undefined,
+                search: currentFilters.search || undefined,
+                date_from: currentFilters.date_from || undefined,
+                date_to: currentFilters.date_to || undefined
+            }
+            const response = await bulkPaymentService.getBulkHistory(accessToken!, params)
             setHistoryItems(response.results)
             setTotalHistoryItems(response.count)
             setHistoryPage(page)
@@ -334,6 +362,45 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
             toast.error("Impossible de charger l'historique")
         } finally {
             setHistoryLoading(false)
+        }
+    }
+
+    const handleFilterChange = (key: string, value: any) => {
+        const newFilters = { ...filters, [key]: value }
+        setFilters(newFilters)
+        fetchHistory(1, newFilters)
+    }
+
+    const resetFilters = () => {
+        const initialFilters = {
+            status: "all",
+            search: "",
+            network_uid: "all",
+            date_from: "",
+            date_to: ""
+        }
+        setFilters(initialFilters)
+        fetchHistory(1, initialFilters)
+    }
+
+    const fetchLedger = async (bulkUid: string, page: number, currentFilters = ledgerFilters) => {
+        setLedgerLoading(true)
+        try {
+            const params = {
+                page,
+                page_size: 10,
+                status: currentFilters.status !== "all" ? currentFilters.status : undefined,
+                search: currentFilters.search || undefined,
+            }
+            const response = await bulkPaymentService.getBulkLedger(accessToken!, bulkUid, params)
+            setLedgerItems(response.results)
+            setLedgerTotal(response.count)
+            setLedgerPage(page)
+        } catch (error) {
+            console.error("Ledger fetch error:", error)
+            toast.error("Impossible de charger les transactions")
+        } finally {
+            setLedgerLoading(false)
         }
     }
 
@@ -400,17 +467,28 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
                     <div>
                         <h1 className="text-xl font-bold">Paiement Groupé</h1>
                         <p className="text-xs opacity-60">
-                            {view === "create" ? "Nouvelle transaction" : "Historique des dépôts"}
+                            {view === "create" ? "Nouvelle transaction" : view === "history" ? "Historique des dépôts" : selectedHistoryItem ? `Lot #${selectedHistoryItem.uid.split('-')[0]}` : "Transactions"}
                         </p>
                     </div>
                 </div>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setView(view === "create" ? "history" : "create")}
+                    onClick={() => {
+                        if (view === "ledger") {
+                            setView("history")
+                        } else {
+                            setView(view === "create" ? "history" : "create")
+                        }
+                    }}
                     className="rounded-xl gap-2 text-xs"
                 >
-                    {view === "create" ? (
+                    {view === "ledger" ? (
+                        <>
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            Retour
+                        </>
+                    ) : view === "create" ? (
                         <>
                             <History className="w-3.5 h-3.5" />
                             Historique
@@ -587,9 +665,113 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
                             </Button>
                         </div>
                     </div>
-                ) : (
-                    /* History View */
+                ) : view === "history" ? (
                     <div className="space-y-4">
+                        {/* Filters */}
+                        <div className="space-y-3">
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
+                                    <Input
+                                        placeholder="Rechercher par UID..."
+                                        value={filters.search}
+                                        onChange={(e) => handleFilterChange("search", e.target.value)}
+                                        className="pl-10 rounded-xl h-10 text-sm"
+                                    />
+                                </div>
+                                <Button
+                                    variant={showFilters ? "default" : "outline"}
+                                    size="icon"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="rounded-xl h-10 w-10"
+                                >
+                                    <Filter className="w-4 h-4" />
+                                </Button>
+                            </div>
+
+                            {showFilters && (
+                                <Card className="rounded-2xl border-none shadow-sm overflow-hidden">
+                                    <CardContent className="p-4 space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px]">Statut</Label>
+                                                <Select
+                                                    value={filters.status}
+                                                    onValueChange={(val) => handleFilterChange("status", val)}
+                                                >
+                                                    <SelectTrigger className="rounded-xl h-9 text-xs">
+                                                        <SelectValue placeholder="Tous" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl">
+                                                        <SelectItem value="all">Tous</SelectItem>
+                                                        <SelectItem value="pending">En attente</SelectItem>
+                                                        <SelectItem value="processing">En cours</SelectItem>
+                                                        <SelectItem value="completed">Terminé</SelectItem>
+                                                        <SelectItem value="failed">Échoué</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px]">Réseau</Label>
+                                                <Select
+                                                    value={filters.network_uid}
+                                                    onValueChange={(val) => handleFilterChange("network_uid", val)}
+                                                >
+                                                    <SelectTrigger className="rounded-xl h-9 text-xs">
+                                                        <SelectValue placeholder="Tous" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl">
+                                                        <SelectItem value="all">Tous</SelectItem>
+                                                        {networks.map(n => (
+                                                            <SelectItem key={n.uid} value={n.uid} className="text-xs">
+                                                                {n.nom}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px]">Du</Label>
+                                                <div className="relative">
+                                                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" />
+                                                    <Input
+                                                        type="date"
+                                                        value={filters.date_from}
+                                                        onChange={(e) => handleFilterChange("date_from", e.target.value)}
+                                                        className="pl-8 rounded-xl h-9 text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px]">Au</Label>
+                                                <div className="relative">
+                                                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" />
+                                                    <Input
+                                                        type="date"
+                                                        value={filters.date_to}
+                                                        onChange={(e) => handleFilterChange("date_to", e.target.value)}
+                                                        className="pl-8 rounded-xl h-9 text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={resetFilters}
+                                            className="w-full text-[10px] h-8 rounded-lg opacity-60 hover:opacity-100"
+                                        >
+                                            Réinitialiser les filtres
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+
                         {historyLoading && historyItems.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20">
                                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -599,8 +781,12 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
                                 {historyItems.map((item) => (
                                     <Card
                                         key={item.uid}
-                                        className="rounded-2xl border-none shadow-sm overflow-hidden"
-                                        onClick={() => setSelectedHistoryItem(item)}
+                                        className="rounded-2xl border-none shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500/20 transition-all"
+                                        onClick={() => {
+                                            setSelectedHistoryItem(item)
+                                            setView("ledger")
+                                            fetchLedger(item.uid, 1)
+                                        }}
                                     >
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between mb-3">
@@ -685,7 +871,123 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
                             </div>
                         )}
                     </div>
-                )}
+                ) : view === "ledger" && selectedHistoryItem ? (
+                    <div className="space-y-4">
+                        {/* Batch Summary Card */}
+                        <Card className="rounded-2xl border-none shadow-sm overflow-hidden">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p className="font-black text-lg">{formatNumberWithSpaces(selectedHistoryItem.total_amount)} <span className="text-xs font-normal opacity-60">FCFA</span></p>
+                                        <p className="text-[10px] opacity-60 font-mono">UID: {selectedHistoryItem.uid}</p>
+                                    </div>
+                                    <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${selectedHistoryItem.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                                        selectedHistoryItem.status === 'failed' ? 'bg-red-500/10 text-red-500' :
+                                            'bg-amber-500/10 text-amber-500'
+                                        }`}>
+                                        {selectedHistoryItem.status}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="p-2 rounded-xl bg-gray-50 dark:bg-slate-800/60">
+                                        <p className="font-black text-sm">{selectedHistoryItem.total_count}</p>
+                                        <p className="text-[10px] opacity-50">Total</p>
+                                    </div>
+                                    <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
+                                        <p className="font-black text-sm text-emerald-600 dark:text-emerald-400">{selectedHistoryItem.succeeded_count}</p>
+                                        <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">Réussis</p>
+                                    </div>
+                                    <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/20">
+                                        <p className="font-black text-sm text-red-600 dark:text-red-400">{selectedHistoryItem.failed_count}</p>
+                                        <p className="text-[10px] text-red-600/70 dark:text-red-400/70">Échoués</p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 w-full h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full transition-all duration-500 ${selectedHistoryItem.status === 'completed' ? 'bg-emerald-500' : selectedHistoryItem.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'}`}
+                                        style={{ width: `${selectedHistoryItem.progress_percent}%` }}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Individual Transactions */}
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-bold opacity-60 uppercase tracking-wider">Transactions</h2>
+                            <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold">{ledgerTotal} au total</span>
+                        </div>
+
+                        {ledgerLoading && ledgerItems.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                            </div>
+                        ) : ledgerItems.length > 0 ? (
+                            <>
+                                {ledgerItems.map(item => (
+                                    <Card key={item.uid} className="rounded-2xl border-none shadow-sm overflow-hidden">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                        <Send className="w-4 h-4 text-blue-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm tracking-tight">{item.recipient_phone}</p>
+                                                        <p className="text-[10px] opacity-60 uppercase">{item.network.nom}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-black text-sm">{item.formatted_amount}</p>
+                                                    <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${item.status === 'success' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                        item.status === 'failed' ? 'bg-red-500/10 text-red-500' :
+                                                            'bg-amber-500/10 text-amber-500'
+                                                        }`}>
+                                                        {item.status_display}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {item.objet && <p className="text-[10px] opacity-50 mt-1">Objet: {item.objet}</p>}
+                                            {item.reference && <p className="text-[10px] opacity-40 font-mono mt-0.5">Ref: {item.reference}</p>}
+                                            {item.processed_by_name && <p className="text-[10px] opacity-40 mt-0.5">Traité par: {item.processed_by_name}</p>}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+
+                                {/* Pagination */}
+                                {ledgerTotal > 10 && (
+                                    <div className="flex items-center justify-center gap-4 py-4">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            disabled={ledgerPage === 1 || ledgerLoading}
+                                            onClick={() => fetchLedger(selectedHistoryItem.uid, ledgerPage - 1)}
+                                            className="rounded-xl"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </Button>
+                                        <span className="text-xs font-bold">
+                                            Page {ledgerPage} sur {Math.ceil(ledgerTotal / 10)}
+                                        </span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            disabled={ledgerPage >= Math.ceil(ledgerTotal / 10) || ledgerLoading}
+                                            onClick={() => fetchLedger(selectedHistoryItem.uid, ledgerPage + 1)}
+                                            className="rounded-xl"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                                <FileSpreadsheet className="w-12 h-12 mb-4" />
+                                <p className="text-sm font-bold">Aucune transaction trouvée</p>
+                            </div>
+                        )}
+                    </div>
+                ) : null}
             </div>
 
             {/* Floating Action Button for View 1 */}
@@ -761,86 +1063,6 @@ export function BulkPaymentScreen({ onNavigateBack }: BulkPaymentScreenProps) {
                             className="rounded-xl h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                         >
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Lancer le traitement"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Details View Modal */}
-            <Dialog open={!!selectedHistoryItem} onOpenChange={() => setSelectedHistoryItem(null)}>
-                <DialogContent className="rounded-3xl max-w-[90vw] p-6 sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black">Détails de la Transaction</DialogTitle>
-                    </DialogHeader>
-
-                    {selectedHistoryItem && (
-                        <div className="space-y-4 pt-2">
-                            <div className="text-center pb-4">
-                                <div className={`w-16 h-16 rounded-3xl mx-auto mb-3 flex items-center justify-center ${selectedHistoryItem.status === 'completed' ? 'bg-emerald-500/10' :
-                                    selectedHistoryItem.status === 'failed' ? 'bg-red-500/10' :
-                                        'bg-amber-500/10'
-                                    }`}>
-                                    {selectedHistoryItem.status === 'completed' ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> :
-                                        selectedHistoryItem.status === 'failed' ? <X className="w-8 h-8 text-red-500" /> :
-                                            <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />}
-                                </div>
-                                <h3 className="font-black text-2xl">{formatNumberWithSpaces(selectedHistoryItem.total_amount)} <span className="text-sm font-normal opacity-60">FCFA</span></h3>
-                                <p className={`text-xs font-bold uppercase mt-1 tracking-widest ${selectedHistoryItem.status === 'completed' ? 'text-emerald-500' :
-                                    selectedHistoryItem.status === 'failed' ? 'text-red-500' :
-                                        'text-amber-500'
-                                    }`}>
-                                    {selectedHistoryItem.status.toUpperCase()} ({selectedHistoryItem.progress_percent}%)
-                                </p>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">UID Lot</span>
-                                    <span className="text-xs font-mono font-bold">{selectedHistoryItem.uid}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Total Transactions</span>
-                                    <span className="text-xs font-bold">{selectedHistoryItem.total_count}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Réussis</span>
-                                    <span className="text-xs font-bold text-emerald-500">{selectedHistoryItem.succeeded_count}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Échoués</span>
-                                    <span className="text-xs font-bold text-red-500">{selectedHistoryItem.failed_count}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Traités</span>
-                                    <span className="text-xs font-bold">{selectedHistoryItem.processed_count} / {selectedHistoryItem.total_count}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Montant Réussi</span>
-                                    <span className="text-xs font-bold text-emerald-500">{formatNumberWithSpaces(selectedHistoryItem.succeeded_amount)} FCFA</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                    <span className="text-xs opacity-60">Date Création</span>
-                                    <span className="text-xs font-bold">{new Date(selectedHistoryItem.created_at).toLocaleString()}</span>
-                                </div>
-                                {selectedHistoryItem.started_at && (
-                                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                        <span className="text-xs opacity-60">Date Début</span>
-                                        <span className="text-xs font-bold">{new Date(selectedHistoryItem.started_at).toLocaleString()}</span>
-                                    </div>
-                                )}
-                                {selectedHistoryItem.completed_at && (
-                                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-slate-800">
-                                        <span className="text-xs opacity-60">Date Fin</span>
-                                        <span className="text-xs font-bold">{new Date(selectedHistoryItem.completed_at).toLocaleString()}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    <DialogFooter className="mt-6">
-                        <Button onClick={() => setSelectedHistoryItem(null)} className="w-full rounded-2xl h-11 font-bold">
-                            Fermer
                         </Button>
                     </DialogFooter>
                 </DialogContent>
