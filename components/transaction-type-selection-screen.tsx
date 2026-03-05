@@ -4,6 +4,8 @@
 import { CreditCard, Gamepad2, ArrowLeft, Smartphone, FileSpreadsheet } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { User } from "@/lib/auth"
+import { usePermission } from "@/hooks/use-permission"
+import { useToast } from "@/hooks/use-toast"
 
 interface TransactionTypeSelectionScreenProps {
   transactionType: "deposit" | "withdraw"
@@ -25,15 +27,19 @@ export function TransactionTypeSelectionScreen({
   showBulkPayment = false
 }: TransactionTypeSelectionScreenProps) {
   const { theme } = useTheme()
+  const { toast } = useToast()
+
+  // Permissions using the custom hook with fallback to true
+  const canMomo = usePermission('can_process_momo')
+  const canMobcash = usePermission('can_process_mobcash')
+  const canBulk = usePermission('can_process_bulk_payment')
 
   const isDeposit = transactionType === "deposit"
   const actionText = isDeposit ? "Dépôt" : "Retrait"
 
-  // Permission checks - default to true if not specified
-  const canUseMomoPay = user?.can_process_momo !== false
-  const canUseMobcashBetting = user?.can_process_mobcash !== false
+  // Legacy permission checks (can still be used as secondary guards)
+  const canUseTransfer = user?.can_use_transfer !== false
   const canProcessUSSDTransaction = user?.can_process_ussd_transaction !== false
-  const canUseBulkPayment = user?.can_process_bulk_payment !== false
 
   return (
     <div
@@ -88,14 +94,23 @@ export function TransactionTypeSelectionScreen({
         {/* Selection Cards */}
         <div className="space-y-4 flex-1">
           {/* Mobile Money Option */}
-          {canUseMomoPay && canProcessUSSDTransaction && (
-            <button
-              onClick={onSelectMobileMoney}
-              className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-                }`}
-            >
+          <button
+            onClick={() => {
+              if (!canMomo) {
+                toast({
+                  title: "Accès restreint",
+                  description: "Les transactions Mobile Money ne sont pas activées sur votre compte.",
+                  variant: "destructive"
+                })
+                return
+              }
+              onSelectMobileMoney()
+            }}
+            className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${!canMomo ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
+              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
+              }`}
+          >
               <div className="flex items-start gap-4">
                 <div
                   className={`w-16 h-16 rounded-2xl flex items-center justify-center ${theme === "dark"
@@ -141,17 +156,25 @@ export function TransactionTypeSelectionScreen({
                 </div>
               </div>
             </button>
-          )}
 
           {/* Betting Option */}
-          {canUseMobcashBetting && (
-            <button
-              onClick={onSelectBetting}
-              className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-                }`}
-            >
+          <button
+            onClick={() => {
+              if (!canMobcash) {
+                toast({
+                  title: "Accès restreint",
+                  description: "Les transactions MobCash ne sont pas activées sur votre compte.",
+                  variant: "destructive"
+                })
+                return
+              }
+              onSelectBetting()
+            }}
+            className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${!canMobcash ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
+              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
+              }`}
+          >
               <div className="flex items-start gap-4">
                 <div
                   className={`w-16 h-16 rounded-2xl flex items-center justify-center ${theme === "dark"
@@ -199,13 +222,22 @@ export function TransactionTypeSelectionScreen({
                 </div>
               </div>
             </button>
-          )}
 
           {/* Bulk Payment Option */}
-          {isDeposit && showBulkPayment && canUseBulkPayment && (
+          {isDeposit && showBulkPayment && (
             <button
-              onClick={onSelectBulkPayment}
-              className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${theme === "dark"
+              onClick={() => {
+                if (!canBulk) {
+                  toast({
+                    title: "Accès restreint",
+                    description: "Le paiement groupé n'est pas activé sur votre compte.",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                onSelectBulkPayment?.()
+              }}
+              className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${!canBulk ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
                 ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                 : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
@@ -256,7 +288,7 @@ export function TransactionTypeSelectionScreen({
           )}
 
           {/* No options available message */}
-          {!canUseMomoPay && !canUseMobcashBetting && !(isDeposit && showBulkPayment && canUseBulkPayment) && (
+          {!canMomo && !canMobcash && (!isDeposit || !canBulk) && (
             <div className={`p-6 rounded-2xl border text-center ${theme === "dark"
               ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
               : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
@@ -271,7 +303,10 @@ export function TransactionTypeSelectionScreen({
                 Aucune option disponible
               </h3>
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Vous n'avez pas les permissions nécessaires pour effectuer des transactions avec ces méthodes. Contactez votre administrateur.
+                {!canProcessUSSDTransaction
+                  ? "Vous n'avez pas les permissions nécessaires pour les transactions USSD. Contactez votre administrateur."
+                  : "Vous n'avez pas les permissions nécessaires pour effectuer des transactions."
+                }
               </p>
             </div>
           )}

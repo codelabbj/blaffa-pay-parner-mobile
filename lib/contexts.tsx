@@ -158,6 +158,7 @@ interface AuthContextType {
   login: (identifier: string, password: string) => Promise<void>
   logout: () => void
   refreshToken: () => Promise<void>
+  refreshUser: () => Promise<void>
   refreshAccountData: () => Promise<void>
   refreshTransactions: () => Promise<void>
   refreshNetworks: () => Promise<void>
@@ -192,10 +193,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const authPromise = (async () => {
           if (authService.isAuthenticated()) {
-            const isValid = await authService.validateToken()
-            if (isValid) {
-              // Get user profile from API
-              const userProfile = await authService.getUserProfile()
+            // validateToken now returns the User profile on success (or null on failure)
+            // This avoids a second API call to getUserProfile()
+            const userProfile = await authService.validateToken()
+            if (userProfile) {
+              // User profile (including permissions) is already populated from validateToken()
               setUser(userProfile)
 
               // Get account data and transactions
@@ -315,6 +317,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Token refresh failed:', error)
       logout()
+      throw error
+    }
+  }
+
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const accessToken = authService.getAccessToken()
+      if (accessToken) {
+        const userProfile = await authService.getUserProfile()
+        setUser(userProfile)
+      }
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error)
       throw error
     }
   }
@@ -452,6 +467,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       refreshToken,
+      refreshUser,
       refreshAccountData,
       refreshTransactions,
       refreshNetworks,

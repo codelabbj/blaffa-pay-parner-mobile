@@ -177,10 +177,10 @@ class AuthService {
     }
   }
 
-  // Validate token method
-  async validateToken(): Promise<boolean> {
+  // Validate token and get user profile in one call
+  async validateToken(): Promise<User | null> {
     if (!this.accessToken) {
-      return false;
+      return null;
     }
 
     try {
@@ -191,10 +191,13 @@ class AuthService {
         },
       });
 
-      return response.ok;
+      if (!response.ok) return null;
+      
+      const user: User = await response.json();
+      return user;
     } catch (error) {
       console.error('Token validation error:', error);
-      return false;
+      return null;
     }
   }
 

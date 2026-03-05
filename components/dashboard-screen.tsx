@@ -495,6 +495,7 @@ import { formatNumberWithSpaces } from "@/lib/utils"
 import { bulkPaymentService } from "@/lib/bulk-payments"
 import { TransactionTypeSelectionScreen } from "@/components/transaction-type-selection-screen"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
+import { usePermission } from "@/hooks/use-permission"
 
 interface DashboardScreenProps {
   onNavigateToSettings: () => void
@@ -558,8 +559,13 @@ export function DashboardScreen({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { user, accountData, transactions, recharges, refreshTransactions, refreshRecharges, refreshAccountData } = useAuth()
+  const { user, accountData, transactions, recharges, refreshTransactions, refreshRecharges, refreshAccountData, refreshUser } = useAuth()
   const { toast } = useToast()
+
+  // Permissions
+  const canMomo = usePermission('can_process_momo')
+  const canMobcash = usePermission('can_process_mobcash')
+  const canBulk = usePermission('can_process_bulk_payment')
 
   // Copy reference to clipboard
   const copyReference = async (reference: string) => {
@@ -692,6 +698,7 @@ export function DashboardScreen({
       refreshAccountData(),
       refreshTransactions(),
       refreshRecharges(),
+      refreshUser(),
       loadRecentHistory()
     ])
     setTimeout(() => {
@@ -1020,6 +1027,14 @@ export function DashboardScreen({
             {/* Deposit Button */}
             <button
               onClick={() => {
+                if (!canMomo && !canMobcash) {
+                  toast({
+                    title: "Accès restreint",
+                    description: "Veuillez contacter le support pour activer les dépôts.",
+                    variant: "destructive"
+                  })
+                  return
+                }
                 // If user doesn't have USSD permission, go directly to MobCash
                 if (user && user.can_process_ussd_transaction === false) {
                   onNavigateToBettingPlatforms("deposit")
@@ -1028,7 +1043,7 @@ export function DashboardScreen({
                   setShowTransactionTypeSelection(true)
                 }
               }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
+              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${(!canMomo && !canMobcash) ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
                 ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                 : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
@@ -1043,11 +1058,24 @@ export function DashboardScreen({
                   {t("dashboard.actions.deposit")}
                 </p>
               </div>
+              {(!canMomo && !canMobcash) && (
+                <div className="absolute top-2 right-2">
+                  <Shield className="w-3 h-3 text-red-500" />
+                </div>
+              )}
             </button>
 
             {/* Withdraw Button */}
             <button
               onClick={() => {
+                if (!canMomo && !canMobcash) {
+                  toast({
+                    title: "Accès restreint",
+                    description: "Veuillez contacter le support pour activer les retraits.",
+                    variant: "destructive"
+                  })
+                  return
+                }
                 // If user doesn't have USSD permission, go directly to MobCash
                 if (user && user.can_process_ussd_transaction === false) {
                   onNavigateToBettingPlatforms("withdraw")
@@ -1056,7 +1084,7 @@ export function DashboardScreen({
                   setShowTransactionTypeSelection(true)
                 }
               }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
+              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${(!canMomo && !canMobcash) ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
                 ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
                 : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
                 }`}
@@ -1071,6 +1099,11 @@ export function DashboardScreen({
                   {t("dashboard.actions.withdraw")}
                 </p>
               </div>
+              {(!canMomo && !canMobcash) && (
+                <div className="absolute top-2 right-2">
+                  <Shield className="w-3 h-3 text-red-500" />
+                </div>
+              )}
             </button>
 
             {/* Recharge Button */}
@@ -1487,24 +1520,22 @@ export function DashboardScreen({
               <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
             </button> */}
 
-            {user?.can_process_momo !== false && (
-              <button
-                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                  }`}
-                onClick={() => {
-                  setSidebarOpen(false)
-                  onNavigateToRecharge()
-                }}
-              >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-                  }`}>
-                  <Zap className="h-4 w-4" />
-                </div>
-                <span className="flex-1 text-left">{t("nav.topup")}</span>
-              </button>
-            )}
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                }`}
+              onClick={() => {
+                setSidebarOpen(false)
+                onNavigateToRecharge()
+              }}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
+                }`}>
+                <Zap className="h-4 w-4" />
+              </div>
+              <span className="flex-1 text-left">{t("nav.topup")}</span>
+            </button>
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
@@ -1522,24 +1553,31 @@ export function DashboardScreen({
               </div>
               <span className="flex-1 text-left">{t("nav.transfer")}</span>
             </button>
-            {user?.can_process_bulk_payment !== false && (
-              <button
-                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                  }`}
-                onClick={() => {
-                  setSidebarOpen(false)
-                  onNavigateToBulkPayment()
-                }}
-              >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-                  }`}>
-                  <FileSpreadsheet className="h-4 w-4" />
-                </div>
-                <span className="flex-1 text-left">Paiement Groupé</span>
-              </button>
-            )}
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${!canBulk ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                }`}
+              onClick={() => {
+                if (!canBulk) {
+                  toast({
+                    title: "Accès restreint",
+                    description: "Veuillez contacter le support pour activer le paiement groupé.",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                setSidebarOpen(false)
+                onNavigateToBulkPayment()
+              }}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+                }`}>
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+              <span className="flex-1 text-left">Paiement Groupé</span>
+              {!canBulk && <Shield className="w-3 h-3 text-red-500 ml-auto" />}
+            </button>
 
             {/* History Section */}
             <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
@@ -1548,23 +1586,25 @@ export function DashboardScreen({
               {t("nav.history")}
             </div>
 
-            {/* Transaction History */}
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToTransactionHistory()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                }`}>
-                <TrendingUp className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
-            </button>
+            {/* Only show transaction history if user has USSD permission */}
+            {user && user.can_process_ussd_transaction !== false && (
+              <button
+                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                  }`}
+                onClick={() => {
+                  setSidebarOpen(false)
+                  onNavigateToTransactionHistory()
+                }}
+              >
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                  }`}>
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
+              </button>
+            )}
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
@@ -1607,24 +1647,22 @@ export function DashboardScreen({
               {t("nav.bettingPlatforms")}
             </div>
 
-            {user?.can_process_mobcash !== false && (
-              <button
-                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                  }`}
-                onClick={() => {
-                  setSidebarOpen(false)
-                  onNavigateToBettingPlatforms()
-                }}
-              >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-600"
-                  }`}>
-                  <Shield className="h-4 w-4" />
-                </div>
-                <span className="flex-1 text-left">{t("nav.platforms")}</span>
-              </button>
-            )}
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
+                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
+                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
+                }`}
+              onClick={() => {
+                setSidebarOpen(false)
+                onNavigateToBettingPlatforms()
+              }}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-600"
+                }`}>
+                <Shield className="h-4 w-4" />
+              </div>
+              <span className="flex-1 text-left">{t("nav.platforms")}</span>
+            </button>
 
             <button
               className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
