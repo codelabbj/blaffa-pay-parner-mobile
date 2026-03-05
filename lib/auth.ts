@@ -21,6 +21,9 @@ export interface User {
   can_use_mobcash_betting?: boolean;
   can_use_transfer?: boolean;
   can_process_ussd_transaction?: boolean;
+  can_process_momo?: boolean;
+  can_process_mobcash?: boolean;
+  can_process_bulk_payment?: boolean;
 }
 
 export interface AuthResponse {

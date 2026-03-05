@@ -30,10 +30,10 @@ export function TransactionTypeSelectionScreen({
   const actionText = isDeposit ? "Dépôt" : "Retrait"
 
   // Permission checks - default to true if not specified
-  const canUseMomoPay = user?.can_use_momo_pay !== false
-  const canUseMobcashBetting = user?.can_use_mobcash_betting !== false
-  const canUseTransfer = user?.can_use_transfer !== false
+  const canUseMomoPay = user?.can_process_momo !== false
+  const canUseMobcashBetting = user?.can_process_mobcash !== false
   const canProcessUSSDTransaction = user?.can_process_ussd_transaction !== false
+  const canUseBulkPayment = user?.can_process_bulk_payment !== false
 
   return (
     <div
@@ -202,7 +202,7 @@ export function TransactionTypeSelectionScreen({
           )}
 
           {/* Bulk Payment Option */}
-          {isDeposit && showBulkPayment && (
+          {isDeposit && showBulkPayment && canUseBulkPayment && (
             <button
               onClick={onSelectBulkPayment}
               className={`w-full p-6 rounded-2xl border transition-all duration-300 active:scale-95 ${theme === "dark"
@@ -256,7 +256,7 @@ export function TransactionTypeSelectionScreen({
           )}
 
           {/* No options available message */}
-          {(!canUseMomoPay || !canProcessUSSDTransaction) && !canUseMobcashBetting && (
+          {!canUseMomoPay && !canUseMobcashBetting && !(isDeposit && showBulkPayment && canUseBulkPayment) && (
             <div className={`p-6 rounded-2xl border text-center ${theme === "dark"
               ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
               : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
@@ -271,10 +271,7 @@ export function TransactionTypeSelectionScreen({
                 Aucune option disponible
               </h3>
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                {!canProcessUSSDTransaction
-                  ? "Vous n'avez pas les permissions nécessaires pour les transactions USSD. Contactez votre administrateur."
-                  : "Vous n'avez pas les permissions nécessaires pour effectuer des transactions."
-                }
+                Vous n'avez pas les permissions nécessaires pour effectuer des transactions avec ces méthodes. Contactez votre administrateur.
               </p>
             </div>
           )}

@@ -17,6 +17,9 @@ export interface UserProfile {
   is_staff?: boolean;
   is_superuser?: boolean;
   is_partner?: boolean;
+  can_process_momo?: boolean;
+  can_process_mobcash?: boolean;
+  can_process_bulk_payment?: boolean;
 }
 
 export interface UpdateProfilePayload {
