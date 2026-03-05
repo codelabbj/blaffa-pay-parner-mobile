@@ -557,6 +557,7 @@ export function DashboardScreen({
     canPull: true
   })
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const dashboardContainerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { user, accountData, transactions, recharges, refreshTransactions, refreshRecharges, refreshAccountData, refreshUser } = useAuth()
@@ -604,7 +605,7 @@ export function DashboardScreen({
           dateTo: "2025-09-30"
         }),
         bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] })),
-        bulkPaymentService.getBulkHistory({ page: 1, page_size: 10 }).catch(() => ({ results: [] }))
+        bulkPaymentService.getBulkHistory(accessToken, { page: 1, page_size: 10 }).catch(() => ({ results: [] }))
       ])
 
       // Combine all history types with type indicators
@@ -736,7 +737,9 @@ export function DashboardScreen({
     const maxPullDistance = 120
 
     if (pullDistance > 0) {
-      e.preventDefault() // Prevent default scroll behavior
+      if ((e as any).cancelable) {
+        e.preventDefault() // Prevent default scroll behavior
+      }
       setPullToRefreshState(prev => ({
         ...prev,
         currentY,
@@ -775,8 +778,19 @@ export function DashboardScreen({
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    
+    const container = dashboardContainerRef.current
+    if (container) {
+      container.addEventListener('touchmove', handleTouchMove as any, { passive: false })
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (container) {
+        container.removeEventListener('touchmove', handleTouchMove as any)
+      }
+    }
+  }, [pullToRefreshState.startY, pullToRefreshState.canPull, pullToRefreshState.isRefreshing])
 
   // Load recent history on component mount
   useEffect(() => {
@@ -866,8 +880,9 @@ export function DashboardScreen({
         ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
         : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
         }`}
+      ref={dashboardContainerRef}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
+      // handleTouchMove is attached via ref in useEffect to avoid passive listener issues
       onTouchEnd={handleTouchEnd}
       style={{
         transform: `translateY(${pullToRefreshState.pullDistance}px)`,
@@ -1738,7 +1753,7 @@ export function DashboardScreen({
             <TransactionTypeSelectionScreen
               transactionType={currentTransactionTypeSelection}
               user={user || undefined}
-              showBulkPayment={canUseBulkPayment}
+              showBulkPayment={canBulk}
               onNavigateBack={() => {
                 setShowTransactionTypeSelection(false)
                 setCurrentTransactionTypeSelection(null)
