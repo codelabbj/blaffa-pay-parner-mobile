@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -54,6 +54,15 @@ export function BettingDepositScreen({
   const [error, setError] = useState("")
   
   const [isAmountFocused, setIsAmountFocused] = useState(false)
+  const submitButtonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isAmountFocused) {
+      setTimeout(() => {
+        submitButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 300)
+    }
+  }, [isAmountFocused])
 
   useEffect(() => {
     if (platformUid) {
@@ -348,7 +357,7 @@ export function BettingDepositScreen({
 
       {/* Step 2: Amount */}
       {step === 2 && verifiedUser && (
-        <div className="flex flex-col h-[calc(100vh-100px)] px-4 z-10 relative overflow-y-auto pb-6">
+        <div className={`flex flex-col px-4 z-10 relative overflow-y-auto pb-4 transition-all duration-300 ${isAmountFocused ? 'pb-[300px]' : ''}`} style={{ minHeight: 'calc(100vh - 100px)' }}>
           {/* User Card with Platform Logo */}
           <div className={`p-5 rounded-[3rem] border mb-6 flex items-center gap-4 transition-all animate-in zoom-in-95 duration-500 shrink-0 ${theme === "dark"
             ? "bg-slate-800/60 border-slate-700/50 backdrop-blur-md shadow-2xl"
@@ -407,7 +416,7 @@ export function BettingDepositScreen({
           </div>
 
           {/* Amount Display Area */}
-          <div className={`flex flex-col items-center justify-center flex-1 transition-all duration-300 ${isAmountFocused ? "max-h-[120px] mb-2" : "max-h-[300px]"}`}>
+          <div className={`flex flex-col items-center justify-center transition-all duration-300 ${isAmountFocused ? "min-h-[80px] mb-4 shrink-0" : "flex-1 max-h-[300px]"}`}>
             <span className={`text-xl font-black mb-2 ${theme === "dark" ? "text-slate-600" : "text-slate-300"}`}>
               F
             </span>
@@ -446,7 +455,7 @@ export function BettingDepositScreen({
           )}
 
           {/* Submit Button */}
-          <div className={`mt-auto shrink-0 transition-all duration-300 ${isAmountFocused ? 'mb-2' : 'mb-10'}`}>
+          <div ref={submitButtonRef} className={`shrink-0 transition-all duration-300 ${isAmountFocused ? 'mt-4 mb-2' : 'mt-auto mb-10'}`}>
             <Button
               onClick={handleCreateDeposit}
               disabled={parseFloat(amount) <= 0 || isCreating}
