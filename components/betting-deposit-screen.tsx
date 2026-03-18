@@ -52,6 +52,8 @@ export function BettingDepositScreen({
   const [lastUserId, setLastUserId] = useState("")
 
   const [error, setError] = useState("")
+  
+  const [isAmountFocused, setIsAmountFocused] = useState(false)
 
   useEffect(() => {
     if (platformUid) {
@@ -346,9 +348,9 @@ export function BettingDepositScreen({
 
       {/* Step 2: Amount */}
       {step === 2 && verifiedUser && (
-        <div className="flex flex-col h-[calc(100vh-100px)] px-4 z-10 relative">
+        <div className="flex flex-col h-[calc(100vh-100px)] px-4 z-10 relative overflow-y-auto pb-6">
           {/* User Card with Platform Logo */}
-          <div className={`p-5 rounded-[3rem] border mb-6 flex items-center gap-4 transition-all animate-in zoom-in-95 duration-500 ${theme === "dark"
+          <div className={`p-5 rounded-[3rem] border mb-6 flex items-center gap-4 transition-all animate-in zoom-in-95 duration-500 shrink-0 ${theme === "dark"
             ? "bg-slate-800/60 border-slate-700/50 backdrop-blur-md shadow-2xl"
             : "bg-white border-slate-50 shadow-[0_20px_40px_rgba(0,0,0,0.03)]"
             }`}>
@@ -377,14 +379,14 @@ export function BettingDepositScreen({
               <p className={`text-sm font-bold truncate ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
                 {verifiedUser.Name || "Utilisateur vérifié"}
               </p>
-              {(platform.city || platform.street) && (
+              {(platform?.city || platform?.street) && (
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {platform.city && (
+                  {platform?.city && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme === "dark" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
                       {platform.city}
                     </span>
                   )}
-                  {platform.street && (
+                  {platform?.street && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme === "dark" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
                       {platform.street}
                     </span>
@@ -405,7 +407,7 @@ export function BettingDepositScreen({
           </div>
 
           {/* Amount Display Area */}
-          <div className="flex flex-col items-center justify-center flex-1 max-h-[300px]">
+          <div className={`flex flex-col items-center justify-center flex-1 transition-all duration-300 ${isAmountFocused ? "max-h-[120px] mb-2" : "max-h-[300px]"}`}>
             <span className={`text-xl font-black mb-2 ${theme === "dark" ? "text-slate-600" : "text-slate-300"}`}>
               F
             </span>
@@ -413,35 +415,38 @@ export function BettingDepositScreen({
               <input
                 type="tel"
                 inputMode="decimal"
-                value={amount}
+                value={formatNumberWithSpaces(amount)}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9.]/g, "")
+                  // e.target.value may have spaces in it now, which we want to ignore
+                  const val = e.target.value.replace(/\s/g, '').replace(/[^0-9.]/g, "")
                   // Prevent multiple dots
                   if ((val.match(/\./g) || []).length > 1) return
                   setAmount(val || "0")
                 }}
                 onFocus={(e) => {
+                  setIsAmountFocused(true)
                   if (amount === "0") setAmount("")
                 }}
                 onBlur={(e) => {
+                  setIsAmountFocused(false)
                   if (amount === "" || amount === ".") setAmount("0")
                 }}
                 autoFocus
-                className={`w-full bg-transparent border-none text-center text-7xl font-black tracking-tighter outline-none caret-blue-500 ${theme === "dark" ? "text-white" : "text-slate-900"
+                className={`w-full bg-transparent border-none text-center font-black tracking-tighter outline-none caret-blue-500 transition-all duration-300 ${theme === "dark" ? "text-white" : "text-slate-900"
                   }`}
-                style={{ fontSize: amount.length > 8 ? '4rem' : '4.5rem' }}
+                style={{ fontSize: (amount.length > 8 || isAmountFocused) ? '3.5rem' : '4.5rem' }}
               />
             </div>
           </div>
 
           {error && (
-            <div className="p-4 rounded-[2rem] bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center mb-6">
+            <div className="p-4 rounded-[2rem] bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center mb-4 shrink-0">
               {error}
             </div>
           )}
 
           {/* Submit Button */}
-          <div className="mt-auto mb-10">
+          <div className={`mt-auto shrink-0 transition-all duration-300 ${isAmountFocused ? 'mb-2' : 'mb-10'}`}>
             <Button
               onClick={handleCreateDeposit}
               disabled={parseFloat(amount) <= 0 || isCreating}

@@ -16,11 +16,11 @@ export function formatNumberWithSpaces(value: string | number | null | undefined
 
   const stringValue = value.toString()
 
-  // If it's not a valid number string, return as is
-  if (!/^\d+$/.test(stringValue)) {
-    return stringValue
+  const parts = stringValue.split('.')
+
+  if (/^-?\d+$/.test(parts[0])) {
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
   }
 
-  // Add spaces every 3 digits from the right, preserving leading zeros
-  return stringValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  return parts.join('.')
 }
