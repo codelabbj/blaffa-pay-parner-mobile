@@ -20,6 +20,7 @@ import { useTheme } from "@/lib/contexts"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingPlatform } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface BettingDepositScreenProps {
   onNavigateBack: () => void
@@ -33,6 +34,7 @@ export function BettingDepositScreen({
   onTransactionSuccess,
 }: BettingDepositScreenProps) {
   const { theme } = useTheme()
+  const { toast } = useToast()
 
   const [platform, setPlatform] = useState<BettingPlatform | null>(null)
   const [isLoadingPlatform, setIsLoadingPlatform] = useState(true)
@@ -47,7 +49,6 @@ export function BettingDepositScreen({
     CurrencyId?: number
   } | null>(null)
 
-  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [lastAmount, setLastAmount] = useState("")
   const [lastUserId, setLastUserId] = useState("")
 
@@ -166,15 +167,30 @@ export function BettingDepositScreen({
         } else {
           setLastAmount(amount)
           setLastUserId(bettingUserId)
-          setShowSuccessToast(true)
+          
+          toast({
+            duration: 4000,
+            className: "border-none bg-transparent shadow-none p-0",
+            description: (
+              <div className={`w-full max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark"
+                ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl"
+                : "bg-white/90 border-slate-100 backdrop-blur-xl"
+                }`}>
+                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                  <Check className="w-7 h-7 text-white" strokeWidth={3} />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Dépôt</h3>
+                  <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                    Vous avez déposé {parseFloat(amount).toFixed(2)} F sur le compte {bettingUserId}
+                  </p>
+                </div>
+              </div>
+            ),
+          })
 
           if (onTransactionSuccess) onTransactionSuccess()
-
-          // Auto close after 3 seconds
-          setTimeout(() => {
-            setShowSuccessToast(false)
-            onNavigateBack()
-          }, 3500)
+          onNavigateBack()
         }
       } else {
         throw new Error(result.message || "Le dépôt a échoué")
@@ -222,32 +238,6 @@ export function BettingDepositScreen({
         <div className={`absolute -bottom-[10%] right-[20%] w-[50%] h-[40%] rounded-[100%] opacity-15 blur-[110px] animate-pulse ${theme === "dark" ? "bg-emerald-500" : "bg-emerald-200"
           }`} style={{ animationDuration: '10s', animationDelay: '1s' }} />
       </div>
-
-      {/* Success Toast Overlay */}
-      {showSuccessToast && (
-        <div className="fixed top-8 left-0 right-0 z-[100] px-4 animate-in slide-in-from-top duration-500">
-          <div className={`max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark"
-            ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl"
-            : "bg-white/90 border-slate-100 backdrop-blur-xl"
-            }`}>
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
-              <Check className="w-7 h-7 text-white" strokeWidth={3} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Dépôt</h3>
-              <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                Vous avez déposé {parseFloat(lastAmount).toFixed(2)} F sur le compte {lastUserId}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowSuccessToast(false)}
-              className="p-2 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
-            >
-              <X className={`w-6 h-6 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Step Progress Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1.5 flex gap-1 px-1 pt-1">

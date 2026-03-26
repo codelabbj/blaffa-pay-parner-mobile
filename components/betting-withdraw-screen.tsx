@@ -19,6 +19,7 @@ import { useTheme } from "@/lib/contexts"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingPlatform } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface BettingWithdrawScreenProps {
   onNavigateBack: () => void
@@ -32,6 +33,7 @@ export function BettingWithdrawScreen({
   onTransactionSuccess,
 }: BettingWithdrawScreenProps) {
   const { theme } = useTheme()
+  const { toast } = useToast()
 
   const [platform, setPlatform] = useState<BettingPlatform | any>(null)
   const [isLoadingPlatform, setIsLoadingPlatform] = useState(true)
@@ -46,7 +48,6 @@ export function BettingWithdrawScreen({
     CurrencyId?: number
   } | null>(null)
 
-  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [lastUserId, setLastUserId] = useState("")
   const [error, setError] = useState("")
 
@@ -151,14 +152,27 @@ export function BettingWithdrawScreen({
           setStep(2)
         } else {
           setLastUserId(bettingUserId)
-          setShowSuccessToast(true)
+          toast({
+            duration: 4000,
+            className: "border-none bg-transparent shadow-none p-0",
+            description: (
+              <div className={`w-full max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark" ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl" : "bg-white/90 border-slate-100 backdrop-blur-xl"
+                }`}>
+                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                  <Check className="w-7 h-7 text-white" strokeWidth={3} />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Retrait</h3>
+                  <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                    Votre demande de retrait pour le compte {bettingUserId} a été créée.
+                  </p>
+                </div>
+              </div>
+            )
+          })
 
           if (onTransactionSuccess) onTransactionSuccess()
-
-          setTimeout(() => {
-            setShowSuccessToast(false)
-            onNavigateBack()
-          }, 3500)
+          onNavigateBack()
         }
       } else {
         throw new Error(result.message || "Le retrait a échoué")
@@ -189,27 +203,6 @@ export function BettingWithdrawScreen({
         <div className={`absolute top-[20%] -left-[10%] w-[60%] h-[40%] rounded-[100%] opacity-10 blur-[100px] animate-pulse ${theme === "dark" ? "bg-blue-500" : "bg-blue-200"
           }`} style={{ animationDuration: '12s', animationDelay: '2s' }} />
       </div>
-
-      {/* Success Toast Overlay */}
-      {showSuccessToast && (
-        <div className="fixed top-8 left-0 right-0 z-[100] px-4 animate-in slide-in-from-top duration-500">
-          <div className={`max-w-md mx-auto p-4 rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border flex items-center gap-4 ${theme === "dark" ? "bg-slate-800/90 border-slate-700/50 backdrop-blur-xl" : "bg-white/90 border-slate-100 backdrop-blur-xl"
-            }`}>
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
-              <Check className="w-7 h-7 text-white" strokeWidth={3} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Retrait</h3>
-              <p className={`text-sm font-medium leading-tight ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                Votre demande de retrait pour le compte {lastUserId} a été créée.
-              </p>
-            </div>
-            <button onClick={() => setShowSuccessToast(false)} className="p-2 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-full">
-              <X className={`w-6 h-6 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="p-4 flex items-center justify-between z-10 relative mt-2">

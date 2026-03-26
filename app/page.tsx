@@ -36,6 +36,8 @@ import {
   LogOut
 } from "lucide-react"
 
+import { Toaster } from "@/components/ui/toaster"
+
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<"splash" | "login" | "dashboard" | "deposit" | "withdraw" | "recharge" | "settings" | "profile" | "transaction-history" | "recharge-history" | "transfer" | "transfer-history" | "betting-platforms" | "betting-deposit" | "betting-withdraw" | "betting-transactions" | "betting-commissions" | "notifications" | "permission-denied" | "bulk-payment">("splash")
   const [selectedPlatformUid, setSelectedPlatformUid] = useState<string | undefined>(undefined)
@@ -471,8 +473,10 @@ export default function Home() {
               </div>
             </div>
           )} */}
+          {/* Bottom Navigation Bar */}
         </div>
       </div>
+      <Toaster />
     </ErrorBoundary>
   )
 }
