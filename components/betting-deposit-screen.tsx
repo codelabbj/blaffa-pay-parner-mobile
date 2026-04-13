@@ -53,17 +53,6 @@ export function BettingDepositScreen({
   const [lastUserId, setLastUserId] = useState("")
 
   const [error, setError] = useState("")
-  
-  const [isAmountFocused, setIsAmountFocused] = useState(false)
-  const submitButtonRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isAmountFocused) {
-      setTimeout(() => {
-        submitButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-      }, 300)
-    }
-  }, [isAmountFocused])
 
   useEffect(() => {
     if (platformUid) {
@@ -347,7 +336,8 @@ export function BettingDepositScreen({
 
       {/* Step 2: Amount */}
       {step === 2 && verifiedUser && (
-        <div className={`flex flex-col px-4 z-10 relative overflow-y-auto pb-4 transition-all duration-300 ${isAmountFocused ? 'pb-[300px]' : ''}`} style={{ minHeight: 'calc(100vh - 100px)' }}>
+        <div className="flex flex-col h-[calc(100vh-100px)] px-6 pt-10 z-10 relative">
+          <div className="space-y-8 flex-1">
           {/* User Card with Platform Logo */}
           <div className={`p-5 rounded-[3rem] border mb-6 flex items-center gap-4 transition-all animate-in zoom-in-95 duration-500 shrink-0 ${theme === "dark"
             ? "bg-slate-800/60 border-slate-700/50 backdrop-blur-md shadow-2xl"
@@ -406,7 +396,7 @@ export function BettingDepositScreen({
           </div>
 
           {/* Amount Display Area */}
-          <div className={`flex flex-col items-center justify-center transition-all duration-300 ${isAmountFocused ? "min-h-[80px] mb-4 shrink-0" : "flex-1 max-h-[300px]"}`}>
+          <div className="flex flex-col items-center justify-center transition-all duration-300 max-h-[300px]">
             <span className={`text-xl font-black mb-2 ${theme === "dark" ? "text-slate-600" : "text-slate-300"}`}>
               F
             </span>
@@ -423,17 +413,15 @@ export function BettingDepositScreen({
                   setAmount(val || "0")
                 }}
                 onFocus={(e) => {
-                  setIsAmountFocused(true)
                   if (amount === "0") setAmount("")
                 }}
                 onBlur={(e) => {
-                  setIsAmountFocused(false)
                   if (amount === "" || amount === ".") setAmount("0")
                 }}
                 autoFocus
                 className={`w-full bg-transparent border-none text-center font-black tracking-tighter outline-none caret-blue-500 transition-all duration-300 ${theme === "dark" ? "text-white" : "text-slate-900"
                   }`}
-                style={{ fontSize: (amount.length > 8 || isAmountFocused) ? '3.5rem' : '4.5rem' }}
+                style={{ fontSize: (amount.length > 8) ? '3.5rem' : '4.5rem' }}
               />
             </div>
           </div>
@@ -444,30 +432,28 @@ export function BettingDepositScreen({
             </div>
           )}
 
-          {/* Submit Button */}
-          <div ref={submitButtonRef} className={`shrink-0 transition-all duration-300 ${isAmountFocused ? 'mt-4 mb-2' : 'mt-auto mb-10'}`}>
-            <Button
-              onClick={handleCreateDeposit}
-              disabled={parseFloat(amount) <= 0 || isCreating}
-              className={`w-full h-18 rounded-[2.5rem] text-2xl font-black transition-all active:scale-95 group relative overflow-hidden ${theme === "dark"
-                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_20px_50px_rgba(37,99,235,0.4)]"
-                : "bg-blue-600 hover:bg-blue-700 text-white shadow-[0_20px_50px_rgba(37,99,235,0.3)]"
-                }`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              {isCreating ? (
-                <div className="flex items-center gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                  <span>Traitement...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <Wallet className="w-7 h-7 group-hover:rotate-12 transition-transform" />
-                  <span>Déposer</span>
-                </div>
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={handleCreateDeposit}
+            disabled={parseFloat(amount) <= 0 || isCreating}
+            className={`w-full h-20 rounded-[2.5rem] text-2xl font-black transition-all active:scale-95 group relative overflow-hidden ${theme === "dark"
+              ? "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_20px_50px_rgba(37,99,235,0.4)]"
+              : "bg-blue-600 hover:bg-blue-700 text-white shadow-[0_20px_50px_rgba(37,99,235,0.3)]"
+              }`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+            {isCreating ? (
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span>Traitement...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Wallet className="w-7 h-7 group-hover:rotate-12 transition-transform" />
+                <span>Déposer</span>
+              </div>
+            )}
+          </Button>
+        </div>
         </div>
       )}
     </div>
