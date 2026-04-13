@@ -44,10 +44,23 @@ class RechargeService {
     this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
   }
 
-  // Get user recharges
-  async getRecharges(accessToken: string, page: number = 1, limit: number = 10): Promise<RechargesResponse> {
+  async getRecharges(
+    accessToken: string, 
+    page: number = 1, 
+    limit: number = 10,
+    status?: string,
+    search?: string
+  ): Promise<RechargesResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/payments/user/recharges/?page=${page}&limit=${limit}`, {
+      let url = `${this.baseUrl}/api/payments/user/recharges/?page=${page}&limit=${limit}`;
+      if (status && status !== "all") {
+        url += `&status=${encodeURIComponent(status)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

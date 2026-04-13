@@ -51,10 +51,23 @@ class TransactionsService {
     this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
   }
 
-  // Get user transactions
-  async getTransactions(accessToken: string, page: number = 1, limit: number = 10): Promise<TransactionsResponse> {
+  async getTransactions(
+    accessToken: string, 
+    page: number = 1, 
+    limit: number = 10,
+    type?: string,
+    search?: string
+  ): Promise<TransactionsResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/payments/user/transactions/?page=${page}&limit=${limit}`, {
+      let url = `${this.baseUrl}/api/payments/user/transactions/?page=${page}&limit=${limit}`;
+      if (type && type !== "all") {
+        url += `&type=${encodeURIComponent(type)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

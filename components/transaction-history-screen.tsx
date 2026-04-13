@@ -447,6 +447,7 @@ import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
 import { useAuth } from "@/lib/contexts"
 import { transactionsService, Transaction, TransactionsResponse } from "@/lib/transactions"
+import { authService } from "@/lib/auth"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
 
@@ -462,6 +463,11 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
   
+  // Server pagination states
+  const [serverTransactions, setServerTransactions] = useState<Transaction[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
     isPulling: false,
@@ -474,9 +480,10 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
   
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { user, transactions, isLoading, refreshTransactions } = useAuth()
+  const { user, isLoading, refreshTransactions } = useAuth()
 
-  const itemsPerPage = 10
+  // Items per page to request
+  const itemsPerPage = 20
 
   // Copy to clipboard function
   const copyToClipboard = async (text: string) => {
@@ -492,8 +499,31 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
   const handleRefreshButton = async () => {
     setIsRefreshing(true)
     await refreshTransactions()
+    await fetchPage(currentPage, filterType, searchTerm)
     setTimeout(() => setIsRefreshing(false), 500)
   }
+
+  const fetchPage = async (page: number, typeFilter: string, searchQuery: string) => {
+    try {
+      const token = authService.getAccessToken()
+      if (token) {
+        const response = await transactionsService.getTransactions(token, page, itemsPerPage, typeFilter, searchQuery)
+        setServerTransactions(response.results)
+        setTotalCount(response.count)
+        setHasNextPage(!!response.next)
+      }
+    } catch (error) {
+      console.error("Fetch page error:", error)
+    }
+  }
+
+  // Fetch page initially and when params change
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchPage(currentPage, filterType, searchTerm)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [currentPage, filterType, searchTerm])
 
   // Helper function to format transaction date
   const formatTransactionDate = (dateString: string) => {
@@ -545,7 +575,7 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
   }
 
   // Filter transactions based on type and search term
-  const filteredTransactions = transactions.filter(transaction => {
+  const currentTransactions = serverTransactions.filter(transaction => {
     const matchesType = filterType === "all" || transaction.type === filterType
     const matchesSearch = searchTerm === "" || 
       transaction.display_recipient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -554,11 +584,9 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
     return matchesType && matchesSearch
   })
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentTransactions = filteredTransactions.slice(startIndex, endIndex)
+  // Calculate pagination taking into account backend page size ignores
+  const backendPageSize = serverTransactions.length > 0 ? Math.max(serverTransactions.length, itemsPerPage) : itemsPerPage
+  const totalPages = Math.ceil(totalCount / backendPageSize) || 1
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -627,6 +655,7 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
     setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
     setIsRefreshing(true)
     await refreshTransactions()
+    await fetchPage(currentPage, filterType, searchTerm)
     setTimeout(() => {
       setPullToRefreshState(prev => ({ ...prev, isRefreshing: false, pullDistance: 0 }))
       setIsRefreshing(false)
@@ -708,7 +737,7 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
               {t("transactionHistory.title")}
             </h1>
             <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              {filteredTransactions.length} {t("additional.transactionHistory.transactions")}
+              {totalCount} {t("additional.transactionHistory.transactions")}
             </p>
           </div>
           
@@ -794,7 +823,7 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-4">
           <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            {currentTransactions.length} {t("additional.transactionHistory.of")} {filteredTransactions.length} {t("additional.transactionHistory.transactions")}
+            {Math.min((currentPage - 1) * backendPageSize + currentTransactions.length, totalCount)} {t("additional.transactionHistory.of")} {totalCount} {t("additional.transactionHistory.transactions")}
           </p>
           <div className="flex gap-2">
             <Button
@@ -992,8 +1021,8 @@ export function TransactionHistoryScreen({ onNavigateBack }: TransactionHistoryS
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage}
               className={`h-10 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
                 theme === "dark" 
                   ? "border-gray-600 text-gray-300 disabled:text-gray-600 disabled:border-gray-700" 

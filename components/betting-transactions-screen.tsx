@@ -44,6 +44,7 @@ export function BettingTransactionsScreen({
   const [typeFilter, setTypeFilter] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [hasNextPage, setHasNextPage] = useState(false)
   const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [cancellingTransaction, setCancellingTransaction] = useState<string | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<BettingTransaction | null>(null)
@@ -71,6 +72,7 @@ export function BettingTransactionsScreen({
       )
       setTransactions(data.results)
       setTotalCount(data.count)
+      setHasNextPage(!!data.next)
     } catch (error) {
       console.error("Load transactions error:", error)
       toast({
@@ -710,8 +712,8 @@ export function BettingTransactionsScreen({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              disabled={!hasNextPage}
               className={`h-10 w-10 p-0 rounded-xl ${
                 theme === "dark"
                   ? "border-gray-700 text-gray-300"

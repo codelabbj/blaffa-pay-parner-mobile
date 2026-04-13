@@ -488,6 +488,7 @@ import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
 import { useAuth } from "@/lib/contexts"
 import { rechargeService, RechargeData, RechargesResponse } from "@/lib/recharge"
+import { authService } from "@/lib/auth"
 
 interface RechargeHistoryScreenProps {
   onNavigateBack: () => void
@@ -498,6 +499,11 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
   const [filterStatus, setFilterStatus] = useState<"all" | "approved" | "pending" | "rejected" | "proof_submitted">("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Server pagination states
+  const [serverRecharges, setServerRecharges] = useState<RechargeData[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [hasNextPage, setHasNextPage] = useState(false)
   
   // Pull-to-refresh state
   const [pullToRefreshState, setPullToRefreshState] = useState({
@@ -511,9 +517,9 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
   
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { user, recharges, isLoading, refreshRecharges } = useAuth()
+  const { user, isLoading, refreshRecharges } = useAuth()
 
-  const itemsPerPage = 10
+  const itemsPerPage = 20
 
   // Copy to clipboard function
   const copyToClipboard = async (text: string) => {
@@ -529,8 +535,31 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
   const handleRefreshButton = async () => {
     setIsRefreshing(true)
     await refreshRecharges()
+    await fetchPage(currentPage, filterStatus, searchTerm)
     setTimeout(() => setIsRefreshing(false), 500)
   }
+
+  const fetchPage = async (page: number, statusFilter: string, searchQuery: string) => {
+    try {
+      const token = authService.getAccessToken()
+      if (token) {
+        const response = await rechargeService.getRecharges(token, page, itemsPerPage, statusFilter, searchQuery)
+        setServerRecharges(response.results)
+        setTotalCount(response.count)
+        setHasNextPage(!!response.next)
+      }
+    } catch (error) {
+      console.error("Fetch page error:", error)
+    }
+  }
+
+  // Fetch page initially and when params change
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchPage(currentPage, filterStatus, searchTerm)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [currentPage, filterStatus, searchTerm])
 
   // Helper function to format recharge date
   const formatRechargeDate = (dateString: string) => {
@@ -601,8 +630,8 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
     }
   }
 
-  // Filter recharges based on status and search term
-  const filteredRecharges = recharges.filter(recharge => {
+  // Filter recharges based on status and search term (local fallback while Debounce loads)
+  const currentRecharges = serverRecharges.filter(recharge => {
     const matchesStatus = filterStatus === "all" || recharge.status === filterStatus
     const matchesSearch = searchTerm === "" || 
       recharge.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -610,11 +639,9 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
     return matchesStatus && matchesSearch
   })
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredRecharges.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentRecharges = filteredRecharges.slice(startIndex, endIndex)
+  // Calculate pagination taking into account backend ignores
+  const backendPageSize = serverRecharges.length > 0 ? Math.max(serverRecharges.length, itemsPerPage) : itemsPerPage
+  const totalPages = Math.ceil(totalCount / backendPageSize) || 1
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -683,6 +710,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
     setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
     setIsRefreshing(true)
     await refreshRecharges()
+    await fetchPage(currentPage, filterStatus, searchTerm)
     setTimeout(() => {
       setPullToRefreshState(prev => ({ ...prev, isRefreshing: false, pullDistance: 0 }))
       setIsRefreshing(false)
@@ -764,7 +792,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
               {t("rechargeHistory.title") || "Recharge History"}
             </h1>
             <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              {filteredRecharges.length} {t("additional.rechargeHistory.recharges")}
+              {totalCount} {t("additional.rechargeHistory.recharges")}
             </p>
           </div>
           
@@ -863,7 +891,7 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-4">
           <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            {currentRecharges.length} {t("additional.rechargeHistory.of")} {filteredRecharges.length} {t("additional.rechargeHistory.recharges")}
+            {Math.min((currentPage - 1) * backendPageSize + currentRecharges.length, totalCount)} {t("additional.rechargeHistory.of")} {totalCount} {t("additional.rechargeHistory.recharges")}
           </p>
               <div className="flex gap-2">
                 <Button
@@ -1049,8 +1077,8 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage}
               className={`h-10 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
                 theme === "dark" 
                   ? "border-gray-600 text-gray-300 disabled:text-gray-600 disabled:border-gray-700" 
