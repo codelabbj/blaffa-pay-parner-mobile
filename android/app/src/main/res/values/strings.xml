@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Blaffa Pay</string>
-    <string name="title_activity_main">Blaffa Pay</string>
-    <string name="package_name">com.connectpro.app</string>
-    <string name="custom_url_scheme">com.connectpro.app</string>
+    <string name="app_name">Blaffa Pay Partner</string>
+    <string name="title_activity_main">Blaffa Pay Partner</string>
+    <string name="package_name">com.connectpro.partnerapp</string>
+    <string name="custom_url_scheme">com.connectpro.partnerapp</string>
 </resources>

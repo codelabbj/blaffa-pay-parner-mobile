@@ -30,7 +30,9 @@ import {
   DollarSign,
   Wallet,
   Gamepad,
-  Gamepad2
+  Gamepad2,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
 import { useTranslation } from "@/lib/contexts"
@@ -43,14 +45,17 @@ interface TransactionDetailsModalProps {
   isOpen: boolean
   onClose: () => void
   transaction: any // The transaction data from recentHistory
+  onCancelTransaction?: (transactionUid: string) => Promise<void>
 }
 
 export function TransactionDetailsModal({
   isOpen,
   onClose,
-  transaction
+  transaction,
+  onCancelTransaction
 }: TransactionDetailsModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -58,6 +63,58 @@ export function TransactionDetailsModal({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Check if transaction can be cancelled
+  const canCancelTransaction = () => {
+    if (!transaction || !onCancelTransaction) return false
+    
+    // Only betting transactions can be cancelled for now
+    if (transaction.historyType !== 'betting') return false
+    
+    // Check if transaction is already cancelled
+    if (transaction.status === 'cancelled') return false
+    
+    // Check if cancellation was already requested
+    if (transaction.cancellation_requested_at) return false
+    
+    // Check if transaction is cancellable (if field exists and is explicitly false)
+    if (transaction.is_cancellable === false) return false
+    
+    // Check if can request cancellation (if field exists and is explicitly false)
+    if (transaction.can_request_cancellation === false) return false
+    
+    // Check if transaction is within 25 minutes of creation
+    const transactionDate = new Date(transaction.created_at)
+    const now = new Date()
+    const diffInMinutes = (now.getTime() - transactionDate.getTime()) / (1000 * 60)
+    
+    // Allow cancellation for both pending and successful transactions within 25 minutes
+    return (transaction.status === 'pending' || transaction.status === 'success') && diffInMinutes <= 25
+  }
+
+  // Handle cancel transaction
+  const handleCancelTransaction = async () => {
+    if (!onCancelTransaction || !transaction) return
+    
+    setIsCancelling(true)
+    try {
+      await onCancelTransaction(transaction.uid)
+      toast({
+        title: "Demande d'annulation envoyée",
+        description: "Votre demande d'annulation a été enregistrée",
+      })
+      onClose()
+    } catch (error) {
+      console.error("Cancel transaction error:", error)
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Impossible d'annuler la transaction",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -347,6 +404,34 @@ export function TransactionDetailsModal({
               )}
             </div>
           </div>
+
+          {/* Cancel Button - Only show for cancellable betting transactions */}
+          {canCancelTransaction() && (
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                onClick={handleCancelTransaction}
+                disabled={isCancelling}
+                variant="outline"
+                className={`w-full h-12 text-sm font-semibold rounded-xl transition-all duration-200 ${
+                  theme === "dark"
+                    ? "border-red-600 text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                    : "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                }`}
+              >
+                {isCancelling ? (
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Annulation en cours...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <X className="w-4 h-4" />
+                    <span>Annuler la transaction</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </>,

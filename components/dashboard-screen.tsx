@@ -874,6 +874,36 @@ export function DashboardScreen({
     }
   }
 
+  // Cancel transaction function
+  const handleCancelTransaction = async (transactionUid: string) => {
+    try {
+      const accessToken = authService.getAccessToken()
+      if (!accessToken) {
+        throw new Error("No access token available")
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/betting/user/transactions/${transactionUid}/request_cancellation/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: "Client changed mind - explicit request"
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to request cancellation')
+      }
+
+      // Reload recent history to reflect the change
+      await loadRecentHistory()
+    } catch (error) {
+      throw error // Re-throw to be handled by the modal
+    }
+  }
+
   return (
     <div
       className={`min-h-screen relative overflow-hidden ${theme === "dark"
@@ -1295,119 +1325,54 @@ export function DashboardScreen({
                 recentHistory.map((item, index) => {
                   const TypeIcon = item.typeIcon
                   return (
-                    <div
+                    <Card
                       key={`${item.historyType}-${item.uid}`}
                       onClick={() => {
                         setSelectedTransaction(item)
                         setShowTransactionDetails(true)
                       }}
-                      className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 active:scale-98 cursor-pointer ${theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-50"
-                        }`}
+                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-98 ${
+                        theme === "dark"
+                          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
+                          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:bg-gray-50/80"
+                      }`}
                     >
-                      {/* Mobile-first responsive layout */}
-                      <div className="flex flex-row justify-between items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        {/* Left section - Icon and main info */}
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.typeColor}`}>
-                            <TypeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            {/* Title and type badge - responsive layout */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                              <div className="flex flex-col">
-                                <p className={`font-semibold text-sm sm:text-base truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                                  {item.historyType === 'transaction'
-                                    ? (item.display_recipient_name || item.recipient_phone)
-                                    : item.historyType === 'betting'
-                                      ? item.partner_name
-                                      : item.historyType === 'recharge'
-                                        ? item.recipient_phone
-                                        : item.historyType === 'bulk'
-                                          ? (item.display_recipient_name || item.uid)
-                                          : item.receiver_name
-                                  }
-                                </p>
-                                {item.historyType === 'betting' && (
-                                  <>
-                                    <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} truncate`}>
-                                      {item.platform_name}
-                                    </p>
-                                    {item.betting_user_id && (
-                                      <p className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"} truncate`}>
-                                        ID Paris: {item.betting_user_id}
-                                      </p>
-                                    )}
-                                  </>
-                                )}
-                                {item.historyType !== 'betting' && item.betting_user_id && (
-                                  <p className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"} truncate`}>
-                                    ID Paris: {item.betting_user_id}
-                                  </p>
-                                )}
-                              </div>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium self-start ${theme === "dark"
-                                ? "bg-gray-700 text-gray-300"
-                                : "bg-gray-100 text-gray-600"
-                                }`}>
-                                {item.typeLabel}
-                              </span>
-                            </div>
-
-                            {/* Date and status - mobile optimized */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                              <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                {formatTransactionDate(item.created_at)}
-                              </p>
-                              <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></div>
-                              <p className={`text-xs ${getStatusColor(item.status)}`}>
-                                {item.status_display || item.status}
-                              </p>
-                            </div>
-
-                            {/* Reference - mobile optimized */}
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className={`text-xs font-mono truncate ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                                {item.reference}
-                              </p>
-                              <button
-                                onClick={() => copyReference(item.reference)}
-                                className={`p-1 rounded-lg transition-all duration-200 active:scale-90 flex-shrink-0 ${theme === "dark"
-                                  ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300"
-                                  : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
-                                  }`}
-                                title={t("common.copy")}
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
+                      <div className="flex items-start gap-3">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.typeColor}`}>
+                          <TypeIcon className="w-6 h-6" />
                         </div>
-
-                        {/* Right section - Amount and status */}
-                        <div className="flex flex-col items-end gap-1 ml-auto text-right sm:gap-2">
-                          <div>
-                            <p className={`font-bold text-sm sm:text-base ${(item.historyType === 'transaction' && item.type === "deposit") ||
-                              (item.historyType === 'transfer' && item.isTransferReceived)
-                              ? "text-green-500"
-                              : item.historyType === 'transaction'
-                                ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                                : item.historyType === 'betting' && item.transaction_type === "deposit"
-                                  ? "text-purple-500"
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <div>
+                              <h3 className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                                {item.historyType === 'transaction'
+                                  ? (item.display_recipient_name || item.recipient_phone)
                                   : item.historyType === 'betting'
-                                    ? (theme === "dark" ? "text-blue-400" : "text-blue-600")
+                                    ? item.partner_name
                                     : item.historyType === 'recharge'
-                                      ? "text-blue-500"
-                                      : item.historyType === 'transfer'
-                                        ? (theme === "dark" ? "text-red-400" : "text-red-600")
-                                        : item.historyType === 'bulk'
-                                          ? "text-orange-500"
-                                          : "text-cyan-500"
-                              }`}>
+                                      ? item.recipient_phone
+                                      : item.historyType === 'bulk'
+                                        ? (item.display_recipient_name || item.uid)
+                                        : item.receiver_name
+                                }
+                              </h3>
+                              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                {item.historyType === 'betting' ? item.platform_name : item.typeLabel}
+                              </p>
+                            </div>
+                            <p className={`font-bold ${
+                              (item.historyType === 'transaction' && item.type === "deposit") ||
+                              (item.historyType === 'transfer' && item.isTransferReceived) ||
+                              (item.historyType === 'betting' && item.transaction_type === "deposit") ||
+                              item.historyType === 'recharge' ||
+                              item.historyType === 'bulk'
+                                ? theme === "dark" ? "text-green-400" : "text-green-600"
+                                : theme === "dark" ? "text-red-400" : "text-red-600"
+                            }`}>
                               {item.historyType === 'transaction'
                                 ? formatTransactionAmount(item.amount, item.type)
                                 : item.historyType === 'betting'
-                                  ? formatTransactionAmount(item.amount, item.transaction_type)
+                                  ? `${item.transaction_type === "deposit" ? "+" : "-"}${formatNumberWithSpaces(item.amount)}`
                                   : item.historyType === 'recharge'
                                     ? `+${formatNumberWithSpaces(item.amount)} FCFA`
                                     : item.historyType === 'transfer'
@@ -1416,21 +1381,72 @@ export function DashboardScreen({
                               }
                             </p>
                           </div>
-                          <div className={`w-2 h-2 rounded-full ${item.status === "success" || item.status === "sent_to_user" || item.status === "completed"
-                            ? "bg-green-500"
-                            : item.status === "pending"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                            }`}></div>
+
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(item.status)} ${
+                              theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
+                            }`}>
+                              {item.status_display || item.status}
+                            </span>
+                            {item.historyType === 'betting' && item.betting_user_id && (
+                              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                ID: {item.betting_user_id}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                              {formatTransactionDate(item.created_at)}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                                {item.reference.slice(0, 12)}...
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  copyReference(item.reference)
+                                }}
+                                className={`p-1 rounded transition-all ${
+                                  theme === "dark"
+                                    ? "hover:bg-gray-700 text-gray-400 hover:text-gray-300"
+                                    : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                                }`}
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Commission Info for betting transactions */}
+                          {item.historyType === 'betting' && (
+                            <div className={`mt-2 p-2 rounded-lg flex items-center justify-between ${
+                              theme === "dark" ? "bg-gray-700/30" : "bg-gray-50"
+                            }`}>
+                              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                Commission
+                              </span>
+                              <span className={`text-xs font-bold ${
+                                item.commission_paid
+                                  ? theme === "dark" ? "text-green-400" : "text-green-600"
+                                  : theme === "dark" ? "text-yellow-400" : "text-yellow-600"
+                              }`}>
+                                {formatNumberWithSpaces(item.commission_amount)} FCFA{" "}
+                                {item.commission_paid ? "✓" : "⏳"}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   )
                 })
               ) : (
                 <div className="text-center py-12">
-                  <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                    }`}>
+                  <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
+                    theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
+                  }`}>
                     <History className={`w-8 h-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                   </div>
                   <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -1743,6 +1759,7 @@ export function DashboardScreen({
           setSelectedTransaction(null)
         }}
         transaction={selectedTransaction}
+        onCancelTransaction={handleCancelTransaction}
       />
 
       {/* Transaction Type Selection Modal */}

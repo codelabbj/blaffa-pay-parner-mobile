@@ -1,4 +1,4 @@
-package com.connectpro.app;
+package com.connectpro.partnerapp;
 
 import android.os.Bundle;
 import android.webkit.WebView;

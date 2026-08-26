@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: "com.connectpro.app",
-  appName: "Blaffa Pay",
+  appId: "com.connectpro.partnerapp",
+  appName: "Blaffa Pay Partner",
   webDir: 'out',
   server: {
     androidScheme: 'https',
