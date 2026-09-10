@@ -182,67 +182,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  const clearLocalAuthState = () => {
+    setUser(null)
+    setAccountData(null)
+    setTransactions([])
+    setNetworks([])
+    setRecharges([])
+    setIsAuthenticated(false)
+  }
+
+  const loadSecondaryBootstrapData = async (accessToken: string) => {
+    try {
+      const accountData = await accountService.getAccountData(accessToken)
+      setAccountData(accountData)
+    } catch (error) {
+      console.error('Failed to fetch account data:', error)
+    }
+
+    try {
+      const transactionsData = await transactionsService.getTransactions(accessToken, 1, 10)
+      setTransactions(transactionsData.results)
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error)
+    }
+
+    try {
+      const networksData = await networksService.getNetworks(accessToken)
+      setNetworks(networksData.results)
+    } catch (error) {
+      console.error('Failed to fetch networks:', error)
+    }
+
+    try {
+      const rechargesData = await rechargeService.getRecharges(accessToken, 1, 10)
+      setRecharges(rechargesData.results)
+    } catch (error) {
+      console.error('Failed to fetch recharges:', error)
+    }
+  }
+
   useEffect(() => {
-    // Check if user is already authenticated on app load
+    // Keep React state in sync if authService clears tokens (e.g. invalid refresh).
+    return authService.onLogout(() => {
+      clearLocalAuthState()
+    })
+  }, [])
+
+  useEffect(() => {
+    // Check if user is already authenticated on app load.
+    // Do NOT wipe tokens on slow network / bootstrap timeouts.
     const checkAuth = async () => {
       try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Authentication check timeout')), 10000)
-        )
+        if (!authService.isAuthenticated()) {
+          return
+        }
 
-        const authPromise = (async () => {
-          if (authService.isAuthenticated()) {
-            // validateToken now returns the User profile on success (or null on failure)
-            // This avoids a second API call to getUserProfile()
-            const userProfile = await authService.validateToken()
-            if (userProfile) {
-              // User profile (including permissions) is already populated from validateToken()
-              setUser(userProfile)
+        const session = await authService.validateSession()
 
-              // Get account data and transactions
-              const accessToken = authService.getAccessToken()
-              if (accessToken) {
-                try {
-                  const accountData = await accountService.getAccountData(accessToken)
-                  setAccountData(accountData)
-                } catch (error) {
-                  console.error('Failed to fetch account data:', error)
+        if (session.status === 'unauthenticated') {
+          // Tokens already cleared inside authService when definitive.
+          clearLocalAuthState()
+          return
+        }
+
+        if (session.status === 'transient_error') {
+          // Keep tokens; stay "logged in" so the user is not bounced to login.
+          console.warn('Auth check transient error, keeping session:', session.error)
+          setIsAuthenticated(true)
+
+          // Retry once in background to populate profile/data when network recovers.
+          window.setTimeout(async () => {
+            try {
+              const retry = await authService.validateSession()
+              if (retry.status === 'authenticated') {
+                setUser(retry.user)
+                const token = authService.getAccessToken()
+                if (token) {
+                  await loadSecondaryBootstrapData(token)
                 }
-
-                try {
-                  const transactionsData = await transactionsService.getTransactions(accessToken, 1, 10)
-                  setTransactions(transactionsData.results)
-                } catch (error) {
-                  console.error('Failed to fetch transactions:', error)
-                }
-
-                try {
-                  const networksData = await networksService.getNetworks(accessToken)
-                  setNetworks(networksData.results)
-                } catch (error) {
-                  console.error('Failed to fetch networks:', error)
-                }
-
-                try {
-                  const rechargesData = await rechargeService.getRecharges(accessToken, 1, 10)
-                  setRecharges(rechargesData.results)
-                } catch (error) {
-                  console.error('Failed to fetch recharges:', error)
-                }
+              } else if (retry.status === 'unauthenticated') {
+                clearLocalAuthState()
               }
-
-              setIsAuthenticated(true)
-            } else {
-              authService.logout()
+            } catch (retryError) {
+              console.warn('Auth retry failed, session kept:', retryError)
             }
-          }
-        })()
+          }, 2500)
+          return
+        }
 
-        await Promise.race([authPromise, timeoutPromise])
+        setUser(session.user)
+        setIsAuthenticated(true)
+
+        const accessToken = authService.getAccessToken()
+        if (accessToken) {
+          await loadSecondaryBootstrapData(accessToken)
+        }
       } catch (error) {
         console.error('Auth check failed:', error)
-        authService.logout()
+        // Keep session if tokens are still present (network blip).
+        if (authService.isAuthenticated()) {
+          setIsAuthenticated(true)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -256,40 +296,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       await authService.login(identifier, password)
 
-      // Get user profile after successful login
       const userProfile = await authService.getUserProfile()
       setUser(userProfile)
 
-      // Get account data and transactions
       const accessToken = authService.getAccessToken()
       if (accessToken) {
-        try {
-          const accountData = await accountService.getAccountData(accessToken)
-          setAccountData(accountData)
-        } catch (error) {
-          console.error('Failed to fetch account data:', error)
-        }
-
-        try {
-          const transactionsData = await transactionsService.getTransactions(accessToken, 1, 10)
-          setTransactions(transactionsData.results)
-        } catch (error) {
-          console.error('Failed to fetch transactions:', error)
-        }
-
-        try {
-          const networksData = await networksService.getNetworks(accessToken)
-          setNetworks(networksData.results)
-        } catch (error) {
-          console.error('Failed to fetch networks:', error)
-        }
-
-        try {
-          const rechargesData = await rechargeService.getRecharges(accessToken, 1, 10)
-          setRecharges(rechargesData.results)
-        } catch (error) {
-          console.error('Failed to fetch recharges:', error)
-        }
+        await loadSecondaryBootstrapData(accessToken)
       }
 
       setIsAuthenticated(true)
@@ -303,12 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = (): void => {
     authService.logout()
-    setUser(null)
-    setAccountData(null)
-    setTransactions([])
-    setNetworks([])
-    setRecharges([])
-    setIsAuthenticated(false)
+    clearLocalAuthState()
   }
 
   const refreshToken = async (): Promise<void> => {
@@ -316,7 +323,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authService.refreshAccessToken()
     } catch (error) {
       console.error('Token refresh failed:', error)
-      logout()
+      // authService already logs out on definitive 401/403; do not wipe on network errors.
+      if (!authService.isAuthenticated()) {
+        clearLocalAuthState()
+      }
       throw error
     }
   }
