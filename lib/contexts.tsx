@@ -8,6 +8,7 @@ import { transactionsService, type Transaction } from "./transactions"
 import { networksService, type Network } from "./networks"
 import { createTransactionService, type CreateTransactionPayload } from "./create-transaction"
 import { rechargeService, type RechargeData, type CreateRechargePayload } from "./recharge"
+import { partnerV2Service, type PartnerV2ActivityItem } from "./partner-v2"
 
 // Theme Context
 type Theme = "light" | "dark" | "system"
@@ -153,8 +154,10 @@ interface AuthContextType {
   transactions: Transaction[]
   networks: Network[]
   recharges: RechargeData[]
+  activity: PartnerV2ActivityItem[]
   isAuthenticated: boolean
   isLoading: boolean
+  isAuthChecking: boolean
   login: (identifier: string, password: string) => Promise<void>
   logout: () => void
   refreshToken: () => Promise<void>
@@ -163,6 +166,7 @@ interface AuthContextType {
   refreshTransactions: () => Promise<void>
   refreshNetworks: () => Promise<void>
   refreshRecharges: () => Promise<void>
+  refreshBootstrap: () => Promise<void>
   createTransaction: (payload: CreateTransactionPayload) => Promise<void>
   createRecharge: (payload: CreateRechargePayload) => Promise<void>
   updateProfile: (updates: Partial<User>) => Promise<void>
@@ -179,8 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [networks, setNetworks] = useState<Network[]>([])
   const [recharges, setRecharges] = useState<RechargeData[]>([])
+  const [activity, setActivity] = useState<PartnerV2ActivityItem[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isAuthChecking, setIsAuthChecking] = useState(true)
 
   const clearLocalAuthState = () => {
     setUser(null)
@@ -188,36 +194,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTransactions([])
     setNetworks([])
     setRecharges([])
+    setActivity([])
     setIsAuthenticated(false)
   }
 
-  const loadSecondaryBootstrapData = async (accessToken: string) => {
+  const loadLazyData = async (accessToken: string) => {
     try {
-      const accountData = await accountService.getAccountData(accessToken)
-      setAccountData(accountData)
-    } catch (error) {
-      console.error('Failed to fetch account data:', error)
-    }
-
-    try {
-      const transactionsData = await transactionsService.getTransactions(accessToken, 1, 10)
-      setTransactions(transactionsData.results)
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error)
-    }
-
-    try {
-      const networksData = await networksService.getNetworks(accessToken)
+      const networksData = await partnerV2Service.getNetworks(accessToken)
       setNetworks(networksData.results)
     } catch (error) {
-      console.error('Failed to fetch networks:', error)
+      try {
+        const networksData = await networksService.getNetworks(accessToken)
+        setNetworks(networksData.results)
+      } catch (fallbackError) {
+        console.error('Failed to fetch networks:', fallbackError)
+      }
     }
+  }
 
+  const applyBootstrap = (data: { user: User; account: AccountData; activity: PartnerV2ActivityItem[] }) => {
+    setUser(data.user)
+    setAccountData(data.account)
+    setActivity(data.activity || [])
+    setIsAuthenticated(true)
+  }
+
+  const loadBootstrap = async (accessToken: string): Promise<boolean> => {
     try {
-      const rechargesData = await rechargeService.getRecharges(accessToken, 1, 10)
-      setRecharges(rechargesData.results)
+      const data = await partnerV2Service.getBootstrap(accessToken)
+      applyBootstrap(data)
+      void loadLazyData(accessToken)
+      return true
     } catch (error) {
-      console.error('Failed to fetch recharges:', error)
+      console.error('Partner v2 bootstrap failed:', error)
+      try {
+        const [profile, account] = await Promise.all([
+          authService.getUserProfile(),
+          accountService.getAccountData(accessToken),
+        ])
+        setUser(profile)
+        setAccountData(account)
+        setIsAuthenticated(true)
+        void loadLazyData(accessToken)
+        return true
+      } catch (fallbackError) {
+        console.error('Bootstrap fallback failed:', fallbackError)
+        return false
+      }
     }
   }
 
@@ -237,31 +260,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        const accessToken = authService.getAccessToken()
+        if (accessToken) {
+          const bootstrapped = await loadBootstrap(accessToken)
+          if (bootstrapped) {
+            return
+          }
+        }
+
         const session = await authService.validateSession()
 
         if (session.status === 'unauthenticated') {
-          // Tokens already cleared inside authService when definitive.
           clearLocalAuthState()
           return
         }
 
         if (session.status === 'transient_error') {
-          // Keep tokens; stay "logged in" so the user is not bounced to login.
           console.warn('Auth check transient error, keeping session:', session.error)
           setIsAuthenticated(true)
-
-          // Retry once in background to populate profile/data when network recovers.
           window.setTimeout(async () => {
             try {
-              const retry = await authService.validateSession()
-              if (retry.status === 'authenticated') {
-                setUser(retry.user)
-                const token = authService.getAccessToken()
-                if (token) {
-                  await loadSecondaryBootstrapData(token)
-                }
-              } else if (retry.status === 'unauthenticated') {
-                clearLocalAuthState()
+              const token = authService.getAccessToken()
+              if (token) {
+                await loadBootstrap(token)
               }
             } catch (retryError) {
               console.warn('Auth retry failed, session kept:', retryError)
@@ -272,19 +293,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(session.user)
         setIsAuthenticated(true)
-
-        const accessToken = authService.getAccessToken()
-        if (accessToken) {
-          await loadSecondaryBootstrapData(accessToken)
+        const retryToken = authService.getAccessToken()
+        if (retryToken) {
+          await loadBootstrap(retryToken)
         }
       } catch (error) {
         console.error('Auth check failed:', error)
-        // Keep session if tokens are still present (network blip).
         if (authService.isAuthenticated()) {
           setIsAuthenticated(true)
         }
       } finally {
-        setIsLoading(false)
+        setIsAuthChecking(false)
       }
     }
 
@@ -294,17 +313,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (identifier: string, password: string): Promise<void> => {
     try {
       setIsLoading(true)
-      await authService.login(identifier, password)
-
-      const userProfile = await authService.getUserProfile()
-      setUser(userProfile)
+      const authResponse = await authService.login(identifier, password)
+      setUser(authResponse.user)
+      setIsAuthenticated(true)
 
       const accessToken = authService.getAccessToken()
       if (accessToken) {
-        await loadSecondaryBootstrapData(accessToken)
+        await loadBootstrap(accessToken)
       }
-
-      setIsAuthenticated(true)
     } catch (error) {
       console.error('Login failed:', error)
       throw error
@@ -374,12 +390,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const accessToken = authService.getAccessToken()
       if (accessToken) {
-        const data = await networksService.getNetworks(accessToken)
-        setNetworks(data.results)
+        try {
+          const data = await partnerV2Service.getNetworks(accessToken)
+          setNetworks(data.results)
+        } catch {
+          const data = await networksService.getNetworks(accessToken)
+          setNetworks(data.results)
+        }
       }
     } catch (error) {
       console.error('Failed to refresh networks:', error)
       throw error
+    }
+  }
+
+  const refreshBootstrap = async (): Promise<void> => {
+    const accessToken = authService.getAccessToken()
+    if (!accessToken) return
+    const ok = await loadBootstrap(accessToken)
+    if (!ok) {
+      await refreshAccountData()
     }
   }
 
@@ -472,8 +502,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       transactions,
       networks,
       recharges,
+      activity,
       isAuthenticated,
       isLoading,
+      isAuthChecking,
       login,
       logout,
       refreshToken,
@@ -482,6 +514,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshTransactions,
       refreshNetworks,
       refreshRecharges,
+      refreshBootstrap,
       createTransaction,
       createRecharge,
       updateProfile,

@@ -39,6 +39,9 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
     dateTo: ""
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
 
@@ -56,8 +59,12 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
   const { t } = useTranslation()
   const { user } = useAuth()
 
-  const loadTransfers = async () => {
-    setIsLoading(true)
+  const loadTransfers = async (page: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
     setError("")
 
     try {
@@ -68,10 +75,17 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
 
       const response = await transferService.getTransfers(
         accessToken,
-        filters
+        {
+          ...filters,
+          search: searchQuery,
+          page,
+          pageSize: 20,
+        }
       )
-      setTransfers(response.transfers)
-      setFilteredTransfers(response.transfers)
+      setTransfers(prev => append ? [...prev, ...response.transfers] : response.transfers)
+      setFilteredTransfers(prev => append ? [...prev, ...response.transfers] : response.transfers)
+      setHasMore(Boolean(response.next))
+      setCurrentPage(page)
     } catch (error) {
       console.error('Load transfers error:', error)
       const parsedError = parseBackendError(error)
@@ -79,27 +93,16 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
       setError(formattedMessage)
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
   }
 
-  // Filter transfers based on search query
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredTransfers(transfers)
-    } else {
-      const filtered = transfers.filter(transfer =>
-        transfer.receiver_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transfer.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transfer.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transfer.amount.includes(searchQuery)
-      )
-      setFilteredTransfers(filtered)
-    }
-  }, [searchQuery, transfers])
-
-  useEffect(() => {
-    loadTransfers()
-  }, [filters])
+    const timeout = window.setTimeout(() => {
+      loadTransfers(1, false)
+    }, searchQuery ? 350 : 0)
+    return () => window.clearTimeout(timeout)
+  }, [filters, searchQuery])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -222,7 +225,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
 
   const handleRefresh = async () => {
     setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
-    await loadTransfers()
+    await loadTransfers(1, false)
     setTimeout(() => {
       setPullToRefreshState(prev => ({ ...prev, isRefreshing: false, pullDistance: 0 }))
     }, 500)
@@ -581,7 +584,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
                   </div>
                 </div>
 
-                {/* Balance info - mobile optimized */}
+                {transfer.sender_balance_before != null && transfer.sender_balance_after != null && (
                 <div className={`mt-3 pt-3 border-t ${theme === "dark" ? "border-gray-700" : "border-gray-200"
                   }`}>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0 text-xs">
@@ -593,8 +596,19 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
                     </span>
                   </div>
                 </div>
+                )}
               </div>
             ))}
+            {hasMore && (
+              <Button
+                variant="outline"
+                disabled={isLoadingMore}
+                onClick={() => loadTransfers(currentPage + 1, true)}
+                className="w-full h-11"
+              >
+                {isLoadingMore ? "Chargement..." : "Charger plus"}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="text-center py-12">

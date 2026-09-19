@@ -489,10 +489,9 @@ import { useTranslation } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/contexts"
 import { authService } from "@/lib/auth"
-import { transferService, Transfer } from "@/lib/transfers"
-import { bettingService } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { bulkPaymentService } from "@/lib/bulk-payments"
+import { type PartnerV2ActivityItem } from "@/lib/partner-v2"
 import { TransactionTypeSelectionScreen } from "@/components/transaction-type-selection-screen"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
 import { usePermission } from "@/hooks/use-permission"
@@ -560,7 +559,7 @@ export function DashboardScreen({
   const dashboardContainerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { user, accountData, transactions, recharges, refreshTransactions, refreshRecharges, refreshAccountData, refreshUser } = useAuth()
+  const { user, accountData, activity, refreshBootstrap } = useAuth()
   const { toast } = useToast()
 
   // Permissions
@@ -587,103 +586,32 @@ export function DashboardScreen({
   }
 
 
-  // Load unified recent history
+  const decorateActivityItem = (item: PartnerV2ActivityItem) => {
+    const isCredit = item.direction === "in"
+    const typeIcon =
+      item.source === "recharge" ? Battery
+        : item.source === "transfer" ? Send
+          : item.source === "bulk" ? FileSpreadsheet
+            : (item.type === "deposit" || item.transaction_type === "deposit") ? TrendingUp
+              : TrendingDown
+    const typeColor = isCredit
+      ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
+      : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600")
+
+    return {
+      ...item,
+      historyType: item.source,
+      typeIcon,
+      typeColor,
+      typeLabel: item.label,
+      isTransferReceived: item.isTransferReceived ?? isCredit,
+    }
+  }
+
   const loadRecentHistory = async () => {
     setIsLoadingHistory(true)
     try {
-      const accessToken = authService.getAccessToken()
-      if (!accessToken) return
-
-      // Fetch transfers, betting and bulk transactions
-      const [transfersResponse, bettingTransactions, bulkPaymentResponse] = await Promise.all([
-        transferService.getTransfers(accessToken, {
-          type: "sent",
-          status: "completed",
-          minAmount: "",
-          maxAmount: "",
-          dateFrom: "2025-03-01",
-          dateTo: "2025-09-30"
-        }),
-        bettingService.getTransactions(accessToken, "", "", "", "-created_at", 1).catch(() => ({ results: [] })),
-        bulkPaymentService.getBulkHistory(accessToken, { page: 1, page_size: 10 }).catch(() => ({ results: [] }))
-      ])
-
-      // Combine all history types with type indicators
-      const combinedHistory = [
-        // Add mobile transactions with type indicator
-        ...transactions.slice(0, 10).map(transaction => ({
-          ...transaction,
-          historyType: 'transaction',
-          typeIcon: transaction.type === "deposit" ? TrendingUp : TrendingDown,
-          typeColor: transaction.type === "deposit"
-            ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
-            : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"),
-          typeLabel: transaction.type === "deposit" ? "Dépôt Mobile" : "Retrait Mobile"
-        })),
-
-        // Add betting transactions with type indicator
-        ...bettingTransactions.results.slice(0, 10).map(bettingTransaction => ({
-          ...bettingTransaction,
-          historyType: 'betting',
-          typeIcon: bettingTransaction.transaction_type === "deposit" ? TrendingUp : TrendingDown,
-          typeColor: bettingTransaction.transaction_type === "deposit"
-            ? (theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600")
-            : (theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"),
-          typeLabel: `${bettingTransaction.transaction_type === "deposit" ? "Dépôt" : "Retrait"} Paris`,
-          // Override display fields for consistent rendering
-          display_recipient_name: bettingTransaction.partner_name,
-          recipient_phone: bettingTransaction.betting_user_id,
-          recipient_name: bettingTransaction.partner_name,
-          amount: parseFloat(bettingTransaction.amount).toString(),
-          type: bettingTransaction.transaction_type
-        })),
-
-        // Add recharges with type indicator
-        ...recharges.slice(0, 10).map(recharge => ({
-          ...recharge,
-          historyType: 'recharge',
-          typeIcon: Battery,
-          typeColor: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
-          typeLabel: "Recharge Mobile"
-        })),
-
-        // Add transfers with type indicator
-        ...transfersResponse.transfers.slice(0, 10).map(transfer => {
-          const isReceived = transfer.receiver_email === user?.email;
-          return {
-            ...transfer,
-            historyType: 'transfer',
-            typeIcon: Send,
-            typeColor: isReceived
-              ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
-              : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"),
-            typeLabel: isReceived ? "Transfert Reçu" : "Transfert Envoyé",
-            receiver_name: transfer.receiver_name,
-            isTransferReceived: isReceived
-          };
-        }),
-
-        // Add bulk payments with type indicator
-        ...(bulkPaymentResponse as any).results?.slice(0, 10).map((batch: any) => ({
-          ...batch,
-          historyType: 'bulk',
-          typeIcon: FileSpreadsheet,
-          typeColor: theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600",
-          typeLabel: "Dépôt Groupé",
-          // Map bulk batch fields to activity list fields
-          display_recipient_name: `Lot #${batch.uid.split('-')[0]}`,
-          recipient_phone: `${batch.total_count} transactions`,
-          amount: parseFloat(batch.total_amount).toString(),
-          type: "deposit" // Bulks are always deposits for now
-        })) || []
-      ]
-
-      // Sort by date (most recent first) and take top 10
-      const sortedHistory = combinedHistory
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 10)
-
-      setRecentHistory(sortedHistory)
+      await refreshBootstrap()
     } catch (error) {
       console.error('Load recent history error:', error)
     } finally {
@@ -691,17 +619,10 @@ export function DashboardScreen({
     }
   }
 
-  // Handle refresh with loading state
   const handleRefresh = async () => {
     setIsRefreshing(true)
     setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
-    await Promise.all([
-      refreshAccountData(),
-      refreshTransactions(),
-      refreshRecharges(),
-      refreshUser(),
-      loadRecentHistory()
-    ])
+    await loadRecentHistory()
     setTimeout(() => {
       setIsRefreshing(false)
       setPullToRefreshState(prev => ({ ...prev, isRefreshing: false, pullDistance: 0 }))
@@ -792,10 +713,10 @@ export function DashboardScreen({
     }
   }, [pullToRefreshState.startY, pullToRefreshState.canPull, pullToRefreshState.isRefreshing])
 
-  // Load recent history on component mount
+  // Bind bootstrap activity to the dashboard list. Do not refetch on every render.
   useEffect(() => {
-    loadRecentHistory()
-  }, [transactions, recharges])
+    setRecentHistory(activity.map(decorateActivityItem))
+  }, [activity, theme])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1345,19 +1266,20 @@ export function DashboardScreen({
                           <div className="flex items-center justify-between mb-1">
                             <div>
                               <h3 className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                                {item.historyType === 'transaction'
-                                  ? (item.display_recipient_name || item.recipient_phone)
-                                  : item.historyType === 'betting'
-                                    ? item.partner_name
-                                    : item.historyType === 'recharge'
-                                      ? item.recipient_phone
-                                      : item.historyType === 'bulk'
-                                        ? (item.display_recipient_name || item.uid)
-                                        : item.receiver_name
+                                {item.title
+                                  || (item.historyType === 'transaction'
+                                    ? (item.display_recipient_name || item.recipient_phone)
+                                    : item.historyType === 'betting'
+                                      ? item.partner_name
+                                      : item.historyType === 'recharge'
+                                        ? item.recipient_phone
+                                        : item.historyType === 'bulk'
+                                          ? (item.display_recipient_name || item.uid)
+                                          : item.receiver_name)
                                 }
                               </h3>
                               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                {item.historyType === 'betting' ? item.platform_name : item.typeLabel}
+                                {item.historyType === 'betting' ? (item.platform_name || item.subtitle) : item.typeLabel}
                               </p>
                             </div>
                             <p className={`font-bold ${

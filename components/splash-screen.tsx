@@ -1,48 +1,34 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Shield, Loader2 } from "lucide-react"
-import { useLanguage } from "@/lib/contexts"
 
 interface SplashScreenProps {
   onComplete: () => void
+  isReady?: boolean
 }
 
-export function SplashScreen({ onComplete }: SplashScreenProps) {
+export function SplashScreen({ onComplete, isReady = false }: SplashScreenProps) {
   const [progress, setProgress] = useState(0)
-  const { t, isHydrated } = useLanguage()
+  const [completed, setCompleted] = useState(false)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer)
-          setTimeout(onComplete, 500)
-          return 100
-        }
-        return prev + 2
-      })
-    }, 50)
+    if (completed) return
 
-    return () => clearInterval(timer)
-  }, [onComplete])
-
-  const getLoadingMessage = () => {
-    // Use default text during hydration to prevent mismatch
-    if (!isHydrated) {
-      if (progress < 30) return "Chargement..."
-      if (progress >= 30 && progress < 60) return "Chargement du portefeuille..."
-      if (progress >= 60 && progress < 90) return "Sécurisation de la connexion..."
-      if (progress >= 90) return "Presque prêt..."
-      return "Chargement..."
+    if (isReady) {
+      setProgress(100)
+      const timeout = window.setTimeout(() => {
+        setCompleted(true)
+        onComplete()
+      }, 180)
+      return () => window.clearTimeout(timeout)
     }
-    
-    if (progress < 30) return t("loading")
-    if (progress >= 30 && progress < 60) return t("splash.loadingWallet")
-    if (progress >= 60 && progress < 90) return t("splash.securingConnection")
-    if (progress >= 90) return t("splash.almostReady")
-    return t("loading")
-  }
+
+    const timer = window.setInterval(() => {
+      setProgress((prev) => (prev >= 90 ? 90 : prev + 12))
+    }, 40)
+
+    return () => window.clearInterval(timer)
+  }, [isReady, onComplete, completed])
 
   useEffect(() => {
     document.body.style.background = "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)"
@@ -62,14 +48,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         minHeight: "100vh",
       }}
     >
-      {/* Modern Logo */}
       <div className="text-center mb-16">
         <div className="mb-8">
           <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-4 mb-6">
             <img src="/logo.png" alt="BlaffaPay Logo" className="w-20 h-20 object-contain mx-auto" />
           </div>
         </div>
-        
+
         <h1 className="text-4xl font-bold text-white mb-2">
           BlaffaPay
         </h1>
@@ -78,22 +63,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         </p>
       </div>
 
-      {/* Modern Progress */}
       <div className="w-full max-w-sm">
         <div className="bg-white/20 backdrop-blur-sm rounded-full h-2 mb-6">
-          <div 
-            className="bg-white rounded-full h-2 transition-all duration-300 ease-out"
+          <div
+            className="bg-white rounded-full h-2 transition-all duration-150 ease-out"
             style={{ width: `${progress}%` }}
           />
-        </div>
-        
-        <div className="text-center">
-          <p className="text-white text-sm font-medium mb-2">
-            {getLoadingMessage()}
-          </p>
-          <p className="text-white/60 text-xs">
-            {progress}%
-          </p>
         </div>
       </div>
     </div>

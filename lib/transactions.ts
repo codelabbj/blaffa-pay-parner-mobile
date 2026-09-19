@@ -59,7 +59,7 @@ class TransactionsService {
     search?: string
   ): Promise<TransactionsResponse> {
     try {
-      let url = `${this.baseUrl}/api/payments/user/transactions/?page=${page}&limit=${limit}`;
+      let url = `${this.baseUrl}/api/payments/user/transactions/?page=${page}&page_size=${limit}&limit=${limit}`;
       if (type && type !== "all") {
         url += `&type=${encodeURIComponent(type)}`;
       }

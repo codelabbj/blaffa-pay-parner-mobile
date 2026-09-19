@@ -46,7 +46,7 @@ export default function Home() {
   const [bettingTransactionType, setBettingTransactionType] = useState<"deposit" | "withdraw" | undefined>(undefined)
   const [bulkPaymentInitialView, setBulkPaymentInitialView] = useState<"create" | "history">("create")
   const { theme } = useTheme()
-  const { isAuthenticated, isLoading, logout, user, refreshAccountData, refreshTransactions, refreshRecharges } = useAuth()
+  const { isAuthenticated, isAuthChecking, logout, user, refreshAccountData, refreshTransactions, refreshRecharges, refreshBootstrap } = useAuth()
 
   // Hide native splash screen as soon as the app is mounted
   useEffect(() => {
@@ -80,6 +80,7 @@ export default function Home() {
     try {
       // Refresh all dashboard data in parallel
       await Promise.all([
+        refreshBootstrap(),
         refreshAccountData(),
         refreshTransactions(),
         refreshRecharges()
@@ -117,7 +118,7 @@ export default function Home() {
 
   // Handle authentication state changes
   useEffect(() => {
-    if (!isLoading && splashCompleted) {
+    if (!isAuthChecking && splashCompleted) {
       if (isAuthenticated) {
         setCurrentScreen("dashboard")
         setNavigationHistory(["dashboard"])
@@ -126,7 +127,7 @@ export default function Home() {
         setNavigationHistory([])
       }
     }
-  }, [isAuthenticated, isLoading, splashCompleted])
+  }, [isAuthenticated, isAuthChecking, splashCompleted])
 
   // Handle mobile hardware back button
   useEffect(() => {
@@ -160,20 +161,11 @@ export default function Home() {
 
   // Show splash screen until it's completed
   if (currentScreen === "splash") {
-    return <SplashScreen onComplete={handleSplashComplete} />
+    return <SplashScreen onComplete={handleSplashComplete} isReady={!isAuthChecking} />
   }
 
-  // Show loading state while checking authentication after splash
-  if (!splashCompleted || isLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-        }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-sm opacity-70">Loading...</p>
-        </div>
-      </div>
-    )
+  if (!splashCompleted || isAuthChecking) {
+    return <SplashScreen onComplete={handleSplashComplete} isReady={!isAuthChecking} />
   }
 
   // Show login screen if not authenticated

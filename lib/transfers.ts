@@ -1,5 +1,7 @@
 // Transfer service for handling user-to-user transfers
 
+import { partnerV2Service } from './partner-v2';
+
 export interface User {
   uid: string;
   display_name: string;
@@ -15,20 +17,20 @@ export interface UsersResponse {
 export interface Transfer {
   uid: string;
   reference: string;
-  sender: number;
+  sender?: number;
   sender_name: string;
   sender_email: string;
-  receiver: number;
+  receiver?: number;
   receiver_name: string;
   receiver_email: string;
   amount: string;
   fees: string;
   status: string;
   description: string;
-  sender_balance_before: string;
-  sender_balance_after: string;
-  receiver_balance_before: string;
-  receiver_balance_after: string;
+  sender_balance_before?: string;
+  sender_balance_after?: string;
+  receiver_balance_before?: string;
+  receiver_balance_after?: string;
   completed_at: string;
   failed_reason: string;
   created_at: string;
@@ -50,6 +52,8 @@ export interface SendTransferResponse {
 export interface TransfersResponse {
   success: boolean;
   count: number;
+  next?: string | null;
+  previous?: string | null;
   transfers: Transfer[];
 }
 
@@ -136,38 +140,20 @@ class TransferService {
       dateFrom?: string;
       dateTo?: string;
       ordering?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
     } = {}
   ): Promise<TransfersResponse> {
     try {
-      const params = new URLSearchParams();
-
-      if (filters.type) params.append('type', filters.type);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.minAmount) params.append('min_amount', filters.minAmount);
-      if (filters.maxAmount) params.append('max_amount', filters.maxAmount);
-      if (filters.dateFrom) params.append('date_from', filters.dateFrom);
-      if (filters.dateTo) params.append('date_to', filters.dateTo);
-      if (filters.ordering) params.append('ordering', filters.ordering);
-      else params.append('ordering', '-created_at');
-
-      const queryString = params.toString();
-      const url = `${this.baseUrl}/api/payments/betting/user/transfers/${queryString ? `?${queryString}` : ''}`;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to get transfers');
-      }
-
-      const data: TransfersResponse = await response.json();
-      return data;
+      const data = await partnerV2Service.getTransfers(accessToken, filters);
+      return {
+        success: true,
+        count: data.count,
+        next: data.next,
+        previous: data.previous,
+        transfers: data.results,
+      };
     } catch (error) {
       console.error('Get transfers error:', error);
       throw error;

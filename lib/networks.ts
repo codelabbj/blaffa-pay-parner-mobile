@@ -32,7 +32,7 @@ class NetworksService {
   // Get available networks
   async getNetworks(accessToken: string): Promise<NetworksResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/payments/networks/`, {
+      const response = await fetch(`${this.baseUrl}/api/v2/partner/networks/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

@@ -52,7 +52,7 @@ class RechargeService {
     search?: string
   ): Promise<RechargesResponse> {
     try {
-      let url = `${this.baseUrl}/api/payments/user/recharges/?page=${page}&limit=${limit}`;
+      let url = `${this.baseUrl}/api/payments/user/recharges/?page=${page}&page_size=${limit}&limit=${limit}`;
       if (status && status !== "all") {
         url += `&status=${encodeURIComponent(status)}`;
       }

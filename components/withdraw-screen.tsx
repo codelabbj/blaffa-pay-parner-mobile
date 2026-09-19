@@ -41,7 +41,15 @@ export function WithdrawScreen({ onNavigateBack, onTransactionSuccess }: Withdra
 
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { networks, createTransaction, accountData } = useAuth()
+  const { networks, createTransaction, accountData, refreshNetworks } = useAuth()
+
+  useEffect(() => {
+    if (networks.length === 0) {
+      void refreshNetworks()
+    }
+    // Load once when opening the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Format number with spaces for better readability
   const formatNumberWithSpaces = (value: string) => {
