@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { SplashScreen as CapSplashScreen } from "@capacitor/splash-screen"
 import { SplashScreen } from "@/components/splash-screen"
 import { LoginScreen } from "@/components/login-screen"
+import { NicknameSetupScreen } from "@/components/nickname-setup-screen"
 import { DashboardScreen } from "@/components/dashboard-screen"
 import { DepositScreen } from "@/components/deposit-screen"
 import { WithdrawScreen } from "@/components/withdraw-screen"
@@ -26,20 +27,12 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { useTheme } from "@/lib/contexts"
 import { useAuth } from "@/lib/contexts"
 import { mobileBackButtonHandler } from "@/lib/mobile-back-button"
-import {
-  ArrowUpCircle,
-  ArrowDownCircle,
-  CreditCard,
-  Settings,
-  Bell,
-  Clock,
-  LogOut
-} from "lucide-react"
+import { getStoredNickname } from "@/lib/design"
 
 import { Toaster } from "@/components/ui/toaster"
 
 export default function Home() {
-  const [currentScreen, setCurrentScreen] = useState<"splash" | "login" | "dashboard" | "deposit" | "withdraw" | "recharge" | "settings" | "profile" | "transaction-history" | "recharge-history" | "transfer" | "transfer-history" | "betting-platforms" | "betting-deposit" | "betting-withdraw" | "betting-transactions" | "betting-commissions" | "notifications" | "permission-denied" | "bulk-payment">("splash")
+  const [currentScreen, setCurrentScreen] = useState<"splash" | "login" | "nickname-setup" | "dashboard" | "deposit" | "withdraw" | "recharge" | "settings" | "profile" | "transaction-history" | "recharge-history" | "transfer" | "transfer-history" | "betting-platforms" | "betting-deposit" | "betting-withdraw" | "betting-transactions" | "betting-commissions" | "notifications" | "permission-denied" | "bulk-payment">("splash")
   const [selectedPlatformUid, setSelectedPlatformUid] = useState<string | undefined>(undefined)
   const [splashCompleted, setSplashCompleted] = useState(false)
   const [navigationHistory, setNavigationHistory] = useState<string[]>([])
@@ -47,6 +40,16 @@ export default function Home() {
   const [bulkPaymentInitialView, setBulkPaymentInitialView] = useState<"create" | "history">("create")
   const { theme } = useTheme()
   const { isAuthenticated, isAuthChecking, logout, user, refreshAccountData, refreshTransactions, refreshRecharges, refreshBootstrap } = useAuth()
+
+  const goAfterAuth = (uid?: string) => {
+    if (!getStoredNickname(uid)) {
+      setCurrentScreen("nickname-setup")
+      setNavigationHistory([])
+      return
+    }
+    setCurrentScreen("dashboard")
+    setNavigationHistory(["dashboard"])
+  }
 
   // Hide native splash screen as soon as the app is mounted
   useEffect(() => {
@@ -65,8 +68,7 @@ export default function Home() {
   }
 
   const handleLogin = () => {
-    setCurrentScreen("dashboard")
-    setNavigationHistory(["dashboard"])
+    goAfterAuth(user?.uid)
   }
 
   const handleLogout = () => {
@@ -116,18 +118,24 @@ export default function Home() {
     setCurrentScreen("permission-denied")
   }
 
-  // Handle authentication state changes
+  // Handle authentication state changes — only gate splash/login → app
   useEffect(() => {
-    if (!isAuthChecking && splashCompleted) {
-      if (isAuthenticated) {
-        setCurrentScreen("dashboard")
-        setNavigationHistory(["dashboard"])
-      } else {
-        setCurrentScreen("login")
-        setNavigationHistory([])
-      }
+    if (isAuthChecking || !splashCompleted) return
+    if (!isAuthenticated) {
+      setCurrentScreen("login")
+      setNavigationHistory([])
+      return
     }
-  }, [isAuthenticated, isAuthChecking, splashCompleted])
+    setCurrentScreen((prev) => {
+      if (prev !== "login" && prev !== "splash") return prev
+      if (getStoredNickname(user?.uid)) {
+        setNavigationHistory(["dashboard"])
+        return "dashboard"
+      }
+      setNavigationHistory([])
+      return "nickname-setup"
+    })
+  }, [isAuthenticated, isAuthChecking, splashCompleted, user?.uid])
 
   // Handle mobile hardware back button
   useEffect(() => {
@@ -159,11 +167,7 @@ export default function Home() {
     }
   }, [currentScreen])
 
-  // Show splash screen until it's completed
-  if (currentScreen === "splash") {
-    return <SplashScreen onComplete={handleSplashComplete} isReady={!isAuthChecking} />
-  }
-
+  // Show splash until auth check is done AND splash animation completed
   if (!splashCompleted || isAuthChecking) {
     return <SplashScreen onComplete={handleSplashComplete} isReady={!isAuthChecking} />
   }
@@ -173,12 +177,20 @@ export default function Home() {
     return <LoginScreen onLogin={handleLogin} />
   }
 
+  if (isAuthenticated && currentScreen === "nickname-setup") {
+    return (
+      <NicknameSetupScreen
+        onComplete={() => {
+          setCurrentScreen("dashboard")
+          setNavigationHistory(["dashboard"])
+        }}
+      />
+    )
+  }
+
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen transition-colors duration-300 ${theme === "dark"
-        ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
-        }`}>
+      <div className={`min-h-screen transition-colors duration-300 ${theme === "dark" ? "bg-[#0A1220]" : "bg-[#EEF2F8]"}`}>
         {/* Mobile-First Layout Structure */}
         <div className="flex flex-col min-h-screen">
           {/* Top Bar - Only show when authenticated */}
@@ -313,7 +325,10 @@ export default function Home() {
               <TransactionHistoryScreen onNavigateBack={navigateBack} />
             )}
             {currentScreen === "recharge-history" && (
-              <RechargeHistoryScreen onNavigateBack={navigateBack} />
+              <RechargeHistoryScreen
+                onNavigateBack={navigateBack}
+                onNavigateToCreate={() => navigateToScreen("recharge")}
+              />
             )}
             {currentScreen === "transfer" && (
               <TransferScreen

@@ -466,27 +466,77 @@ class AuthService {
     }
   }
 
+  private async parseProfileResponse(response: Response): Promise<any> {
+    const raw = await response.text();
+    let data: any = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      throw new Error(
+        response.ok
+          ? 'Réponse profil invalide.'
+          : `Mise à jour profil impossible (${response.status}).`
+      );
+    }
+    if (!response.ok) {
+      const parsedError = parseBackendError(data);
+      throw new Error(formatErrorMessage(parsedError));
+    }
+    return data;
+  }
+
   async updateProfile(updates: Partial<User>): Promise<{ message: string, user: User, changes: string[] }> {
     if (!this.accessToken) {
       throw new Error('No access token available');
     }
 
+    const namePayload: Partial<User> = {}
+    if (typeof updates.first_name === 'string') namePayload.first_name = updates.first_name
+    if (typeof updates.last_name === 'string') namePayload.last_name = updates.last_name
+
+    const contactPayload: Partial<User> = {}
+    if (typeof updates.email === 'string') contactPayload.email = updates.email
+    if (typeof updates.phone === 'string') contactPayload.phone = updates.phone || null as any
+
+    if (Object.keys(namePayload).length === 0 && Object.keys(contactPayload).length === 0) {
+      throw new Error('Aucun champ modifiable fourni.')
+    }
+
     try {
-      const response = await fetch(`${this.baseUrl}/api/auth/profile/`, {
-        method: 'PATCH',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(updates),
-      });
+      let latest: any = { message: '', user: null as User | null, changes: [] as string[] }
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        const parsedError = parseBackendError(data);
-        const formattedMessage = formatErrorMessage(parsedError);
-        throw new Error(formattedMessage);
+      if (Object.keys(namePayload).length > 0) {
+        const response = await fetch(`${this.baseUrl}/api/auth/profile/`, {
+          method: 'PATCH',
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify(namePayload),
+        });
+        const data = await this.parseProfileResponse(response);
+        latest = {
+          message: data.message || latest.message,
+          user: data.user || latest.user,
+          changes: [...(latest.changes || []), ...(data.changes || [])],
+        }
       }
 
-      return data;
+      if (Object.keys(contactPayload).length > 0) {
+        const response = await fetch(`${this.baseUrl}/api/auth/profile/contact/`, {
+          method: 'PATCH',
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify(contactPayload),
+        });
+        const data = await this.parseProfileResponse(response);
+        latest = {
+          message: data.message || latest.message || 'Profil mis à jour avec succès.',
+          user: data.user || latest.user,
+          changes: [...(latest.changes || []), ...(data.changes || [])],
+        }
+      }
+
+      if (!latest.user) {
+        throw new Error('Mise à jour profil : réponse sans utilisateur.')
+      }
+      return latest
     } catch (error) {
       console.error('Update profile error:', error);
       throw error;

@@ -1,109 +1,82 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { ArrowLeft, Shield, Lock } from "lucide-react"
 import { useTheme } from "@/lib/contexts"
+import { BP, pageBg, cardBg, textPrimary } from "@/lib/design"
 
 interface PermissionDeniedScreenProps {
   onNavigateBack: () => void
   message?: string
 }
 
-export function PermissionDeniedScreen({ 
-  onNavigateBack, 
-  message = "Vous n'êtes pas autorisé à accéder à cette fonctionnalité." 
+export function PermissionDeniedScreen({
+  onNavigateBack,
+  message = "Vous n'êtes pas autorisé à accéder à cette fonctionnalité.",
 }: PermissionDeniedScreenProps) {
   const { theme } = useTheme()
+  const isDark = theme === "dark"
+
+  const cardStyle = {
+    background: cardBg(isDark),
+    borderColor: isDark ? "#243147" : BP.border,
+    boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.06)",
+  }
 
   return (
-    <div 
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
-    >
-      {/* Mobile-optimized background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-red-500" : "bg-red-300"
-        } blur-2xl animate-pulse`}></div>
-        <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${
-          theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-        } blur-2xl animate-pulse`} style={{animationDelay: '1.5s'}}></div>
-      </div>
-
-      {/* Mobile-first header with safe area */}
-      <div className="relative z-10 px-4 pt-safe-area-inset-top pt-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-10 w-10 sm:h-11 sm:w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-              theme === "dark" 
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20" 
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-            }`}
+    <div className="min-h-screen flex flex-col" style={{ background: pageBg(isDark) }}>
+      <div className="px-4 pt-12 pb-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
             onClick={onNavigateBack}
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center border shrink-0 active:scale-95"
+            style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
           >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-          
-          <div className="text-center flex-1 mx-3 sm:mx-4">
-            <h1 className={`text-lg sm:text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Accès Refusé
-            </h1>
-          </div>
-          
-          <div className="w-10 sm:w-11"></div> {/* Spacer for centering */}
+            <ArrowLeft className="w-5 h-5" style={{ color: textPrimary(isDark) }} />
+          </button>
+          <h1 className="text-[17px] font-extrabold flex-1 text-center pr-10" style={{ color: textPrimary(isDark) }}>
+            Accès refusé
+          </h1>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 px-4 pb-24 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center max-w-sm mx-auto">
-          {/* Icon */}
-          <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl mx-auto mb-6 flex items-center justify-center ${
-            theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-          }`}>
-            <Shield className={`w-10 h-10 sm:w-12 sm:h-12 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
+      <div className="flex-1 px-4 pb-12 flex items-center justify-center">
+        <div className="text-center max-w-sm w-full">
+          <div
+            className="w-20 h-20 rounded-[18px] mx-auto mb-6 flex items-center justify-center"
+            style={{ background: "rgba(229, 72, 77, 0.12)" }}
+          >
+            <Shield className="w-10 h-10" style={{ color: BP.red }} />
           </div>
 
-          {/* Title */}
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Accès Non Autorisé
+          <h2 className="text-[22px] font-extrabold mb-3" style={{ color: textPrimary(isDark) }}>
+            Accès non autorisé
           </h2>
 
-          {/* Message */}
-          <p className={`text-sm sm:text-base mb-8 leading-relaxed ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+          <p className="text-[15px] leading-relaxed mb-8" style={{ color: BP.muted }}>
             {message}
           </p>
 
-          {/* Additional Info */}
-          <div className={`p-4 rounded-2xl border mb-8 ${
-            theme === "dark" 
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}>
-            <div className="flex items-center gap-3 mb-3">
-              <Lock className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-              <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-                Permissions Requises
+          <div className="bp-card p-4 border rounded-[18px] text-left mb-8" style={cardStyle}>
+            <div className="flex items-center gap-3 mb-2">
+              <Lock className="w-5 h-5" style={{ color: BP.blue }} />
+              <span className="text-sm font-extrabold" style={{ color: textPrimary(isDark) }}>
+                Permissions requises
               </span>
             </div>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            <p className="text-[13px] leading-relaxed" style={{ color: BP.muted }}>
               Contactez votre administrateur pour obtenir les permissions nécessaires à cette fonctionnalité.
             </p>
           </div>
 
-          {/* Back Button */}
-          <Button
+          <button
+            type="button"
             onClick={onNavigateBack}
-            className="w-full h-12 sm:h-14 text-sm sm:text-base font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl active:scale-95 transition-all duration-200"
+            className="w-full h-[52px] rounded-[16px] text-[16px] font-bold text-white active:scale-[0.99]"
+            style={{ background: BP.green }}
           >
-            Retour au Tableau de Bord
-          </Button>
+            Retour au tableau de bord
+          </button>
         </div>
       </div>
     </div>

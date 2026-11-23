@@ -1,80 +1,52 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
   ArrowLeft,
   Search,
-  Filter,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Copy,
+  ArrowUpRight,
+  ArrowDownRight,
   ChevronLeft,
   ChevronRight,
-  X,
-  Clock,
 } from "lucide-react"
-import { useTheme } from "@/lib/contexts"
-import { useTranslation } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingTransaction } from "@/lib/betting"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
+import { BP, statusPillClass , pageBg, cardBg, textPrimary } from "@/lib/design"
 
 interface BettingTransactionsScreenProps {
   onNavigateBack: () => void
 }
 
-export function BettingTransactionsScreen({
-  onNavigateBack,
-}: BettingTransactionsScreenProps) {
-  const { theme } = useTheme()
-  const { t } = useTranslation()
+/** PDF p.15 — Transactions de Paris (nom client) */
+export function BettingTransactionsScreen({ onNavigateBack }: BettingTransactionsScreenProps) {
   const { toast } = useToast()
-
   const [transactions, setTransactions] = useState<BettingTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
-  const [typeFilter, setTypeFilter] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [hasNextPage, setHasNextPage] = useState(false)
-  const [showFilterMenu, setShowFilterMenu] = useState(false)
-  const [cancellingTransaction, setCancellingTransaction] = useState<string | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<BettingTransaction | null>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
 
   useEffect(() => {
     loadTransactions()
-  }, [statusFilter, typeFilter, currentPage])
+  }, [currentPage])
 
   const loadTransactions = async () => {
     setIsLoading(true)
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
-
-      const data = await bettingService.getTransactions(
-        accessToken,
-        statusFilter,
-        typeFilter,
-        "",
-        "-created_at",
-        currentPage
-      )
+      if (!accessToken) throw new Error("No access token available")
+      const data = await bettingService.getTransactions(accessToken, "", "", "", "-created_at", currentPage)
       setTransactions(data.results)
       setTotalCount(data.count)
       setHasNextPage(!!data.next)
     } catch (error) {
-      console.error("Load transactions error:", error)
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Impossible de charger les transactions",
@@ -85,145 +57,28 @@ export function BettingTransactionsScreen({
     }
   }
 
-  const copyReference = async (reference: string) => {
-    try {
-      await navigator.clipboard.writeText(reference)
-      toast({
-        title: "Référence Copiée",
-        description: `Référence ${reference} copiée`,
-      })
-    } catch (error) {
-      console.error("Copy failed:", error)
-      toast({
-        title: "Échec de la Copie",
-        description: "Impossible de copier la référence",
-        variant: "destructive",
-      })
-    }
-  }
-
   const cancelTransaction = async (transactionUid: string) => {
-    setCancellingTransaction(transactionUid)
-    try {
-      const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/betting/user/transactions/${transactionUid}/request_cancellation/`, {
-        method: 'POST',
+    const accessToken = authService.getAccessToken()
+    if (!accessToken) throw new Error("No access token available")
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/betting/user/transactions/${transactionUid}/request_cancellation/`,
+      {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          reason: "Client changed mind - explicit request"
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to request cancellation')
+        body: JSON.stringify({ reason: "Client changed mind - explicit request" }),
       }
-
-      const data = await response.json()
-      
-      toast({
-        title: "Demande d'annulation envoyée",
-        description: data.message || "Votre demande d'annulation a été enregistrée",
-      })
-
-      // Reload transactions to reflect the change
-      loadTransactions()
-    } catch (error) {
-      console.error("Cancel transaction error:", error)
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible d'annuler la transaction",
-        variant: "destructive",
-      })
-    } finally {
-      setCancellingTransaction(null)
-    }
+    )
+    if (!response.ok) throw new Error("Failed to request cancellation")
+    toast({ title: "Demande d'annulation envoyée" })
+    await loadTransactions()
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const canCancelTransaction = (transaction: BettingTransaction) => {
-    // Debug logging to understand transaction state
-    console.log('Checking transaction for cancellation:', {
-      uid: transaction.uid,
-      status: transaction.status,
-      is_cancellable: transaction.is_cancellable,
-      can_request_cancellation: transaction.can_request_cancellation,
-      cancellation_requested_at: transaction.cancellation_requested_at,
-      created_at: transaction.created_at
-    })
-    
-    // Check if transaction is already cancelled
-    if (transaction.status === 'cancelled') {
-      console.log('Transaction cannot be cancelled: already cancelled')
-      return false
-    }
-    
-    // Check if cancellation was already requested
-    if (transaction.cancellation_requested_at) {
-      console.log('Transaction cannot be cancelled: cancellation already requested')
-      return false
-    }
-    
-    // Check if transaction is cancellable (if field exists and is explicitly false)
-    if (transaction.is_cancellable === false) {
-      console.log('Transaction cannot be cancelled: is_cancellable is false')
-      return false
-    }
-    
-    // Check if can request cancellation (if field exists and is explicitly false)
-    if (transaction.can_request_cancellation === false) {
-      console.log('Transaction cannot be cancelled: can_request_cancellation is false')
-      return false
-    }
-    
-    // Check if transaction is within 25 minutes of creation
-    const transactionDate = new Date(transaction.created_at)
-    const now = new Date()
-    const diffInMinutes = (now.getTime() - transactionDate.getTime()) / (1000 * 60)
-    
-    console.log(`Transaction age: ${diffInMinutes.toFixed(2)} minutes`)
-    
-    // Allow cancellation for both pending and successful transactions within 25 minutes
-    // If API fields are not provided (undefined), we'll use the time-based logic
-    const canCancel = (transaction.status === 'pending' || transaction.status === 'success') && diffInMinutes <= 25
-    console.log(`Can cancel transaction: ${canCancel}`)
-    
-    return canCancel
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "success":
-        return theme === "dark" ? "text-green-400" : "text-green-600"
-      case "pending":
-        return theme === "dark" ? "text-yellow-400" : "text-yellow-600"
-      case "failed":
-        return theme === "dark" ? "text-red-400" : "text-red-600"
-      case "cancelled":
-        return theme === "dark" ? "text-gray-400" : "text-gray-600"
-      default:
-        return theme === "dark" ? "text-gray-400" : "text-gray-600"
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
+  const statusLabel = (tx: BettingTransaction) => {
+    if (tx.cancellation_requested_at && tx.status !== "cancelled") return "Annulation demandée"
+    switch (tx.status) {
       case "success":
         return "Réussi"
       case "pending":
@@ -233,524 +88,186 @@ export function BettingTransactionsScreen({
       case "cancelled":
         return "Annulé"
       default:
-        return status
+        return tx.status
     }
   }
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.platform_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.betting_user_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.partner_name.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
+  const statusClass = (tx: BettingTransaction) => {
+    if (tx.cancellation_requested_at && tx.status !== "cancelled") return "bp-pill-pending"
+    return statusPillClass(tx.status)
+  }
+
+  const timeOnly = (dateString: string) =>
+    new Date(dateString).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+
+  const clientName = (tx: BettingTransaction) =>
+    tx.partner_name?.trim() || `ID ${tx.betting_user_id}`
+
+  const filtered = transactions.filter((tx) => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return true
+    return (
+      tx.reference?.toLowerCase().includes(q) ||
+      tx.platform_name?.toLowerCase().includes(q) ||
+      tx.betting_user_id?.toLowerCase().includes(q) ||
+      tx.partner_name?.toLowerCase().includes(q)
+    )
   })
 
-  const totalPages = Math.ceil(totalCount / 10)
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
-    >
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-purple-500" : "bg-purple-300"
-          } blur-3xl animate-pulse`}
-        ></div>
-        <div
-          className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-2xl animate-pulse`}
-          style={{ animationDelay: "2s" }}
-        ></div>
+    <div className="min-h-screen" style={{ background: pageBg(false) }}>
+      <div className="px-4 pt-12 pb-4 flex items-center gap-3">
+        <button
+          onClick={onNavigateBack}
+          className="w-10 h-10 rounded-[12px] flex items-center justify-center bg-white border"
+          style={{ borderColor: BP.border }}
+        >
+          <ArrowLeft className="w-5 h-5" style={{ color: BP.text }} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-[17px] font-extrabold" style={{ color: BP.text }}>
+            Transactions de Paris
+          </h1>
+          <p className="text-[12px]" style={{ color: BP.muted }}>
+            {totalCount.toLocaleString("fr-FR")} transaction{totalCount !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <button onClick={loadTransactions} className="p-2" style={{ color: BP.muted }}>
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNavigateBack}
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1
-                className={`text-2xl font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Transactions de Paris
-              </h1>
-              <p
-                className={`text-sm ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                {totalCount} transaction{totalCount !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadTransactions}
-            disabled={isLoading}
-            className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-              theme === "dark"
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-            }`}
-          >
-            <RefreshCw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search
-                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                }`}
-              />
-              <Input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher..."
-                className={`pl-10 h-12 rounded-xl ${
-                  theme === "dark"
-                    ? "bg-gray-800/60 border-gray-700 text-white"
-                    : "bg-white border-gray-200 text-gray-900"
-                }`}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilterMenu(!showFilterMenu)}
-              className={`h-12 w-12 p-0 rounded-xl ${
-                theme === "dark"
-                  ? "border-gray-700 text-gray-300"
-                  : "border-gray-200 text-gray-700"
-              }`}
-            >
-              <Filter className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Filter Menu */}
-          {showFilterMenu && (
-            <Card
-              className={`p-4 rounded-2xl border ${
-                theme === "dark"
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                  : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-            >
-              <div className="space-y-3">
-                <div>
-                  <label
-                    className={`block text-xs font-semibold mb-2 ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    TYPE
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setTypeFilter("")}
-                      className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                        typeFilter === ""
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Tous
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter("deposit")}
-                      className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                        typeFilter === "deposit"
-                          ? theme === "dark"
-                            ? "bg-green-600 text-white"
-                            : "bg-green-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Dépôts
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter("withdrawal")}
-                      className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                        typeFilter === "withdrawal"
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Retraits
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-xs font-semibold mb-2 ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    STATUT
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setStatusFilter("")}
-                      className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                        statusFilter === ""
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Tous
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter("success")}
-                      className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                        statusFilter === "success"
-                          ? theme === "dark"
-                            ? "bg-green-600 text-white"
-                            : "bg-green-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Réussi
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter("pending")}
-                      className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                        statusFilter === "pending"
-                          ? theme === "dark"
-                            ? "bg-yellow-600 text-white"
-                            : "bg-yellow-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      En attente
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter("failed")}
-                      className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                        statusFilter === "failed"
-                          ? theme === "dark"
-                            ? "bg-red-600 text-white"
-                            : "bg-red-500 text-white"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Échoué
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
+      <div className="px-4 mb-4">
+        <div className="relative">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
+            style={{ color: BP.muted }}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un pari, un ID…"
+            className="w-full h-12 pl-11 pr-4 rounded-full border-0 outline-none text-[15px] font-medium placeholder:text-[#9AA8BC]"
+            style={{
+              background: "#FFFFFF",
+              color: BP.text,
+              boxShadow: "0 4px 14px rgba(14,26,46,0.06)",
+            }}
+          />
         </div>
       </div>
 
-      {/* Transactions List */}
-      <div className="relative z-10 px-4 pb-24">
+      <div className="px-4 pb-24 space-y-2.5">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+          <div className="flex justify-center py-16">
+            <RefreshCw className="w-6 h-6 animate-spin" style={{ color: BP.green }} />
           </div>
-        ) : filteredTransactions.length > 0 ? (
-          <div className="space-y-3">
-            {filteredTransactions.map((transaction) => (
-              <Card
-                key={transaction.uid}
+        ) : filtered.length > 0 ? (
+          filtered.map((tx) => {
+            const isDeposit = tx.transaction_type === "deposit"
+            return (
+              <button
+                key={tx.uid}
+                type="button"
                 onClick={() => {
-                  setSelectedTransaction(transaction)
+                  setSelectedTransaction({ ...tx, historyType: "betting" } as any)
                   setShowTransactionDetails(true)
                 }}
-                className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-98 ${
-                  theme === "dark"
-                    ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                    : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:bg-gray-50/80"
-                }`}
+                className="w-full text-left p-3.5 rounded-[18px] border bg-white active:scale-[0.99] transition"
+                style={{
+                  borderColor: BP.border,
+                  boxShadow: "0 4px 16px rgba(14,26,46,0.04)",
+                }}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      transaction.transaction_type === "deposit"
-                        ? theme === "dark"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-green-100 text-green-600"
-                        : theme === "dark"
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "bg-blue-100 text-blue-600"
-                    }`}
+                    className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
+                    style={{
+                      background: isDeposit ? "rgba(14,159,110,0.12)" : "rgba(229,72,77,0.12)",
+                      color: isDeposit ? BP.green : BP.red,
+                    }}
                   >
-                    {transaction.transaction_type === "deposit" ? (
-                      <TrendingUp className="w-6 h-6" />
-                    ) : (
-                      <TrendingDown className="w-6 h-6" />
-                    )}
+                    {isDeposit ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <div>
-                        <h3
-                          className={`font-bold ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          {transaction.partner_name}
-                        </h3>
-                        <p
-                          className={`text-sm ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          {transaction.platform_name}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-[14px] truncate" style={{ color: BP.text }}>
+                          {clientName(tx)}
                         </p>
+                        <p className="text-[12px] truncate mt-0.5" style={{ color: BP.muted }}>
+                          {tx.platform_name} · ID {tx.betting_user_id} · {timeOnly(tx.created_at)}
+                        </p>
+                        <span
+                          className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusClass(tx)}`}
+                        >
+                          {statusLabel(tx)}
+                        </span>
                       </div>
                       <p
-                        className={`font-bold ${
-                          transaction.transaction_type === "deposit"
-                            ? theme === "dark"
-                              ? "text-green-400"
-                              : "text-green-600"
-                            : theme === "dark"
-                            ? "text-blue-400"
-                            : "text-blue-600"
-                        }`}
+                        className="font-extrabold tabular-nums text-[15px] shrink-0"
+                        style={{ color: isDeposit ? BP.green : BP.red }}
                       >
-                        {transaction.transaction_type === "deposit" ? "+" : "-"}
-                        {formatNumberWithSpaces(transaction.amount)}
+                        {isDeposit ? "+" : "−"}
+                        {formatNumberWithSpaces(tx.amount)}
                       </p>
                     </div>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(
-                          transaction.status
-                        )} ${
-                          theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                        }`}
-                      >
-                        {getStatusLabel(transaction.status)}
-                      </span>
-                      <span
-                        className={`text-xs ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        ID: {transaction.betting_user_id}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs ${
-                          theme === "dark" ? "text-gray-500" : "text-gray-500"
-                        }`}
-                      >
-                        {formatDate(transaction.created_at)}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={`text-xs font-mono ${
-                            theme === "dark" ? "text-gray-500" : "text-gray-500"
-                          }`}
-                        >
-                          {transaction.reference.slice(0, 12)}...
-                        </span>
-                        <button
-                          onClick={() => copyReference(transaction.reference)}
-                          className={`p-1 rounded transition-all ${
-                            theme === "dark"
-                              ? "hover:bg-gray-700 text-gray-400 hover:text-gray-300"
-                              : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                          }`}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Commission Info */}
-                    <div
-                      className={`mt-2 p-2 rounded-lg flex items-center justify-between ${
-                        theme === "dark" ? "bg-gray-700/30" : "bg-gray-50"
-                      }`}
-                    >
-                      <span
-                        className={`text-xs ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        Commission
-                      </span>
-                      <span
-                        className={`text-xs font-bold ${
-                          transaction.commission_paid
-                            ? theme === "dark"
-                              ? "text-green-400"
-                              : "text-green-600"
-                            : theme === "dark"
-                            ? "text-yellow-400"
-                            : "text-yellow-600"
-                        }`}
-                      >
-                        {formatNumberWithSpaces(transaction.commission_amount)} FCFA{" "}
-                        {transaction.commission_paid ? "✓" : "⏳"}
-                      </span>
-                    </div>
-
-                    {/* Cancel Transaction Button */}
-                    {canCancelTransaction(transaction) && (
-                      <div className="mt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => cancelTransaction(transaction.uid)}
-                          disabled={cancellingTransaction === transaction.uid}
-                          className={`w-full h-8 text-xs font-semibold rounded-lg transition-all duration-200 ${
-                            theme === "dark"
-                              ? "border-red-600 text-red-400 hover:bg-red-600/20 hover:text-red-300"
-                              : "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          }`}
-                        >
-                          {cancellingTransaction === transaction.uid ? (
-                            <div className="flex items-center gap-2">
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                              <span>Annulation...</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <X className="w-3 h-3" />
-                              <span>Annuler la transaction</span>
-                            </div>
-                          )}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
+              </button>
+            )
+          })
         ) : (
-          <div className="text-center py-12">
-            <p
-              className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Aucune transaction trouvée
+          <div
+            className="py-14 text-center rounded-[18px] border bg-white"
+            style={{ borderColor: BP.border }}
+          >
+            <p className="font-bold" style={{ color: BP.text }}>
+              Aucune transaction
             </p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`h-10 w-10 p-0 rounded-xl ${
-                theme === "dark"
-                  ? "border-gray-700 text-gray-300"
-                  : "border-gray-200 text-gray-700"
-              }`}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            <span
-              className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Page {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              disabled={!hasNextPage}
-              className={`h-10 w-10 p-0 rounded-xl ${
-                theme === "dark"
-                  ? "border-gray-700 text-gray-300"
-                  : "border-gray-200 text-gray-700"
-              }`}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
+            <p className="text-sm mt-1" style={{ color: BP.muted }}>
+              Les dépôts et retraits MobCash apparaîtront ici
+            </p>
           </div>
         )}
       </div>
 
-      {/* Transaction Details Modal */}
+      {totalCount > 10 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 flex items-center justify-center gap-4" style={{ background: pageBg(false) }}>
+          <button
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="w-10 h-10 rounded-[12px] bg-white border flex items-center justify-center disabled:opacity-40"
+            style={{ borderColor: BP.border }}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <span className="text-sm font-bold" style={{ color: BP.text }}>
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            disabled={!hasNextPage}
+            onClick={() => setCurrentPage((p) => p + 1)}
+            className="w-10 h-10 rounded-[12px] bg-white border flex items-center justify-center disabled:opacity-40"
+            style={{ borderColor: BP.border }}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       <TransactionDetailsModal
         isOpen={showTransactionDetails}
         onClose={() => {
           setShowTransactionDetails(false)
           setSelectedTransaction(null)
         }}
-        transaction={selectedTransaction ? {
-          ...selectedTransaction,
-          historyType: 'betting',
-          typeIcon: selectedTransaction.transaction_type === "deposit" ? TrendingUp : TrendingDown,
-          typeColor: selectedTransaction.transaction_type === "deposit"
-            ? (theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600")
-            : (theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"),
-          typeLabel: `${selectedTransaction.transaction_type === "deposit" ? "Dépôt" : "Retrait"} Paris`,
-          // Override display fields for consistent rendering
-          display_recipient_name: selectedTransaction.partner_name,
-          recipient_phone: selectedTransaction.betting_user_id,
-          recipient_name: selectedTransaction.partner_name,
-          amount: parseFloat(selectedTransaction.amount).toString(),
-          type: selectedTransaction.transaction_type
-        } : null}
+        transaction={selectedTransaction}
+        onCancelTransaction={cancelTransaction}
       />
     </div>
   )
 }
-
-// Updated

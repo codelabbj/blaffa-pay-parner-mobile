@@ -76,10 +76,12 @@ class TransferService {
     this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
   }
 
-  // Search for users/receivers
+  // Search for partner receivers only (backend refuses non-partners on transfer)
   async searchUsers(accessToken: string, search: string): Promise<UsersResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/auth/users/search/?search=${encodeURIComponent(search)}`, {
+      const params = new URLSearchParams({ is_partner: "true" })
+      if (search.trim()) params.set("search", search.trim())
+      const response = await fetch(`${this.baseUrl}/api/auth/users/search/?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

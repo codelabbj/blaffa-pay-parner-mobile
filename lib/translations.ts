@@ -162,6 +162,17 @@ export const translations = {
     // Settings Screen
     settings: {
       title: "Settings",
+      subtitle: "Manage your account and preferences",
+      nicknameTitle: "Your nickname (for transfers)",
+      nicknameHint: "This is how others find you — your real name stays hidden.",
+      nicknameLockedHint: "Nickname can't be changed. Profile info can still be edited.",
+      nicknamePlaceholder: "Set a nickname",
+      save: "Save",
+      cancel: "Cancel",
+      preferences: {
+        title: "Preferences",
+        subtitle: "Personalize your experience",
+      },
       account: {
         title: "Account",
         subtitle: "Manage your account settings",
@@ -597,11 +608,22 @@ export const translations = {
     // Settings Screen
     settings: {
       title: "Paramètres",
+      subtitle: "Gère ton compte et tes préférences",
+      nicknameTitle: "Ton surnom (pour les transferts)",
+      nicknameHint: "C'est avec ce surnom qu'on te trouve — ton vrai nom reste caché.",
+      nicknameLockedHint: "Le surnom ne peut pas être modifié. Tu peux toujours éditer ton profil.",
+      nicknamePlaceholder: "Définir un surnom",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      preferences: {
+        title: "Préférences",
+        subtitle: "Personnalise ton expérience",
+      },
       account: {
         title: "Compte",
-        subtitle: "Gérez les paramètres de votre compte",
+        subtitle: "Gère les infos de ton compte",
         profile: "Profil",
-        profileSubtitle: "Modifiez vos informations personnelles",
+        profileSubtitle: "Modifie tes informations",
         payment: "Moyens de Paiement",
         paymentSubtitle: "Gérez vos options de paiement",
         language: "Langue",

@@ -42,6 +42,7 @@ import {
     DialogFooter
 } from "@/components/ui/dialog"
 import { useTheme, useTranslation } from "@/lib/contexts"
+import { BP, pageBg, cardBg, textPrimary } from "@/lib/design"
 import { authService } from "@/lib/auth"
 import { bulkPaymentService, BulkNetwork, BulkTransaction, BulkHistoryItem, BulkLedgerTransaction } from "@/lib/bulk-payments"
 import { formatNumberWithSpaces } from "@/lib/utils"
@@ -74,6 +75,19 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
     const { theme } = useTheme()
     const { t } = useTranslation()
     const accessToken = authService.getAccessToken()
+    const isDark = theme === "dark"
+    const cardStyle = {
+        background: cardBg(isDark),
+        borderColor: isDark ? "#243147" : BP.border,
+        boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.06)",
+    }
+    const fieldInputClass =
+        "w-full h-10 px-3 text-sm font-semibold rounded-[14px] border outline-none focus:ring-2 focus:ring-[#0E9F6E]/25"
+    const fieldInputStyle = {
+        background: isDark ? "#1A2436" : "#FFFFFF",
+        borderColor: isDark ? "#243147" : BP.border,
+        color: textPrimary(isDark),
+    }
 
     const [networks, setNetworks] = useState<BulkNetwork[]>([])
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
@@ -412,34 +426,56 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
-                <p className="text-sm opacity-70">Vérification des accès...</p>
+            <div
+                className="flex flex-col items-center justify-center min-h-screen"
+                style={{ background: pageBg(isDark) }}
+            >
+                <Loader2 className="w-8 h-8 animate-spin mb-2" style={{ color: BP.green }} />
+                <p className="text-sm" style={{ color: BP.muted }}>
+                    Vérification des accès...
+                </p>
             </div>
         )
     }
 
     if (isAuthorized === false) {
         return (
-            <div className="min-h-screen flex flex-col p-4">
-                <div className="flex items-center gap-4 mb-8 pt-12">
-                    <Button variant="ghost" size="icon" onClick={onNavigateBack}>
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <h1 className="text-xl font-bold">Paiement Groupé</h1>
+            <div className="min-h-screen flex flex-col p-4" style={{ background: pageBg(isDark) }}>
+                <div className="flex items-center gap-3 mb-8 pt-12">
+                    <button
+                        type="button"
+                        onClick={onNavigateBack}
+                        className="w-10 h-10 rounded-[12px] flex items-center justify-center border"
+                        style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+                    >
+                        <ArrowLeft className="w-5 h-5" style={{ color: textPrimary(isDark) }} />
+                    </button>
+                    <h1 className="text-[17px] font-extrabold" style={{ color: textPrimary(isDark) }}>
+                        Paiement groupé
+                    </h1>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                    <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-6">
-                        <X className="w-10 h-10 text-red-500" />
+                    <div
+                        className="w-20 h-20 rounded-[18px] flex items-center justify-center mb-6"
+                        style={{ background: "rgba(229,72,77,0.12)" }}
+                    >
+                        <X className="w-10 h-10" style={{ color: BP.red }} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2">Accès Non Autorisé</h2>
-                    <p className="text-muted-foreground mb-8">
-                        Vous n'avez pas l'autorisation d'utiliser le système de paiement groupé.
-                        Veuillez contacter votre administrateur pour obtenir les droits nécessaires.
+                    <h2 className="text-xl font-extrabold mb-2" style={{ color: textPrimary(isDark) }}>
+                        Accès non autorisé
+                    </h2>
+                    <p className="text-sm mb-8 leading-relaxed" style={{ color: BP.muted }}>
+                        Vous n&apos;avez pas l&apos;autorisation d&apos;utiliser le système de paiement groupé. Contactez
+                        votre administrateur pour obtenir les droits nécessaires.
                     </p>
-                    <Button onClick={onNavigateBack} className="w-full max-w-xs rounded-xl">
-                        Retour au Dashboard
-                    </Button>
+                    <button
+                        type="button"
+                        onClick={onNavigateBack}
+                        className="w-full max-w-xs h-[52px] rounded-[16px] font-bold text-white"
+                        style={{ background: BP.green }}
+                    >
+                        Retour au dashboard
+                    </button>
                 </div>
             </div>
         )
@@ -449,31 +485,30 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
     const totalCount = rows.filter(r => r.isValid).length
 
     return (
-        <div className={`min-h-screen flex flex-col ${theme === "dark"
-            ? "bg-slate-900 text-white"
-            : "bg-gray-50 text-gray-900"
-            }`}>
+        <div className="min-h-screen flex flex-col" style={{ background: pageBg(isDark), color: textPrimary(isDark) }}>
             {/* Top Header */}
-            <div className="px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md bg-opacity-80">
+            <div
+                className="px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-20 border-b"
+                style={{ background: pageBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+            >
                 <div className="flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        size="icon"
+                    <button
+                        type="button"
                         onClick={onNavigateBack}
-                        className="rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+                        className="w-10 h-10 rounded-[12px] flex items-center justify-center border shrink-0"
+                        style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
+                        <ArrowLeft className="w-5 h-5" style={{ color: textPrimary(isDark) }} />
+                    </button>
                     <div>
-                        <h1 className="text-xl font-bold">Paiement Groupé</h1>
-                        <p className="text-xs opacity-60">
+                        <h1 className="text-[17px] font-extrabold">Paiement groupé</h1>
+                        <p className="text-[11px]" style={{ color: BP.muted }}>
                             {view === "create" ? "Nouvelle transaction" : view === "history" ? "Historique des dépôts" : selectedHistoryItem ? `Lot #${selectedHistoryItem.uid.split('-')[0]}` : "Transactions"}
                         </p>
                     </div>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
+                <button
+                    type="button"
                     onClick={() => {
                         if (view === "ledger") {
                             setView("history")
@@ -481,7 +516,12 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                             setView(view === "create" ? "history" : "create")
                         }
                     }}
-                    className="rounded-xl gap-2 text-xs"
+                    className="h-9 px-3 rounded-[12px] border text-xs font-bold inline-flex items-center gap-2"
+                    style={{
+                        borderColor: isDark ? "#243147" : BP.border,
+                        background: cardBg(isDark),
+                        color: textPrimary(isDark),
+                    }}
                 >
                     {view === "ledger" ? (
                         <>
@@ -499,29 +539,39 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                             Nouveau
                         </>
                     )}
-                </Button>
+                </button>
             </div>
 
             <div className="flex-1 p-4 overflow-y-auto pb-24">
                 {view === "create" ? (
                     <div className="space-y-6">
                         {/* Quick Actions Card */}
-                        <Card className="rounded-2xl border-none shadow-sm overflow-hidden">
-                            <CardContent className="p-4 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 dark:from-blue-500/20 dark:to-indigo-500/10">
-                                <div className="flex items-center justify-between">
+                        <div className="bp-card p-4 border rounded-[18px]" style={cardStyle}>
+                                <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
-                                            <FileSpreadsheet className="w-5 h-5 text-white" />
+                                        <div
+                                            className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                                            style={{ background: "rgba(47,107,255,0.12)" }}
+                                        >
+                                            <FileSpreadsheet className="w-5 h-5" style={{ color: BP.blue }} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-sm">Import Intelligent</p>
-                                            <p className="text-xs opacity-60">Excel ou CSV supportés</p>
+                                            <p className="font-extrabold text-sm">Import intelligent</p>
+                                            <p className="text-[11px]" style={{ color: BP.muted }}>
+                                                Excel ou CSV supportés
+                                            </p>
                                         </div>
                                     </div>
                                     <label className="cursor-pointer">
-                                        <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-xl text-xs font-bold shadow-sm flex items-center gap-2">
+                                        <div
+                                            className="px-4 py-2 rounded-[12px] text-xs font-bold border flex items-center gap-2"
+                                            style={{
+                                                borderColor: isDark ? "#243147" : BP.border,
+                                                background: cardBg(isDark),
+                                            }}
+                                        >
                                             <Upload className="w-3.5 h-3.5" />
-                                            Choisir Fichier
+                                            Choisir fichier
                                         </div>
                                         <input
                                             type="file"
@@ -531,14 +581,18 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                         />
                                     </label>
                                 </div>
-                            </CardContent>
-                        </Card>
+                        </div>
 
                         {/* List of Rows */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-sm font-bold opacity-60 uppercase tracking-wider">Destinataires</h2>
-                                <div className="flex gap-2 text-xs font-medium px-2 py-1 bg-blue-500/10 rounded-lg text-blue-500">
+                                <h2 className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: BP.muted }}>
+                                    Destinataires
+                                </h2>
+                                <div
+                                    className="text-xs font-bold px-2 py-1 rounded-[10px]"
+                                    style={{ background: "rgba(14,159,110,0.12)", color: BP.green }}
+                                >
                                     {totalCount}/{rows.length} valides
                                 </div>
                             </div>
@@ -547,9 +601,14 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                 {paginatedRows.map((row, index) => {
                                     const actualIndex = startIndex + index
                                     return (
-                                        <Card key={row.id} className={`rounded-2xl border-none shadow-sm transition-all ${row.isValid ? "ring-2 ring-emerald-500/20" : ""
-                                            }`}>
-                                            <CardContent className="p-4 space-y-3">
+                                        <div
+                                            key={row.id}
+                                            className="bp-card p-4 border rounded-[18px] space-y-3"
+                                            style={{
+                                                ...cardStyle,
+                                                borderColor: row.isValid ? "rgba(14,159,110,0.35)" : cardStyle.borderColor,
+                                            }}
+                                        >
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[10px] font-bold opacity-30">#{actualIndex + 1}</span>
                                                     <div className="flex gap-2">
@@ -565,11 +624,15 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="space-y-1.5">
                                                         <Label className="text-[10px]">Téléphone</Label>
-                                                        <Input
+                                                        <input
                                                             value={row.recipient_phone}
                                                             onChange={(e) => updateRow(row.id, "recipient_phone", e.target.value)}
                                                             placeholder="0700000000"
-                                                            className={`rounded-xl h-10 text-sm ${row.errors.recipient_phone ? "border-red-500 bg-red-50/10" : ""}`}
+                                                            className={fieldInputClass}
+                                                            style={{
+                                                                ...fieldInputStyle,
+                                                                borderColor: row.errors.recipient_phone ? BP.red : fieldInputStyle.borderColor,
+                                                            }}
                                                         />
                                                         {row.errors.recipient_phone && (
                                                             <p className="text-[9px] text-red-500 font-bold ml-1">{row.errors.recipient_phone}</p>
@@ -577,12 +640,16 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label className="text-[10px]">Montant (FCFA)</Label>
-                                                        <Input
+                                                        <input
                                                             value={row.amount}
                                                             onChange={(e) => updateRow(row.id, "amount", e.target.value)}
                                                             placeholder="Min 500"
-                                                            className={`rounded-xl h-10 text-sm ${row.errors.amount ? "border-red-500 bg-red-50/10" : ""}`}
                                                             type="number"
+                                                            className={fieldInputClass}
+                                                            style={{
+                                                                ...fieldInputStyle,
+                                                                borderColor: row.errors.amount ? BP.red : fieldInputStyle.borderColor,
+                                                            }}
                                                         />
                                                         {row.errors.amount && (
                                                             <p className="text-[9px] text-red-500 font-bold ml-1">{row.errors.amount}</p>
@@ -614,16 +681,16 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label className="text-[10px]">Objet</Label>
-                                                        <Input
+                                                        <input
                                                             value={row.objet}
                                                             onChange={(e) => updateRow(row.id, "objet", e.target.value)}
                                                             placeholder="Description"
-                                                            className="rounded-xl h-10 text-sm"
+                                                            className={fieldInputClass}
+                                                            style={fieldInputStyle}
                                                         />
                                                     </div>
                                                 </div>
-                                            </CardContent>
-                                        </Card>
+                                        </div>
                                     )
                                 })}
                             </div>
@@ -774,14 +841,14 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
 
                         {historyLoading && historyItems.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                <Loader2 className="w-8 h-8 animate-spin text-[#0E9F6E]" />
                             </div>
                         ) : historyItems.length > 0 ? (
                             <>
                                 {historyItems.map((item) => (
                                     <Card
                                         key={item.uid}
-                                        className="rounded-2xl border-none shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500/20 transition-all"
+                                        className="rounded-2xl border-none shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#0E9F6E]/20 transition-all"
                                         onClick={() => {
                                             setSelectedHistoryItem(item)
                                             setView("ledger")
@@ -811,8 +878,8 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
 
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                                        <FileSpreadsheet className="w-5 h-5 text-blue-500" />
+                                                    <div className="w-10 h-10 rounded-xl bg-[#EEF2F8]0/10 flex items-center justify-center">
+                                                        <FileSpreadsheet className="w-5 h-5 text-[#0E9F6E]" />
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-sm tracking-tight">{item.total_count} transactions</p>
@@ -830,7 +897,7 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                                 <div
                                                     className={`h-full transition-all duration-500 ${item.status === 'completed' ? 'bg-emerald-500' :
                                                         item.status === 'failed' ? 'bg-red-500' :
-                                                            'bg-blue-500'
+                                                            'bg-[#EEF2F8]0'
                                                         }`}
                                                     style={{ width: `${item.progress_percent}%` }}
                                                 />
@@ -893,7 +960,7 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                         <p className="font-black text-sm">{selectedHistoryItem.total_count}</p>
                                         <p className="text-[10px] opacity-50">Total</p>
                                     </div>
-                                    <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
+                                    <div className="p-2 rounded-xl" style={{ background: "rgba(14,159,110,0.08)" }}>
                                         <p className="font-black text-sm text-emerald-600 dark:text-emerald-400">{selectedHistoryItem.succeeded_count}</p>
                                         <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">Réussis</p>
                                     </div>
@@ -904,8 +971,13 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                 </div>
                                 <div className="mt-3 w-full h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full transition-all duration-500 ${selectedHistoryItem.status === 'completed' ? 'bg-emerald-500' : selectedHistoryItem.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'}`}
-                                        style={{ width: `${selectedHistoryItem.progress_percent}%` }}
+                                        className={`h-full transition-all duration-500 ${selectedHistoryItem.status === 'completed' ? 'bg-emerald-500' : selectedHistoryItem.status === 'failed' ? 'bg-red-500' : ''}`}
+                                        style={{
+                                            width: `${selectedHistoryItem.progress_percent}%`,
+                                            ...(selectedHistoryItem.status !== "completed" && selectedHistoryItem.status !== "failed"
+                                                ? { background: BP.green }
+                                                : {}),
+                                        }}
                                     />
                                 </div>
                             </CardContent>
@@ -914,12 +986,12 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                         {/* Individual Transactions */}
                         <div className="flex items-center justify-between">
                             <h2 className="text-sm font-bold opacity-60 uppercase tracking-wider">Transactions</h2>
-                            <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold">{ledgerTotal} au total</span>
+                            <span className="text-xs px-2 py-1 bg-[rgba(14,159,110,0.12)] dark:bg-blue-900/30 text-[#0E9F6E] dark:text-[#0E9F6E] rounded-full font-bold">{ledgerTotal} au total</span>
                         </div>
 
                         {ledgerLoading && ledgerItems.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                <Loader2 className="w-8 h-8 animate-spin text-[#0E9F6E]" />
                             </div>
                         ) : ledgerItems.length > 0 ? (
                             <>
@@ -928,8 +1000,8 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                                        <Send className="w-4 h-4 text-blue-500" />
+                                                    <div className="w-9 h-9 rounded-xl bg-[#EEF2F8]0/10 flex items-center justify-center">
+                                                        <Send className="w-4 h-4 text-[#0E9F6E]" />
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-sm tracking-tight">{item.recipient_phone}</p>
@@ -992,21 +1064,29 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
 
             {/* Floating Action Button for View 1 */}
             {view === "create" && (
-                <div className={`fixed bottom-0 left-0 right-0 p-4 border-t ${theme === "dark" ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-gray-100"
-                    } backdrop-blur-md z-30`}>
+                <div
+                    className="fixed bottom-0 left-0 right-0 p-4 border-t z-30"
+                    style={{ background: pageBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+                >
                     <div className="max-w-md mx-auto flex items-center gap-4">
                         <div className="flex-1">
-                            <p className="text-[10px] opacity-60 font-medium">Total Estimé</p>
-                            <p className="font-black text-lg">{formatNumberWithSpaces(totalAmount.toString())} FCFA</p>
+                            <p className="text-[10px] font-medium" style={{ color: BP.muted }}>
+                                Total estimé
+                            </p>
+                            <p className="font-extrabold text-lg tabular-nums" style={{ color: textPrimary(isDark) }}>
+                                {formatNumberWithSpaces(totalAmount.toString())} FCFA
+                            </p>
                         </div>
-                        <Button
+                        <button
+                            type="button"
                             disabled={totalCount === 0}
                             onClick={handleSubmit}
-                            className="px-8 rounded-2xl h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2 shadow-lg shadow-blue-500/20"
+                            className="px-8 rounded-[16px] h-12 text-white font-bold inline-flex items-center gap-2 disabled:opacity-45"
+                            style={{ background: BP.green }}
                         >
                             Suivant
                             <ChevronRight className="w-4 h-4" />
-                        </Button>
+                        </button>
                     </div>
                 </div>
             )}
@@ -1042,8 +1122,8 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                         })}
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex gap-3">
-                        <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                    <div className="p-4 rounded-2xl bg-[#EEF2F8]0/5 border border-[#0E9F6E]/10 flex gap-3">
+                        <Info className="w-5 h-5 text-[#0E9F6E] shrink-0" />
                         <p className="text-[10px] leading-relaxed">
                             Les transactions seront traitées de manière asynchrone. Vous pourrez suivre l'état de chaque transaction dans l'historique.
                         </p>
@@ -1060,7 +1140,7 @@ export function BulkPaymentScreen({ onNavigateBack, initialView = "create" }: Bu
                         <Button
                             disabled={isSubmitting}
                             onClick={confirmSubmit}
-                            className="rounded-xl h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                            className="rounded-xl h-11 bg-[#0E9F6E] hover:bg-[#0c8a5f] text-white font-bold"
                         >
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Lancer le traitement"}
                         </Button>

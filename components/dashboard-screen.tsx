@@ -1,500 +1,36 @@
-// "use client"
-
-// import { Button } from "@/components/ui/button"
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-// import {
-//   TrendingUp,
-//   TrendingDown,
-//   Zap,
-//   Settings,
-//   Bell,
-//   Eye,
-//   EyeOff,
-//   MoreHorizontal,
-//   TrendingUp as TrendingUpIcon,
-//   History,
-//   Copy,
-//   Battery,
-// } from "lucide-react"
-// import { useState, useEffect, useRef } from "react"
-// import { useTheme } from "@/lib/contexts"
-// import { useTranslation } from "@/lib/contexts"
-// import { useToast } from "@/hooks/use-toast"
-// import { useAuth } from "@/lib/contexts"
-// // Updated icons to match button functionality
-
-// interface DashboardScreenProps {
-//   onNavigateToSettings: () => void
-//   onNavigateToDeposit: () => void
-//   onNavigateToWithdraw: () => void
-//   onNavigateToRecharge: () => void
-//   onNavigateToTransactionHistory: () => void
-//   onNavigateToRechargeHistory: () => void
-//   onLogout: () => void
-// }
-
-// export function DashboardScreen({ onNavigateToSettings, onNavigateToDeposit, onNavigateToWithdraw, onNavigateToRecharge, onNavigateToTransactionHistory, onNavigateToRechargeHistory, onLogout }: DashboardScreenProps) {
-//   const [showBalance, setShowBalance] = useState(true)
-//   const [showDropdown, setShowDropdown] = useState(false)
-//   const dropdownRef = useRef<HTMLDivElement>(null)
-//   const { theme } = useTheme()
-//   const { t } = useTranslation()
-//   const { user, accountData, transactions } = useAuth()
-//   const { toast } = useToast()
-
-//   // Copy reference to clipboard
-//   const copyReference = async (reference: string) => {
-//     try {
-//       await navigator.clipboard.writeText(reference)
-//       toast({
-//         title: t("dashboard.referenceCopied"),
-//         description: `${t("dashboard.referenceCopiedDesc")}: ${reference}`,
-//       })
-//     } catch (error) {
-//       console.error('Failed to copy reference:', error)
-//       toast({
-//         title: t("dashboard.copyFailed"),
-//         description: t("dashboard.copyFailedDesc"),
-//         variant: "destructive",
-//       })
-//     }
-//   }
-
-//   // Close dropdown when clicking outside
-//   useEffect(() => {
-//     const handleClickOutside = (event: MouseEvent) => {
-//       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-//         setShowDropdown(false)
-//       }
-//     }
-
-//     if (showDropdown) {
-//       document.addEventListener('mousedown', handleClickOutside)
-//     }
-
-//     return () => {
-//       document.removeEventListener('mousedown', handleClickOutside)
-//     }
-//   }, [showDropdown])
-
-//   // Helper function to format transaction date
-//   const formatTransactionDate = (dateString: string) => {
-//     const date = new Date(dateString)
-//     const now = new Date()
-//     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-
-//     if (diffInHours < 1) {
-//       return "À l'instant"
-//     } else if (diffInHours < 24) {
-//       return `Il y a ${diffInHours} heure${diffInHours > 1 ? 's' : ''}`
-//     } else {
-//       const diffInDays = Math.floor(diffInHours / 24)
-//       return `Il y a ${diffInDays} jour${diffInDays > 1 ? 's' : ''}`
-//     }
-//   }
-
-//   // Helper function to format transaction amount
-//   const formatTransactionAmount = (amount: string, type: string) => {
-//     const formattedAmount = parseFloat(amount).toLocaleString()
-//     return type === "deposit" ? `+${formattedAmount}` : `-${formattedAmount}`
-//   }
-
-//   // Helper function to get transaction status color
-//   const getStatusColor = (status: string) => {
-//     switch (status) {
-//       case "success":
-//       case "sent_to_user":
-//         return "text-green-500"
-//       case "pending":
-//         return "text-yellow-500"
-//       case "failed":
-//         return "text-red-500"
-//       default:
-//         return "text-gray-500"
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900">
-//       {/* Mobile Header */}
-//       <div className="px-4 pt-12 pb-6">
-//         <div className="flex items-center justify-between mb-6">
-//           <div className="flex items-center gap-3">
-//             <div className="w-14 h-14 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl">
-//               <img src="/logo.png" alt="BlaffaPay" className="w-8 h-8" />
-//             </div>
-//             <div>
-//               <h1 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                 BlaffaPay
-//               </h1>
-//               <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-//                 Digital Wallet
-//               </p>
-//             </div>
-//           </div>
-//           <div className="flex items-center gap-2">
-//             <Button
-//               variant="ghost"
-//               size="sm"
-//               className={`h-11 w-11 p-0 rounded-2xl ${
-//                 theme === "dark" 
-//                   ? "text-gray-300 hover:bg-gray-700/50 hover:text-white" 
-//                   : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600"
-//               } transition-all duration-200`}
-//             >
-//               <Bell className="w-5 h-5" />
-//             </Button>
-//             <Button
-//               variant="ghost"
-//               size="sm"
-//               className={`h-11 w-11 p-0 rounded-2xl ${
-//                 theme === "dark" 
-//                   ? "text-gray-300 hover:bg-gray-700/50 hover:text-white" 
-//                   : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600"
-//               } transition-all duration-200`}
-//               onClick={onNavigateToSettings}
-//             >
-//               <Settings className="w-5 h-5" />
-//             </Button>
-//           </div>
-//         </div>
-
-//         {/* Mobile Balance Card */}
-//         <div className="relative mb-6">
-//           <div className={`rounded-3xl p-6 shadow-xl ${
-//             theme === "dark" 
-//               ? "bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700" 
-//               : "bg-gradient-to-br from-white to-indigo-50/50 border border-indigo-100"
-//           }`}>
-//             {/* Decorative Elements */}
-//             <div className="absolute top-0 right-0 w-24 h-24 opacity-20">
-//               <div className={`w-full h-full rounded-full blur-2xl ${
-//                 theme === "dark" ? "bg-indigo-500/30" : "bg-indigo-400/20"
-//               }`}></div>
-//             </div>
-//             <div className="absolute bottom-0 left-0 w-20 h-20 opacity-20">
-//               <div className={`w-full h-full rounded-full blur-xl ${
-//                 theme === "dark" ? "bg-purple-500/30" : "bg-purple-400/20"
-//               }`}></div>
-//             </div>
-
-//             <div className="relative z-10">
-//               <div className="flex items-center justify-between mb-4">
-//                 <div>
-//                   <p className={`text-sm font-medium ${
-//                     theme === "dark" ? "text-gray-400" : "text-gray-600"
-//                   }`}>
-//                     {t("dashboard.totalBalance")}
-//                   </p>
-//                   <p className={`text-4xl font-black mt-1 ${
-//                     theme === "dark" ? "text-white" : "text-gray-900"
-//                   }`}>
-//                     {showBalance ? (accountData?.formatted_balance || "••••••") : "••••••"}
-//                   </p>
-//                 </div>
-//                 <Button
-//                   variant="ghost"
-//                   size="sm"
-//                   className={`h-10 w-10 p-0 rounded-2xl transition-all duration-300 ${
-//                     theme === "dark" 
-//                       ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
-//                       : "hover:bg-indigo-100 text-gray-600 hover:text-indigo-600"
-//                   } hover:scale-110`}
-//                   onClick={() => setShowBalance(!showBalance)}
-//                 >
-//                   {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-//                 </Button>
-//               </div>
-
-//               <div className="flex items-center gap-3">
-//                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
-//                   theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-100"
-//                 }`}>
-//                   <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
-//                   <p className={`text-sm font-semibold ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`}>
-//                     {accountData ? `${accountData.utilization_rate.toFixed(1)}% utilization` : t("dashboard.growth")}
-//                   </p>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Mobile Action Buttons */}
-//       <div className="px-4 mb-6">
-//         <div className="grid grid-cols-3 gap-3">
-//           {/* Deposit Button */}
-//           <button
-//             onClick={onNavigateToDeposit}
-//             className={`group relative p-4 rounded-2xl transition-all duration-300 ${
-//               theme === "dark" 
-//                 ? "bg-gradient-to-br from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600" 
-//                 : "bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500"
-//             } shadow-lg hover:shadow-xl hover:scale-105 active:scale-95`}
-//           >
-//             <div className="flex flex-col items-center gap-2">
-//               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-//                 <TrendingUp className="w-5 h-5 text-white" />
-//               </div>
-//               <p className="text-white text-xs font-semibold text-center">
-//                 {t("dashboard.actions.deposit")}
-//               </p>
-//             </div>
-//           </button>
-
-//           {/* Withdraw Button */}
-//           <button
-//             onClick={onNavigateToWithdraw}
-//             className={`group relative p-4 rounded-2xl transition-all duration-300 ${
-//               theme === "dark" 
-//                 ? "bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600" 
-//                 : "bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500"
-//             } shadow-lg hover:shadow-xl hover:scale-105 active:scale-95`}
-//           >
-//             <div className="flex flex-col items-center gap-2">
-//               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-//                 <TrendingDown className="w-5 h-5 text-white" />
-//               </div>
-//               <p className="text-white text-xs font-semibold text-center">
-//                 {t("dashboard.actions.withdraw")}
-//               </p>
-//             </div>
-//           </button>
-
-//           {/* Recharge Button */}
-//           <button
-//             onClick={onNavigateToRecharge}
-//             className={`group relative p-4 rounded-2xl transition-all duration-300 ${
-//               theme === "dark" 
-//                 ? "bg-gradient-to-br from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600" 
-//                 : "bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500"
-//             } shadow-lg hover:shadow-xl hover:scale-105 active:scale-95`}
-//           >
-//             <div className="flex flex-col items-center gap-2">
-//               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-//                 <Zap className="w-5 h-5 text-white" />
-//               </div>
-//               <p className="text-white text-xs font-semibold text-center">
-//                 {t("dashboard.actions.recharge")}
-//               </p>
-//             </div>
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Mobile Transactions Section */}
-//       <div className="px-4 pb-8">
-//         <Card
-//           className={`rounded-2xl border-0 shadow-xl transition-colors duration-300 ${
-//             theme === "dark" 
-//               ? "bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 text-white" 
-//               : "bg-gradient-to-br from-white to-indigo-50/30 border border-indigo-100 text-gray-900"
-//           }`}
-//         >
-//           <CardHeader className="pb-4">
-//             <div className="flex items-center justify-between">
-//               <CardTitle className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                 {t("dashboard.recentTransactions")}
-//               </CardTitle>
-//               <div className="relative" ref={dropdownRef}>
-//                 <Button
-//                   variant="ghost"
-//                   size="sm"
-//                   className={`h-8 w-8 p-0 rounded-full transition-colors duration-300 ${
-//                     theme === "dark" ? "hover:bg-gray-700/50 text-gray-300" : "hover:bg-gray-100/50 text-gray-600"
-//                   }`}
-//                   onClick={() => {
-//                     console.log("Dropdown trigger clicked");
-//                     setShowDropdown(!showDropdown);
-//                   }}
-//                 >
-//                   <MoreHorizontal style={{ width: '30px', height: '30px' }} />
-//                 </Button>
-
-//                 {showDropdown && (
-//                   <div className={`absolute right-0 top-10 w-56 rounded-md border shadow-lg z-[9999] ${
-//                     theme === "dark" 
-//                       ? "bg-gray-800 border-gray-700" 
-//                       : "bg-white border-gray-200"
-//                   }`}>
-//                     <div className="py-1">
-//                       <button
-//                         className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
-//                           theme === "dark" 
-//                             ? "hover:bg-gray-700 text-gray-200" 
-//                             : "hover:bg-gray-100 text-gray-900"
-//                         }`}
-//                         onClick={() => {
-//                           console.log("Transaction History clicked");
-//                           onNavigateToTransactionHistory();
-//                           setShowDropdown(false);
-//                         }}
-//                       >
-//                         <History className="w-4 h-4" />
-//                         {t("dashboard.transactionHistory")}
-//                       </button>
-//                       <button
-//                         className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
-//                           theme === "dark" 
-//                             ? "hover:bg-gray-700 text-gray-200" 
-//                             : "hover:bg-gray-100 text-gray-900"
-//                         }`}
-//                         onClick={() => {
-//                           console.log("Recharge History clicked");
-//                           onNavigateToRechargeHistory();
-//                           setShowDropdown(false);
-//                         }}
-//                       >
-//                         <Battery className="w-4 h-4" />
-//                         {t("dashboard.rechargeHistory")}
-//                       </button>
-//                     </div>
-//                   </div>
-//                 )}
-//               </div>
-//             </div>
-//           </CardHeader>
-//           <CardContent className="space-y-1">
-//             {transactions.length > 0 ? (
-//               transactions.slice(0, 5).map((transaction, index) => (
-//               <div
-//                   key={transaction.uid}
-//                 className={`flex items-center justify-between py-4 px-2 rounded-xl transition-colors duration-300 ${
-//                   theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-100/30"
-//                 } ${
-//                   index !== transactions.length - 1
-//                     ? theme === "dark"
-//                       ? "border-b border-gray-700/50"
-//                       : "border-b border-gray-200/50"
-//                     : ""
-//                 }`}
-//               >
-//                 <div className="flex items-center gap-4">
-//                   <div
-//                     className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${
-//                         transaction.type === "deposit"
-//                         ? "bg-gradient-to-br from-green-500/20 to-green-500/10 text-green-500"
-//                         : theme === "dark"
-//                           ? "bg-gradient-to-br from-gray-700 to-gray-600 text-gray-300"
-//                           : "bg-gradient-to-br from-gray-200 to-gray-100 text-gray-600"
-//                     }`}
-//                   >
-//                       {transaction.type === "deposit" ? (
-//                         <TrendingUp className="w-5 h-5" />
-//                     ) : (
-//                         <TrendingDown className="w-5 h-5" />
-//                     )}
-//                   </div>
-//                   <div>
-//                     <p className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                         {transaction.display_recipient_name || transaction.recipient_phone }
-//                     </p>
-//                     <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//                         {formatTransactionDate(transaction.created_at)}
-//                       </p>
-//                       <div className="flex items-center">
-//                         <p className={`text-xs ${getStatusColor(transaction.status)}`}>
-//                           {transaction.status_display} • {transaction.reference}
-//                         </p>
-//                         <button
-//                           onClick={() => copyReference(transaction.reference)}
-//                           className={`p-1 rounded transition-colors duration-200 ${
-//                             theme === "dark" 
-//                               ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300" 
-//                               : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
-//                           }`}
-//                           title={t("common.copy")}
-//                         >
-//                           <Copy className="w-3 h-3" />
-//                         </button>
-//                       </div>
-//                   </div>
-//                 </div>
-//                 <div className="text-right">
-//                   <p
-//                     className={`font-bold ${
-//                         transaction.type === "deposit"
-//                         ? "text-green-500"
-//                         : theme === "dark"
-//                           ? "text-white"
-//                           : "text-gray-900"
-//                     }`}
-//                   >
-//                       {formatTransactionAmount(transaction.amount, transaction.type)}
-//                     </p>
-//                     <div className={`w-2 h-2 rounded-full ml-auto mt-2 ${
-//                       transaction.status === "success" || transaction.status === "sent_to_user"
-//                         ? "bg-green-500"
-//                         : transaction.status === "pending"
-//                         ? "bg-yellow-500"
-//                         : "bg-red-500"
-//                     }`}></div>
-//                   </div>
-//                 </div>
-//               ))
-//             ) : (
-//               <div className="text-center py-8">
-//                 <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//                   {t("dashboard.noTransactions")}
-//                 </p>
-//               </div>
-//             )}
-//           </CardContent>
-//         </Card>
-//       </div>
-//     </div>
-//   )
-// }
-
-
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   TrendingUp,
-  TrendingDown,
-  Zap,
   Settings,
   Bell,
-  Eye,
-  EyeOff,
-  MoreHorizontal,
   History,
   Copy,
-  Battery,
   Plus,
   Minus,
-  Wallet,
-  ChevronRight,
-  User,
   RefreshCw,
   Send,
   X,
-  Sparkles,
-  Activity,
-  BarChart3,
-  CreditCard,
-  LayoutDashboard,
-  Gamepad2,
-  Shield,
-  DollarSign,
+  Menu,
   LogOut,
-  FileSpreadsheet
+  ArrowUpRight,
+  ArrowDownRight,
+  Zap,
+  Target,
+  Receipt,
+  Percent,
 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { useTheme } from "@/lib/contexts"
-import { useTranslation } from "@/lib/contexts"
+import { useTheme, useTranslation, useAuth } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/lib/contexts"
 import { authService } from "@/lib/auth"
 import { formatNumberWithSpaces } from "@/lib/utils"
-import { bulkPaymentService } from "@/lib/bulk-payments"
 import { type PartnerV2ActivityItem } from "@/lib/partner-v2"
 import { TransactionTypeSelectionScreen } from "@/components/transaction-type-selection-screen"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
 import { usePermission } from "@/hooks/use-permission"
+import { bettingService } from "@/lib/betting"
+import { BP, formatFcfa, statusPillClass } from "@/lib/design"
 
 interface DashboardScreenProps {
   onNavigateToSettings: () => void
@@ -515,11 +51,11 @@ interface DashboardScreenProps {
   onLogout: () => void
 }
 
+/** PDF p.4 — Accueil + commission du mois */
 export function DashboardScreen({
   onNavigateToSettings,
   onNavigateToDeposit,
   onNavigateToWithdraw,
-  onNavigateToRecharge,
   onNavigateToTransfer,
   onNavigateToTransactionHistory,
   onNavigateToRechargeHistory,
@@ -527,14 +63,10 @@ export function DashboardScreen({
   onNavigateToBettingPlatforms,
   onNavigateToBettingTransactions,
   onNavigateToBettingCommissions,
-  onNavigateToBettingDeposit,
-  onNavigateToBettingWithdraw,
   onNavigateToNotifications,
   onNavigateToBulkPayment,
-  onLogout
+  onLogout,
 }: DashboardScreenProps) {
-  const [showBalance, setShowBalance] = useState(true)
-  const [showDropdown, setShowDropdown] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [recentHistory, setRecentHistory] = useState<any[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
@@ -543,1137 +75,452 @@ export function DashboardScreen({
   const [currentTransactionTypeSelection, setCurrentTransactionTypeSelection] = useState<"deposit" | "withdraw" | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
-  const [canUseBulkPayment, setCanUseBulkPayment] = useState(false)
-  const [isCheckingBulk, setIsCheckingBulk] = useState(false)
+  const [monthCommission, setMonthCommission] = useState<string | null>(null)
 
-  // Pull-to-refresh state
-  const [pullToRefreshState, setPullToRefreshState] = useState({
-    isPulling: false,
-    pullDistance: 0,
-    isRefreshing: false,
-    startY: 0,
-    currentY: 0,
-    canPull: true
-  })
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const dashboardContainerRef = useRef<HTMLDivElement>(null)
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const { t } = useTranslation()
   const { user, accountData, activity, refreshBootstrap } = useAuth()
   const { toast } = useToast()
+  const canMomo = usePermission("can_process_momo")
+  const canMobcash = usePermission("can_process_mobcash")
+  const canBulk = usePermission("can_process_bulk_payment")
 
-  // Permissions
-  const canMomo = usePermission('can_process_momo')
-  const canMobcash = usePermission('can_process_mobcash')
-  const canBulk = usePermission('can_process_bulk_payment')
-
-  // Copy reference to clipboard
-  const copyReference = async (reference: string) => {
-    try {
-      await navigator.clipboard.writeText(reference)
-      toast({
-        title: t("dashboard.referenceCopied"),
-        description: `${t("dashboard.referenceCopiedDesc")}: ${reference}`,
-      })
-    } catch (error) {
-      console.error('Failed to copy reference:', error)
-      toast({
-        title: t("dashboard.copyFailed"),
-        description: t("dashboard.copyFailedDesc"),
-        variant: "destructive",
-      })
+  // Accueil PDF = clair. Si dark stocké, on bascule en light pour coller au design livré.
+  useEffect(() => {
+    if (theme === "dark") {
+      // ne pas forcer silencieusement en boucle si l'utilisateur a choisi dark dans réglages —
+      // mais le rendu de CET écran reste calé PDF clair (bg BP.bg).
     }
-  }
+  }, [theme])
 
-
-  const decorateActivityItem = (item: PartnerV2ActivityItem) => {
-    const isCredit = item.direction === "in"
-    const typeIcon =
-      item.source === "recharge" ? Battery
-        : item.source === "transfer" ? Send
-          : item.source === "bulk" ? FileSpreadsheet
-            : (item.type === "deposit" || item.transaction_type === "deposit") ? TrendingUp
-              : TrendingDown
-    const typeColor = isCredit
-      ? (theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600")
-      : (theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600")
-
-    return {
-      ...item,
-      historyType: item.source,
-      typeIcon,
-      typeColor,
-      typeLabel: item.label,
-      isTransferReceived: item.isTransferReceived ?? isCredit,
-    }
-  }
+  const decorateActivityItem = (item: PartnerV2ActivityItem) => ({
+    ...item,
+    historyType: item.source,
+    typeLabel: item.label,
+    isTransferReceived: item.isTransferReceived ?? item.direction === "in",
+  })
 
   const loadRecentHistory = async () => {
     setIsLoadingHistory(true)
     try {
       await refreshBootstrap()
-    } catch (error) {
-      console.error('Load recent history error:', error)
     } finally {
       setIsLoadingHistory(false)
     }
   }
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
-    await loadRecentHistory()
-    setTimeout(() => {
-      setIsRefreshing(false)
-      setPullToRefreshState(prev => ({ ...prev, isRefreshing: false, pullDistance: 0 }))
-    }, 500)
-  }
-
-  // Pull-to-refresh handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-
-    const startY = e.touches[0].clientY
-    setPullToRefreshState(prev => ({
-      ...prev,
-      startY,
-      currentY: startY,
-      isPulling: false
-    }))
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-
-    const currentY = e.touches[0].clientY
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-
-    // Only allow pull-to-refresh when at the top of the page
-    if (scrollTop > 0) {
-      setPullToRefreshState(prev => ({ ...prev, canPull: false }))
-      return
-    }
-
-    const pullDistance = Math.max(0, currentY - pullToRefreshState.startY)
-    const maxPullDistance = 120
-
-    if (pullDistance > 0) {
-      if ((e as any).cancelable) {
-        e.preventDefault() // Prevent default scroll behavior
-      }
-      setPullToRefreshState(prev => ({
-        ...prev,
-        currentY,
-        pullDistance: Math.min(pullDistance, maxPullDistance),
-        isPulling: pullDistance > 10
-      }))
-    }
-  }
-
-  const handleTouchEnd = () => {
-    if (!pullToRefreshState.canPull || pullToRefreshState.isRefreshing) return
-
-    const { pullDistance } = pullToRefreshState
-    const refreshThreshold = 80
-
-    if (pullDistance >= refreshThreshold && pullToRefreshState.isPulling) {
-      handleRefresh()
-    } else {
-      // Reset pull state
-      setPullToRefreshState(prev => ({
-        ...prev,
-        isPulling: false,
-        pullDistance: 0,
-        canPull: true
-      }))
-    }
-  }
-
-  // Reset canPull when scroll position changes
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      if (scrollTop === 0) {
-        setPullToRefreshState(prev => ({ ...prev, canPull: true }))
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    
-    const container = dashboardContainerRef.current
-    if (container) {
-      container.addEventListener('touchmove', handleTouchMove as any, { passive: false })
-    }
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (container) {
-        container.removeEventListener('touchmove', handleTouchMove as any)
-      }
-    }
-  }, [pullToRefreshState.startY, pullToRefreshState.canPull, pullToRefreshState.isRefreshing])
-
-  // Bind bootstrap activity to the dashboard list. Do not refetch on every render.
-  useEffect(() => {
-    setRecentHistory(activity.map(decorateActivityItem))
-  }, [activity, theme])
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
-      }
-    }
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showDropdown])
-
-  // Check for bulk payment authorization
-  useEffect(() => {
-    const checkBulkAuthorization = async () => {
-      if (showTransactionTypeSelection && currentTransactionTypeSelection === 'deposit') {
-        const accessToken = authService.getAccessToken()
-        if (!accessToken) return
-
-        setIsCheckingBulk(true)
-        try {
-          const response = await bulkPaymentService.getAuthorizedNetworks(accessToken)
-          setCanUseBulkPayment(response.networks && response.networks.length > 0)
-        } catch (error) {
-          console.error('Error checking bulk authorization:', error)
-          setCanUseBulkPayment(false)
-        } finally {
-          setIsCheckingBulk(false)
-        }
-      }
-    }
-
-    checkBulkAuthorization()
-  }, [showTransactionTypeSelection, currentTransactionTypeSelection])
-
-  // Helper function to format transaction date
-  const formatTransactionDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-
-    if (diffInHours < 1) {
-      return t("additional.time.justNow")
-    } else if (diffInHours < 24) {
-      return t("additional.time.hoursAgoFull").replace("{{count}}", diffInHours.toString()).replace("{{plural}}", diffInHours > 1 ? 's' : '')
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24)
-      return t("additional.time.daysAgoFull").replace("{{count}}", diffInDays.toString()).replace("{{plural}}", diffInDays > 1 ? 's' : '')
-    }
-  }
-
-  // Helper function to format transaction amount
-  const formatTransactionAmount = (amount: string, type: string) => {
-    const formattedAmount = formatNumberWithSpaces(amount)
-    return type === "deposit" ? `+${formattedAmount}` : `-${formattedAmount}`
-  }
-
-  // Helper function to get transaction status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "success":
-      case "sent_to_user":
-        return "text-green-500"
-      case "pending":
-        return "text-yellow-500"
-      case "failed":
-        return "text-red-500"
-      default:
-        return "text-gray-500"
-    }
-  }
-
-  // Cancel transaction function
-  const handleCancelTransaction = async (transactionUid: string) => {
+  const loadMonthCommission = async () => {
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/betting/user/transactions/${transactionUid}/request_cancellation/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reason: "Client changed mind - explicit request"
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to request cancellation')
-      }
-
-      // Reload recent history to reflect the change
-      await loadRecentHistory()
-    } catch (error) {
-      throw error // Re-throw to be handled by the modal
+      if (!accessToken) return
+      const now = new Date()
+      const dateFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+      const dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
+      const stats = await bettingService.getCommissionStats(accessToken, dateFrom, dateTo)
+      setMonthCommission(stats.total_commission || stats.unpaid_commission || "0")
+    } catch (e) {
+      console.error("Commission du mois:", e)
     }
   }
 
+  useEffect(() => {
+    setRecentHistory(activity.map(decorateActivityItem))
+  }, [activity])
+
+  useEffect(() => {
+    loadMonthCommission()
+  }, [])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await Promise.all([loadRecentHistory(), loadMonthCommission()])
+    setIsRefreshing(false)
+  }
+
+  const formatTransactionDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const diffInHours = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60))
+    if (diffInHours < 1) return "à l'instant"
+    if (diffInHours < 24) return `il y a ${diffInHours} h`
+    return `il y a ${Math.floor(diffInHours / 24)} j`
+  }
+
+  const copyReference = async (reference: string) => {
+    try {
+      await navigator.clipboard.writeText(reference)
+      toast({ title: "Copié", description: reference })
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const handleCancelTransaction = async (transactionUid: string) => {
+    const accessToken = authService.getAccessToken()
+    if (!accessToken) throw new Error("No access token available")
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments/betting/user/transactions/${transactionUid}/request_cancellation/`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: "Client changed mind - explicit request" }),
+      }
+    )
+    if (!response.ok) throw new Error("Failed to request cancellation")
+    await loadRecentHistory()
+  }
+
+  const openDeposit = () => {
+    if (!canMomo && !canMobcash && !canBulk) {
+      toast({ title: "Accès restreint", description: "Contacte le support pour activer les dépôts.", variant: "destructive" })
+      return
+    }
+    const optionalCount = (canMomo ? 1 : 0) + (canBulk ? 1 : 0)
+    if (canMobcash && optionalCount === 0) {
+      onNavigateToBettingPlatforms("deposit")
+      return
+    }
+    if (!canMobcash && canMomo && !canBulk) {
+      onNavigateToDeposit()
+      return
+    }
+    setCurrentTransactionTypeSelection("deposit")
+    setShowTransactionTypeSelection(true)
+  }
+
+  const openWithdraw = () => {
+    if (!canMomo && !canMobcash) {
+      toast({ title: "Accès restreint", description: "Contacte le support pour activer les retraits.", variant: "destructive" })
+      return
+    }
+    if (canMobcash && !canMomo) {
+      onNavigateToBettingPlatforms("withdraw")
+      return
+    }
+    if (!canMobcash && canMomo) {
+      onNavigateToWithdraw()
+      return
+    }
+    setCurrentTransactionTypeSelection("withdraw")
+    setShowTransactionTypeSelection(true)
+  }
+
+  const activityTitle = (item: any) => {
+    if (item.title) return item.title
+    if (item.historyType === "betting") return item.partner_name || item.platform_name || "Paris"
+    if (item.historyType === "transaction") return item.display_recipient_name || item.recipient_phone || "—"
+    if (item.historyType === "transfer") return item.isTransferReceived ? item.sender_name : item.receiver_name
+    if (item.historyType === "recharge") return "Recharge"
+    if (item.historyType === "bulk") return item.display_recipient_name || "Dépôt groupé"
+    return "—"
+  }
+
+  const activityAmount = (item: any) => {
+    const amt = formatNumberWithSpaces(item.amount)
+    if (item.historyType === "betting") return `${item.transaction_type === "deposit" ? "+" : "−"}${amt}`
+    if (item.historyType === "transaction") return item.type === "deposit" ? `+${amt}` : `−${amt}`
+    if (item.historyType === "transfer") return `${item.isTransferReceived ? "+" : "−"}${amt}`
+    if (item.historyType === "recharge") return `+${amt}`
+    return `−${amt}`
+  }
+
+  const isCredit = (item: any) =>
+    (item.historyType === "transaction" && item.type === "deposit") ||
+    (item.historyType === "transfer" && item.isTransferReceived) ||
+    (item.historyType === "betting" && item.transaction_type === "deposit") ||
+    item.historyType === "recharge" ||
+    item.historyType === "bulk"
+
+  const menuIcons: { label: string; icon: React.ReactNode; bg: string; color: string; onClick: () => void }[] = [
+    { label: "Transactions", icon: <ArrowUpRight className="w-4 h-4" />, bg: "rgba(14,159,110,0.12)", color: BP.green, onClick: onNavigateToTransactionHistory },
+    { label: "Recharges", icon: <Zap className="w-4 h-4" />, bg: "rgba(199,122,8,0.12)", color: BP.amber, onClick: onNavigateToRechargeHistory },
+    { label: "Transferts", icon: <Send className="w-4 h-4" />, bg: "rgba(47,107,255,0.12)", color: BP.blue, onClick: onNavigateToTransferHistory },
+    { label: "Paris", icon: <Target className="w-4 h-4" />, bg: "rgba(229,72,77,0.12)", color: BP.red, onClick: onNavigateToBettingTransactions },
+    { label: "Dépôts", icon: <Receipt className="w-4 h-4" />, bg: "rgba(47,107,255,0.12)", color: BP.blue, onClick: () => onNavigateToBulkPayment("history") },
+  ]
+
   return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-      ref={dashboardContainerRef}
-      onTouchStart={handleTouchStart}
-      // handleTouchMove is attached via ref in useEffect to avoid passive listener issues
-      onTouchEnd={handleTouchEnd}
-      style={{
-        transform: `translateY(${pullToRefreshState.pullDistance}px)`,
-        transition: pullToRefreshState.isPulling ? 'none' : 'transform 0.3s ease-out'
-      }}
-    >
-      {/* Pull-to-refresh indicator */}
-      {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark"
-            ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
-            : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
-            } shadow-lg`}>
-            <RefreshCw className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-              } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
-          </div>
-        </div>
-      )}
-
-      {/* Mobile-optimized background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-3xl animate-pulse`}></div>
-        <div className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-2xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
-        <div className={`absolute top-1/2 right-8 w-24 h-24 rounded-full opacity-10 ${theme === "dark" ? "bg-green-500" : "bg-green-300"
-          } blur-xl animate-pulse`} style={{ animationDelay: '4s' }}></div>
-      </div>
-
-      {/* Mobile Header */}
-      <div className="relative z-10 px-4 pt-safe-area-inset-top pt-12 pb-6">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+    <div className="min-h-screen" style={{ background: BP.bg }}>
+      {/* En-tête navy — PDF */}
+      <div className="relative pb-16" style={{ background: BP.navy }}>
+        <div className="px-4 pt-12 pb-5">
+          <div className="flex items-center justify-between mb-7">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 ${theme === "dark"
-                  ? "bg-gradient-to-br from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500"
-                  : "bg-gradient-to-br from-blue-500 to-blue-500 hover:from-blue-400 hover:to-blue-400"
-                  } shadow-lg hover:shadow-xl`}
+                className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
+                style={{ background: "rgba(255,255,255,0.1)" }}
+                aria-label="Menu"
               >
-                <User className="w-6 h-6 text-white" />
+                <Menu className="w-6 h-6 text-white" strokeWidth={2.25} />
               </button>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+              <div className="min-w-0">
+                <h1 className="text-[18px] font-extrabold text-white truncate">
+                  {user?.first_name ? `Bonjour, ${user.first_name}` : "Bonjour"}
+                </h1>
+                <p className="text-[12px] text-white/55 capitalize">
+                  {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" })}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                {user?.first_name ? `${t("additional.hello")} ${user.first_name}` : t("additional.welcome")}
-              </h1>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                {new Date().toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric'
-                })}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={onNavigateToNotifications}
+                className="w-11 h-11 rounded-[14px] flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.1)" }}
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5" style={{ color: "#F5C542" }} />
+              </button>
+              <button
+                onClick={onNavigateToSettings}
+                className="w-11 h-11 rounded-[14px] flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.1)" }}
+                aria-label="Réglages"
+              >
+                <Settings className="w-5 h-5 text-white/90" />
+              </button>
+            </div>
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 mb-1.5">
+            Solde total
+          </p>
+          <p className="text-[30px] font-extrabold text-white tabular-nums leading-none mb-5">
+            {accountData?.formatted_balance ||
+              (accountData?.balance != null ? `${formatFcfa(accountData.balance)} FCFA` : "…")}
+          </p>
+
+          {/* Commission — carte teal sombre + % */}
+          <button
+            type="button"
+            onClick={onNavigateToBettingCommissions}
+            className="w-full rounded-[16px] px-3.5 py-3.5 flex items-center gap-3 text-left"
+            style={{ background: "rgba(14, 159, 110, 0.28)" }}
+          >
+            <div
+              className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+              style={{ background: "rgba(14,159,110,0.45)" }}
+            >
+              <Percent className="w-5 h-5 text-[#7DFFC4]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium text-[#7DFFC4]/80">Commission du mois</p>
+              <p className="text-[17px] font-extrabold text-[#7DFFC4] tabular-nums">
+                {monthCommission != null ? `${formatFcfa(monthCommission)} FCFA` : "…"}
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 relative ${theme === "dark"
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-                }`}
-              onClick={onNavigateToNotifications}
-            >
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-                }`}
-              onClick={onNavigateToSettings}
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-
-        {/* Balance Card */}
-        <div className={`p-6 rounded-3xl border transition-all duration-300 mb-8 ${theme === "dark"
-          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-xl"
-          }`}>
-          {/* Decorative gradient overlay */}
-          <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 ${theme === "dark" ? "bg-gradient-to-br from-blue-400 to-blue-500" : "bg-gradient-to-br from-blue-300 to-blue-400"
-              } blur-2xl`}></div>
-          </div>
-
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                  }`}>
-                  <Wallet className="w-4 h-4" />
-                </div>
-                <p className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                  {t("dashboard.totalBalance")}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                  ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                  }`}
-                onClick={() => setShowBalance(!showBalance)}
-              >
-                {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              </Button>
-            </div>
-
-            <p className={`text-3xl font-black mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-              {showBalance ? (accountData?.formatted_balance || "Loading...") : "••••••••"}
-            </p>
-
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-100"
-                }`}>
-                <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
-                <p className={`text-sm font-semibold ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`}>
-                  {accountData ? `${accountData.utilization_rate.toFixed(1)}%` : t("additional.active")}
-                </p>
-              </div>
-
-              <button
-                onClick={onNavigateToRecharge}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${theme === "dark"
-                  ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                  : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                  }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span className="text-xs font-semibold">{t("dashboard.actions.recharge")}</span>
-              </button>
-            </div>
-          </div>
+            <span className="text-[13px] font-semibold text-[#7DFFC4] shrink-0">Historique ›</span>
+          </button>
         </div>
       </div>
 
-      {/* Scrollable content area */}
-      <div className="relative z-10 px-4 pb-24 overflow-y-auto">
-        {/* Quick Actions */}
-        <div className="mb-6 sm:mb-8">
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
-            {/* Deposit Button */}
+      {/* 3 actions chevauchant l’en-tête — cartes blanches */}
+      <div className="px-4 -mt-11 relative z-10 mb-5">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Dépôt", onClick: openDeposit, color: BP.green, bg: "rgba(14,159,110,0.12)", Icon: Plus },
+            { label: "Retrait", onClick: openWithdraw, color: BP.blue, bg: "rgba(47,107,255,0.12)", Icon: Minus },
+            { label: "Transfert", onClick: onNavigateToTransfer, color: BP.violet, bg: "rgba(124,58,237,0.12)", Icon: Send },
+          ].map((a) => (
             <button
-              onClick={() => {
-                if (!canMomo && !canMobcash) {
-                  toast({
-                    title: "Accès restreint",
-                    description: "Veuillez contacter le support pour activer les dépôts.",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                // If user doesn't have USSD permission, go directly to MobCash
-                if (user && user.can_process_ussd_transaction === false) {
-                  onNavigateToBettingPlatforms("deposit")
-                } else {
-                  setCurrentTransactionTypeSelection("deposit")
-                  setShowTransactionTypeSelection(true)
-                }
+              key={a.label}
+              type="button"
+              onClick={a.onClick}
+              className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-[18px] border active:scale-[0.98] transition"
+              style={{
+                background: BP.card,
+                borderColor: BP.border,
+                boxShadow: "0 8px 24px rgba(14,26,46,0.06)",
               }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${(!canMomo && !canMobcash) ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
-                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-                }`}
             >
-              <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
-                  } group-hover:scale-110 transition-transform duration-200`}>
-                  <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
-                  }`}>
-                  {t("dashboard.actions.deposit")}
-                </p>
+              <div
+                className="w-11 h-11 rounded-full flex items-center justify-center"
+                style={{ background: a.bg, color: a.color }}
+              >
+                <a.Icon className="w-5 h-5" strokeWidth={2.5} />
               </div>
-              {(!canMomo && !canMobcash) && (
-                <div className="absolute top-2 right-2">
-                  <Shield className="w-3 h-3 text-red-500" />
-                </div>
-              )}
+              <span className="text-[13px] font-bold" style={{ color: BP.text }}>
+                {a.label}
+              </span>
             </button>
-
-            {/* Withdraw Button */}
-            <button
-              onClick={() => {
-                if (!canMomo && !canMobcash) {
-                  toast({
-                    title: "Accès restreint",
-                    description: "Veuillez contacter le support pour activer les retraits.",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                // If user doesn't have USSD permission, go directly to MobCash
-                if (user && user.can_process_ussd_transaction === false) {
-                  onNavigateToBettingPlatforms("withdraw")
-                } else {
-                  setCurrentTransactionTypeSelection("withdraw")
-                  setShowTransactionTypeSelection(true)
-                }
-              }}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${(!canMomo && !canMobcash) ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
-                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-                }`}
-            >
-              <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                  } group-hover:scale-110 transition-transform duration-200`}>
-                  <Minus className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
-                  }`}>
-                  {t("dashboard.actions.withdraw")}
-                </p>
-              </div>
-              {(!canMomo && !canMobcash) && (
-                <div className="absolute top-2 right-2">
-                  <Shield className="w-3 h-3 text-red-500" />
-                </div>
-              )}
-            </button>
-
-            {/* Recharge Button */}
-            {/* <button
-            onClick={onNavigateToRecharge}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${
-              theme === "dark" 
-                  ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60" 
-                  : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-              }`}
-            >
-              <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                } group-hover:scale-110 transition-transform duration-200`}>
-                  <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-800"
-                }`}>
-              {t("dashboard.actions.recharge")}
-                </p>
-              </div>
-            </button> */}
-
-            {/* Transfer Button */}
-            <button
-              onClick={onNavigateToTransfer}
-              className={`group relative p-4 sm:p-5 rounded-2xl transition-all duration-300 active:scale-95 ${theme === "dark"
-                ? "bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                : "bg-white/80 border border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white"
-                }`}
-            >
-              <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
-                  } group-hover:scale-110 transition-transform duration-200`}>
-                  <Send className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <p className={`text-xs sm:text-sm font-semibold text-center ${theme === "dark" ? "text-gray-200" : "text-gray-800"
-                  }`}>
-                  Transfert UV
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Recent Transactions Card */}
-        <div className={`rounded-2xl border transition-all duration-300 ${theme === "dark"
-          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}>
-          <div className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className={`text-base sm:text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                Activité récente
-              </h2>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                    ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                    }`}
-                >
-                  <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                <div className="relative" ref={dropdownRef}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                      ? "hover:bg-gray-700/50 text-gray-300 hover:text-white"
-                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                      }`}
-                    onClick={() => setShowDropdown(!showDropdown)}
-                  >
-                    <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </Button>
-
-                  {showDropdown && (
-                    <div className={`absolute right-0 top-10 w-48 sm:w-56 rounded-2xl border shadow-xl z-50 ${theme === "dark"
-                      ? "bg-gray-800/95 border-gray-700/50 backdrop-blur-lg"
-                      : "bg-white/95 border-gray-200/50 backdrop-blur-lg"
-                      }`}>
-                      <div className="p-2">
-                        <button
-                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                            ? "hover:bg-gray-700/50 text-gray-200"
-                            : "hover:bg-gray-100 text-gray-900"
-                            }`}
-                          onClick={() => {
-                            onNavigateToTransactionHistory();
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <History className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate">{t("dashboard.transactionHistory")}</span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                        </button>
-                        <button
-                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                            ? "hover:bg-gray-700/50 text-gray-200"
-                            : "hover:bg-gray-100 text-gray-900"
-                            }`}
-                          onClick={() => {
-                            onNavigateToRechargeHistory();
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Battery className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate">{t("dashboard.rechargeHistory")}</span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                        </button>
-                        <button
-                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                            ? "hover:bg-gray-700/50 text-gray-200"
-                            : "hover:bg-gray-100 text-gray-900"
-                            }`}
-                          onClick={() => {
-                            onNavigateToTransferHistory();
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Send className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate">Historique des transferts</span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                        </button>
-                        <button
-                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                            ? "hover:bg-gray-700/50 text-gray-200"
-                            : "hover:bg-gray-100 text-gray-900"
-                            }`}
-                          onClick={() => {
-                            onNavigateToBettingTransactions();
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate">Transactions de Paris</span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                        </button>
-                        <button
-                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 ${theme === "dark"
-                            ? "hover:bg-gray-700/50 text-gray-200"
-                            : "hover:bg-gray-100 text-gray-900"
-                            }`}
-                          onClick={() => {
-                            onNavigateToBulkPayment("history");
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <FileSpreadsheet className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate">Historique Dépôts Groupés</span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-auto flex-shrink-0" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Unified Recent History List */}
-            <div className="space-y-2 sm:space-y-1">
-              {isLoadingHistory ? (
-                <div className="flex items-center justify-center py-8">
-                  <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-                </div>
-              ) : recentHistory.length > 0 ? (
-                recentHistory.map((item, index) => {
-                  const TypeIcon = item.typeIcon
-                  return (
-                    <Card
-                      key={`${item.historyType}-${item.uid}`}
-                      onClick={() => {
-                        setSelectedTransaction(item)
-                        setShowTransactionDetails(true)
-                      }}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-98 ${
-                        theme === "dark"
-                          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:bg-gray-50/80"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.typeColor}`}>
-                          <TypeIcon className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <div>
-                              <h3 className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                                {item.title
-                                  || (item.historyType === 'transaction'
-                                    ? (item.display_recipient_name || item.recipient_phone)
-                                    : item.historyType === 'betting'
-                                      ? item.partner_name
-                                      : item.historyType === 'recharge'
-                                        ? item.recipient_phone
-                                        : item.historyType === 'bulk'
-                                          ? (item.display_recipient_name || item.uid)
-                                          : item.receiver_name)
-                                }
-                              </h3>
-                              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                {item.historyType === 'betting' ? (item.platform_name || item.subtitle) : item.typeLabel}
-                              </p>
-                            </div>
-                            <p className={`font-bold ${
-                              (item.historyType === 'transaction' && item.type === "deposit") ||
-                              (item.historyType === 'transfer' && item.isTransferReceived) ||
-                              (item.historyType === 'betting' && item.transaction_type === "deposit") ||
-                              item.historyType === 'recharge' ||
-                              item.historyType === 'bulk'
-                                ? theme === "dark" ? "text-green-400" : "text-green-600"
-                                : theme === "dark" ? "text-red-400" : "text-red-600"
-                            }`}>
-                              {item.historyType === 'transaction'
-                                ? formatTransactionAmount(item.amount, item.type)
-                                : item.historyType === 'betting'
-                                  ? `${item.transaction_type === "deposit" ? "+" : "-"}${formatNumberWithSpaces(item.amount)}`
-                                  : item.historyType === 'recharge'
-                                    ? `+${formatNumberWithSpaces(item.amount)} FCFA`
-                                    : item.historyType === 'transfer'
-                                      ? `${item.isTransferReceived ? '+' : '-'}${formatNumberWithSpaces(item.amount)} FCFA`
-                                      : `-${formatNumberWithSpaces(item.amount)} FCFA`
-                              }
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(item.status)} ${
-                              theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                            }`}>
-                              {item.status_display || item.status}
-                            </span>
-                            {item.historyType === 'betting' && item.betting_user_id && (
-                              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                ID: {item.betting_user_id}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                              {formatTransactionDate(item.created_at)}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <span className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                                {item.reference.slice(0, 12)}...
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  copyReference(item.reference)
-                                }}
-                                className={`p-1 rounded transition-all ${
-                                  theme === "dark"
-                                    ? "hover:bg-gray-700 text-gray-400 hover:text-gray-300"
-                                    : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                                }`}
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Commission Info for betting transactions */}
-                          {item.historyType === 'betting' && (
-                            <div className={`mt-2 p-2 rounded-lg flex items-center justify-between ${
-                              theme === "dark" ? "bg-gray-700/30" : "bg-gray-50"
-                            }`}>
-                              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                Commission
-                              </span>
-                              <span className={`text-xs font-bold ${
-                                item.commission_paid
-                                  ? theme === "dark" ? "text-green-400" : "text-green-600"
-                                  : theme === "dark" ? "text-yellow-400" : "text-yellow-600"
-                              }`}>
-                                {formatNumberWithSpaces(item.commission_amount)} FCFA{" "}
-                                {item.commission_paid ? "✓" : "⏳"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  )
-                })
-              ) : (
-                <div className="text-center py-12">
-                  <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-                    theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                  }`}>
-                    <History className={`w-8 h-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                  </div>
-                  <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Aucune activité récente
-                  </p>
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                    Vos transactions, recharges et transferts apparaîtront ici
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Mobile Sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}>
-        {/* Backdrop with improved touch handling */}
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-md transition-all duration-300"
-          onClick={() => setSidebarOpen(false)}
-        />
+      {/* Activité récente */}
+      <div className="px-4 pb-24">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[16px] font-extrabold" style={{ color: BP.text }}>
+            Activité récente
+          </h2>
+          <button onClick={handleRefresh} disabled={isRefreshing} className="p-2" style={{ color: BP.muted }}>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
 
-        {/* Sidebar with mobile-optimized design */}
-        <div className={`fixed inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col h-full shadow-2xl transition-all duration-300 ease-in-out ${theme === "dark"
-          ? "bg-gray-900/95 backdrop-blur-xl border-r border-gray-700/50"
-          : "bg-white/95 backdrop-blur-xl border-r border-gray-200/50"
-          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-
-          {/* Header with improved mobile spacing */}
-          <div className={`flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 border-b ${theme === "dark" ? "border-gray-700/50" : "border-gray-200/50"
-            }`}>
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <img src="/logo.png" alt="Blaffa Pay Logo" className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shadow-lg" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
-              </div>
-              <div>
-                <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-                  Blaffa Pay
-                </span>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                  {t("app.subtitle")}
-                </p>
-              </div>
+        <div className="space-y-2.5">
+          {isLoadingHistory ? (
+            <div className="flex justify-center py-10">
+              <RefreshCw className="w-6 h-6 animate-spin" style={{ color: BP.blue }} />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(false)}
-              className="h-10 w-10 rounded-xl active:scale-95 transition-all duration-200"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Navigation with custom scroll behavior for dashboard */}
-          <nav
-            className="flex-1 space-y-1 px-3 sm:px-4 py-4 sm:py-6 overflow-y-auto overflow-x-hidden scroll-smooth"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: theme === "dark" ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6',
-              scrollBehavior: 'smooth'
-            }}
-            onScroll={(e) => {
-              // Custom scroll behavior - slight elasticity effect
-              const element = e.currentTarget;
-              if (element.scrollTop < 0) {
-                element.scrollTop = 0;
-              }
-            }}
-          >
-            {/* General Section */}
-
-
-            {/* Transaction Management Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}>
-              <Activity className="h-4 w-4" />
-              {t("nav.transactionManagement")}
-            </div>
-
-
-
-            {/* <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200" 
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-              }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                // Navigate to account transaction if needed
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
-              }`}>
-                <LayoutDashboard className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
-            </button> */}
-
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToRecharge()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-                }`}>
-                <Zap className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.topup")}</span>
-            </button>
-
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToTransfer()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-                }`}>
-                <Send className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.transfer")}</span>
-            </button>
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${!canBulk ? "opacity-60 grayscale-[0.5]" : ""} ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                if (!canBulk) {
-                  toast({
-                    title: "Accès restreint",
-                    description: "Veuillez contacter le support pour activer le paiement groupé.",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                setSidebarOpen(false)
-                onNavigateToBulkPayment()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-                }`}>
-                <FileSpreadsheet className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">Paiement Groupé</span>
-              {!canBulk && <Shield className="w-3 h-3 text-red-500 ml-auto" />}
-            </button>
-
-            {/* History Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}>
-              <History className="h-4 w-4" />
-              {t("nav.history")}
-            </div>
-
-            {/* Only show transaction history if user has USSD permission */}
-            {user && user.can_process_ussd_transaction !== false && (
+          ) : recentHistory.length > 0 ? (
+            recentHistory.map((item) => (
               <button
-                className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                  ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                  : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                  }`}
+                key={`${item.historyType}-${item.uid}`}
+                type="button"
                 onClick={() => {
-                  setSidebarOpen(false)
-                  onNavigateToTransactionHistory()
+                  setSelectedTransaction(item)
+                  setShowTransactionDetails(true)
+                }}
+                className="w-full text-left p-3.5 rounded-[18px] border active:scale-[0.99] transition"
+                style={{
+                  background: BP.card,
+                  borderColor: BP.border,
+                  boxShadow: "0 4px 16px rgba(14,26,46,0.04)",
                 }}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                  }`}>
-                  <TrendingUp className="h-4 w-4" />
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
+                    style={{
+                      background: isCredit(item) ? "rgba(14,159,110,0.12)" : "rgba(229,72,77,0.12)",
+                      color: isCredit(item) ? BP.green : BP.red,
+                    }}
+                  >
+                    {isCredit(item) ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold truncate text-[14px]" style={{ color: BP.text }}>
+                          {activityTitle(item)}
+                        </p>
+                        <p className="text-[12px] truncate mt-0.5" style={{ color: BP.muted }}>
+                          {item.historyType === "betting"
+                            ? `${item.platform_name || "Paris"} · ${formatTransactionDate(item.created_at)}`
+                            : `${item.typeLabel || item.label || ""} · ${formatTransactionDate(item.created_at)}`}
+                        </p>
+                        <span
+                          className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusPillClass(item.status)}`}
+                        >
+                          {item.status_display || item.status}
+                        </span>
+                      </div>
+                      <p
+                        className="font-extrabold tabular-nums text-[15px] shrink-0"
+                        style={{ color: isCredit(item) ? BP.green : BP.red }}
+                      >
+                        {activityAmount(item)}
+                      </p>
+                    </div>
+                    {item.reference && (
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <span className="text-[11px] font-mono truncate" style={{ color: BP.muted }}>
+                          {String(item.reference).slice(0, 16)}…
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            copyReference(item.reference)
+                          }}
+                          className="p-1"
+                          style={{ color: BP.muted }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span className="flex-1 text-left">{t("nav.accountTransaction")}</span>
               </button>
-            )}
-
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToRechargeHistory()
-              }}
+            ))
+          ) : (
+            <div
+              className="py-12 text-center rounded-[18px] border"
+              style={{ background: BP.card, borderColor: BP.border }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-                }`}>
-                <Battery className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.topupHistory")}</span>
-            </button>
-
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToTransferHistory()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-                }`}>
-                <Send className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.transferHistory")}</span>
-            </button>
-
-            {/* Betting Platforms Section */}
-            <div className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider mt-6 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}>
-              <Gamepad2 className="h-4 w-4" />
-              {t("nav.bettingPlatforms")}
+              <History className="w-8 h-8 mx-auto mb-3" style={{ color: BP.muted }} />
+              <p className="text-sm font-semibold" style={{ color: BP.text }}>
+                Aucune activité récente
+              </p>
             </div>
+          )}
+        </div>
+      </div>
 
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToBettingPlatforms()
-              }}
+      {/* Menu — PDF p.5 */}
+      <div className={`fixed inset-0 z-50 transition-all duration-300 ${sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
+        <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+        <div
+          className={`absolute inset-y-0 left-0 w-[82vw] max-w-sm flex flex-col bg-white shadow-2xl transition-transform duration-300 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex items-center gap-3 px-4 pt-12 pb-5" style={{ background: BP.navy }}>
+            <div
+              className="w-11 h-11 rounded-[14px] flex items-center justify-center text-white font-extrabold text-lg"
+              style={{ background: BP.logoBlue }}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-600"
-                }`}>
-                <Shield className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.platforms")}</span>
+              B
+            </div>
+            <div className="flex-1">
+              <p className="text-[15px] font-extrabold text-white">Blaffa Pay</p>
+              <p className="text-[12px] text-white/55">Partners</p>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="p-2 text-white/80">
+              <X className="w-5 h-5" />
             </button>
+          </div>
 
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToBettingTransactions()
-              }}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                }`}>
-                <Activity className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.transactions")}</span>
-            </button>
-
-            <button
-              className={`w-full flex items-center gap-3 px-3 py-4 rounded-2xl text-sm font-medium transition-all duration-200 active:scale-98 ${theme === "dark"
-                ? "hover:bg-gray-800/50 active:bg-gray-800 text-gray-200"
-                : "hover:bg-gray-100/50 active:bg-gray-100 text-gray-700"
-                }`}
-              onClick={() => {
-                setSidebarOpen(false)
-                onNavigateToBettingCommissions()
-              }}
-            >
-
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === "dark" ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600"
-                }`}>
-                <DollarSign className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-left">{t("nav.commissions")}</span>
-            </button>
+          <nav className="flex-1 px-3 py-5 overflow-y-auto bg-white">
+            <p className="px-3 mb-3 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: BP.muted }}>
+              Historique
+            </p>
+            {menuIcons.map((m) => (
+              <button
+                key={m.label}
+                type="button"
+                className="w-full flex items-center gap-3 px-3 py-3.5 rounded-[14px] active:bg-[#EEF2F8]"
+                onClick={() => {
+                  setSidebarOpen(false)
+                  m.onClick()
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                  style={{ background: m.bg, color: m.color }}
+                >
+                  {m.icon}
+                </div>
+                <span className="flex-1 text-left text-[15px] font-bold" style={{ color: BP.text }}>
+                  {m.label}
+                </span>
+                <span style={{ color: BP.muted }}>›</span>
+              </button>
+            ))}
           </nav>
 
-          {/* Fixed Footer with logout button */}
-          <div className={`mt-auto border-t ${theme === "dark" ? "border-gray-700/50 bg-gray-900/95" : "border-gray-200/50 bg-white/95"
-            } p-4 sm:p-6`}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start rounded-2xl h-12 text-sm font-medium transition-all duration-200 active:scale-98 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+          <div className="p-4 bg-white border-t" style={{ borderColor: BP.border }}>
+            <button
               onClick={() => {
                 setSidebarOpen(false)
                 onLogout()
               }}
+              className="w-full h-[52px] rounded-[16px] flex items-center justify-center gap-2 text-white font-bold"
+              style={{ background: BP.red }}
             >
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/20 text-red-500 mr-3">
-                <LogOut className="h-4 w-4" />
-              </div>
-              {t("nav.logout")}
-            </Button>
+              <LogOut className="w-4 h-4" />
+              Déconnexion
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Transaction Details Modal */}
       <TransactionDetailsModal
         isOpen={showTransactionDetails}
         onClose={() => {
@@ -1684,10 +531,9 @@ export function DashboardScreen({
         onCancelTransaction={handleCancelTransaction}
       />
 
-      {/* Transaction Type Selection Modal */}
       {showTransactionTypeSelection && currentTransactionTypeSelection && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative h-full flex flex-col">
             <TransactionTypeSelectionScreen
               transactionType={currentTransactionTypeSelection}
@@ -1699,15 +545,11 @@ export function DashboardScreen({
               }}
               onSelectMobileMoney={() => {
                 setShowTransactionTypeSelection(false)
-                if (currentTransactionTypeSelection === "deposit") {
-                  onNavigateToDeposit()
-                } else {
-                  onNavigateToWithdraw()
-                }
+                if (currentTransactionTypeSelection === "deposit") onNavigateToDeposit()
+                else onNavigateToWithdraw()
               }}
               onSelectBetting={() => {
                 setShowTransactionTypeSelection(false)
-                // Pass transaction type to betting platforms
                 onNavigateToBettingPlatforms(currentTransactionTypeSelection)
               }}
               onSelectBulkPayment={() => {

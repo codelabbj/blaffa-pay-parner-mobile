@@ -2,20 +2,16 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ErrorAlertLight } from "@/components/ui/error-alert"
-import { Eye, EyeOff, Shield, Loader2 } from "lucide-react"
-import { useTheme } from "@/lib/contexts"
-import { useTranslation } from "@/lib/contexts"
-import { useAuth } from "@/lib/contexts"
+import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react"
+import { useAuth, useTheme } from "@/lib/contexts"
+import { BP, pageBg, cardBg, textPrimary } from "@/lib/design"
 
 interface LoginScreenProps {
   onLogin: () => void
 }
 
+/** PDF p.2 — Connexion (e-mail) */
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -25,15 +21,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [mode, setMode] = useState<"login" | "forgot-password" | "reset-password">("login")
-  const { theme } = useTheme()
-  const { t } = useTranslation()
   const { login, requestPasswordReset, confirmPasswordReset, isLoading } = useAuth()
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+
+  const fieldCardStyle = {
+    background: cardBg(isDark),
+    borderColor: isDark ? "#243147" : BP.border,
+    boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.06)",
+  }
+
+  const inputClass =
+    "w-full h-9 border-0 p-0 outline-none ring-0 shadow-none bg-transparent text-[16px] font-semibold"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
-
     try {
       if (mode === "login") {
         await login(email, password)
@@ -42,11 +46,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         const response = await requestPasswordReset(email)
         setSuccess(response.message || "OTP envoyé avec succès.")
         setMode("reset-password")
-      } else if (mode === "reset-password") {
+      } else {
         const response = await confirmPasswordReset({
           identifier: email,
           code: otp,
-          new_password: newPassword
+          new_password: newPassword,
         })
         setSuccess(response.message || "Mot de passe réinitialisé avec succès.")
         setTimeout(() => {
@@ -55,356 +59,183 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         }, 3000)
       }
     } catch (err: any) {
-      setError(err.message || t("additional.loginFailedPleaseTryAgain"))
+      setError(err.message || "Connexion impossible. Réessaie.")
     }
   }
 
-  const renderLoginForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <ErrorAlertLight
-        error={error}
-        type="error"
-        title={t("additional.loginFailed")}
-        onDismiss={() => setError("")}
-      />
-
-      {success && (
-        <div className="p-4 rounded-xl bg-green-100 text-green-700 text-sm font-medium border border-green-200">
-          {success}
-        </div>
-      )}
-
-      <div>
-        <Input
-          type="email"
-          placeholder={t("login.email")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={`h-14 text-base rounded-xl border-2 ${theme === "dark"
-            ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500"
-            : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
-            }`}
-          required
-          disabled={isLoading}
-        />
-      </div>
-
-      <div className="relative">
-        <Input
-          type={showPassword ? "text" : "password"}
-          placeholder={t("login.password")}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={`h-14 text-base rounded-xl border-2 pr-14 ${theme === "dark"
-            ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500"
-            : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
-            }`}
-          required
-          disabled={isLoading}
-        />
-        <button
-          type="button"
-          className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-lg ${theme === "dark"
-            ? "text-slate-400 hover:text-white hover:bg-slate-700"
-            : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-            }`}
-          onClick={() => setShowPassword(!showPassword)}
-          disabled={isLoading}
-        >
-          {showPassword ? (
-            <EyeOff className="w-5 h-5" />
-          ) : (
-            <Eye className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-
-      <button
-        type="submit"
-        className={`w-full h-14 text-base font-semibold rounded-xl transition-all duration-200 ${isLoading
-          ? "bg-gray-400 cursor-not-allowed"
-          : theme === "dark"
-            ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-            : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-          }`}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            {t("additional.signingIn")}
-          </div>
-        ) : (
-          t("login.signIn")
-        )}
-      </button>
-
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("forgot-password")
-            setError("")
-            setSuccess("")
-          }}
-          className={`text-sm font-medium ${theme === "dark"
-            ? "text-blue-400 hover:text-blue-300"
-            : "text-blue-600 hover:text-blue-700"
-            }`}
-        >
-          {t("login.forgotPassword")}
-        </button>
-      </div>
-    </form>
-  )
-
-  const renderForgotPasswordForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="text-center mb-4">
-        <h2 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-          Mot de passe oublié
-        </h2>
-        <p className={`text-sm mt-2 ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
-          Entrez votre email pour recevoir un code OTP de réinitialisation.
-        </p>
-      </div>
-
-      <ErrorAlertLight
-        error={error}
-        type="error"
-        title="Erreur"
-        onDismiss={() => setError("")}
-      />
-
-      {success && (
-        <div className="p-4 rounded-xl bg-green-100 text-green-700 text-sm font-medium border border-green-200">
-          {success}
-        </div>
-      )}
-
-      <div>
-        <Input
-          type="email"
-          placeholder={t("login.email")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={`h-14 text-base rounded-xl border-2 ${theme === "dark"
-            ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500"
-            : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
-            }`}
-          required
-          disabled={isLoading}
-        />
-      </div>
-
-      <button
-        type="submit"
-        className={`w-full h-14 text-base font-semibold rounded-xl transition-all duration-200 ${isLoading
-          ? "bg-gray-400 cursor-not-allowed"
-          : theme === "dark"
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
-            : "bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-          }`}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Envoi...</span>
-          </div>
-        ) : (
-          "Envoyer le code OTP"
-        )}
-      </button>
-
-      <div className="flex flex-col gap-3 text-center">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("reset-password")
-            setError("")
-            setSuccess("")
-          }}
-          className={`text-sm font-medium ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}
-        >
-          J'ai déjà un code OTP
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("login")
-            setError("")
-            setSuccess("")
-          }}
-          className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-gray-500"
-            }`}
-        >
-          Retour à la connexion
-        </button>
-      </div>
-    </form>
-  )
-
-  const renderResetPasswordForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="text-center mb-4">
-        <h2 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-          Réinitialiser le mot de passe
-        </h2>
-        <p className={`text-sm mt-2 ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
-          Entrez le code reçu pour l'adresse :
-        </p>
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <span className={`font-semibold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-            {email}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("forgot-password")
-              setError("")
-              setSuccess("")
-            }}
-            className={`text-xs p-1 px-2 rounded-md transition-colors ${theme === "dark"
-                ? "bg-slate-800 text-slate-300 hover:text-white"
-                : "bg-gray-100 text-gray-600 hover:text-gray-900"
-              }`}
-          >
-            Changer
-          </button>
-        </div>
-      </div>
-
-      <ErrorAlertLight
-        error={error}
-        type="error"
-        title="Erreur"
-        onDismiss={() => setError("")}
-      />
-
-      {success && (
-        <div className="p-4 rounded-xl bg-green-100 text-green-700 text-sm font-medium border border-green-200">
-          {success}
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <div>
-          <Label className={`text-xs font-semibold ml-1 mb-1.5 block ${theme === "dark" ? "text-slate-400" : "text-gray-500"}`}>
-            Code OTP
-          </Label>
-          <Input
-            type="text"
-            placeholder="Entrez le code"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            className={`h-12 text-base rounded-xl border-2 tracking-[0.2em] font-mono text-center ${theme === "dark"
-              ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500"
-              : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
-              }`}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div>
-          <Label className={`text-xs font-semibold ml-1 mb-1.5 block ${theme === "dark" ? "text-slate-400" : "text-gray-500"}`}>
-            Nouveau mot de passe
-          </Label>
-          <Input
-            type="password"
-            placeholder="••••••••"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className={`h-12 text-base rounded-xl border-2 ${theme === "dark"
-              ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-400 focus:border-blue-500"
-              : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500"
-              }`}
-            required
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      <button
-        type="submit"
-        className={`w-full h-14 text-base font-semibold rounded-xl transition-all duration-200 ${isLoading
-          ? "bg-gray-400 cursor-not-allowed"
-          : theme === "dark"
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
-            : "bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-          }`}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Réinitialisation...</span>
-          </div>
-        ) : (
-          "Réinitialiser le mot de passe"
-        )}
-      </button>
-
-      <div className="flex flex-col gap-3 text-center">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("forgot-password")
-            setError("")
-            setSuccess("")
-          }}
-          className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-gray-500"}`}
-        >
-          Renvoyer le code
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("login")
-            setError("")
-            setSuccess("")
-          }}
-          className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-gray-500"
-            }`}
-        >
-          Retour à la connexion
-        </button>
-      </div>
-    </form>
-  )
-
   return (
-    <div
-      className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gradient-to-br from-blue-50 via-white to-blue-50"
-        }`}
-    >
-      <div className="min-h-screen flex flex-col">
-        {/* Modern Header */}
-        <div className={`${theme === "dark" ? "bg-slate-800/50 backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"
-          } border-b border-opacity-20 ${theme === "dark" ? "border-slate-700" : "border-gray-200"
-          } p-8`}>
-          <div className="text-center">
-            <img src="/logo.png" alt="BlaffaPay Logo" className="h-16 w-16 mx-auto mb-4" />
-            <h1 className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-              BlaffaPay
-            </h1>
-            <p className={`text-sm mt-2 ${theme === "dark" ? "text-slate-400" : "text-gray-600"
-              }`}>
-              {t("app.description")}
-            </p>
+    <div className="min-h-screen flex flex-col" style={{ background: pageBg(isDark) }}>
+      <div className="flex-1 flex flex-col px-4 pt-16 pb-8 max-w-md mx-auto w-full">
+        <div className="flex flex-col items-center pt-6 mb-10">
+          <div
+            className="w-[56px] h-[56px] rounded-[16px] flex items-center justify-center mb-4"
+            style={{ background: BP.logoBlue, boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.08)" }}
+          >
+            <span className="text-white text-[26px] font-extrabold leading-none">B</span>
           </div>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{ color: textPrimary(isDark) }}>
+            Blaffa Pay
+          </h1>
+          <p className="mt-2 text-[14px] text-center" style={{ color: BP.muted }}>
+            {mode === "login" && "Connecte-toi à ton espace partenaire"}
+            {mode === "forgot-password" && "Récupère l’accès à ton compte"}
+            {mode === "reset-password" && "Choisis un nouveau mot de passe"}
+          </p>
         </div>
 
-        {/* Login/Forgot Password Form */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="w-full max-w-sm">
-            {mode === "login" && renderLoginForm()}
-            {mode === "forgot-password" && renderForgotPasswordForm()}
-            {mode === "reset-password" && renderResetPasswordForm()}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          <div className="space-y-3 flex-1">
+            <ErrorAlertLight error={error} type="error" title="Erreur" onDismiss={() => setError("")} />
+            {success && (
+              <div
+                className="p-3 rounded-[14px] text-sm font-medium border"
+                style={{
+                  background: "rgba(14,159,110,0.1)",
+                  color: BP.green,
+                  borderColor: "rgba(14,159,110,0.25)",
+                }}
+              >
+                {success}
+              </div>
+            )}
+
+            <div className="rounded-[16px] border px-4 py-3" style={fieldCardStyle}>
+              <div className="flex items-center gap-2 mb-1">
+                <Mail className="w-4 h-4" style={{ color: BP.blue }} />
+                <span className="text-[12px] font-medium" style={{ color: BP.muted }}>
+                  Adresse e-mail
+                </span>
+              </div>
+              <input
+                type="email"
+                placeholder="partenaire@exemple.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+                style={{ color: textPrimary(isDark) }}
+                required
+                disabled={isLoading}
+                autoComplete="email"
+              />
+            </div>
+
+            {mode === "login" && (
+              <div className="rounded-[16px] border px-4 py-3" style={fieldCardStyle}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Lock className="w-4 h-4" style={{ color: BP.amber }} />
+                  <span className="text-[12px] font-medium" style={{ color: BP.muted }}>
+                    Mot de passe
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${inputClass} pr-10`}
+                    style={{ color: textPrimary(isDark) }}
+                    required
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 p-1"
+                    style={{ color: BP.muted }}
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Masquer" : "Afficher"}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mode === "reset-password" && (
+              <>
+                <div className="rounded-[16px] border px-4 py-3" style={fieldCardStyle}>
+                  <span className="text-[12px] font-medium block mb-1" style={{ color: BP.muted }}>
+                    Code OTP
+                  </span>
+                  <input
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    className={inputClass}
+                    style={{ color: textPrimary(isDark) }}
+                    required
+                  />
+                </div>
+                <div className="rounded-[16px] border px-4 py-3" style={fieldCardStyle}>
+                  <span className="text-[12px] font-medium block mb-1" style={{ color: BP.muted }}>
+                    Nouveau mot de passe
+                  </span>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={inputClass}
+                    style={{ color: textPrimary(isDark) }}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {mode === "login" && (
+              <div className="text-right pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("forgot-password")
+                    setError("")
+                    setSuccess("")
+                  }}
+                  className="text-[14px] font-semibold"
+                  style={{ color: BP.blue }}
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+
+          <div className="pt-8 space-y-3">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-[52px] rounded-[16px] text-[16px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{ background: BP.green }}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Patiente…
+                </>
+              ) : mode === "login" ? (
+                "Se connecter"
+              ) : mode === "forgot-password" ? (
+                "Envoyer le code"
+              ) : (
+                "Réinitialiser"
+              )}
+            </button>
+            {mode !== "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login")
+                  setError("")
+                  setSuccess("")
+                }}
+                className="w-full text-sm font-semibold py-2"
+                style={{ color: BP.muted }}
+              >
+                Retour à la connexion
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   )

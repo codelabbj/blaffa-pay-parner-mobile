@@ -1,463 +1,3 @@
-// "use client"
-
-// import { Button } from "@/components/ui/button"
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-// import {
-//   Smartphone,
-//   ArrowLeft,
-//   ChevronLeft,
-//   ChevronRight,
-//   Filter,
-//   Search,
-//   Calendar,
-//   Download,
-//   CreditCard,
-//   CheckCircle,
-//   XCircle,
-//   Clock,
-//   Copy,
-// } from "lucide-react"
-// import { useState, useEffect } from "react"
-// import { useTheme } from "@/lib/contexts"
-// import { useTranslation } from "@/lib/contexts"
-// import { useAuth } from "@/lib/contexts"
-// import { rechargeService, RechargeData, RechargesResponse } from "@/lib/recharge"
-
-// interface RechargeHistoryScreenProps {
-//   onNavigateBack: () => void
-// }
-
-// export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenProps): JSX.Element {
-//   const [currentPage, setCurrentPage] = useState(1)
-//   const [filterStatus, setFilterStatus] = useState<"all" | "approved" | "pending" | "rejected" | "proof_submitted">("all")
-//   const [searchTerm, setSearchTerm] = useState("")
-//   const { theme } = useTheme()
-//   const { t } = useTranslation()
-//   const { user, recharges, isLoading, refreshRecharges } = useAuth()
-
-//   const itemsPerPage = 10
-
-//   // Copy to clipboard function
-//   const copyToClipboard = async (text: string) => {
-//     try {
-//       await navigator.clipboard.writeText(text)
-//       // You could add a toast notification here if you have one
-//       console.log('Copied to clipboard:', text)
-//     } catch (err) {
-//       console.error('Failed to copy text: ', err)
-//     }
-//   }
-
-//   // Use recharges from context instead of separate API calls
-//   useEffect(() => {
-//     console.log('Recharge History - User:', user)
-//     console.log('Recharge History - Recharges from context:', recharges)
-//     console.log('Recharge History - Total recharges:', recharges.length)
-//   }, [user, recharges])
-
-//   // Helper function to format recharge date
-//   const formatRechargeDate = (dateString: string) => {
-//     const date = new Date(dateString)
-//     return date.toLocaleDateString('fr-FR', {
-//       day: '2-digit',
-//       month: '2-digit',
-//       year: 'numeric',
-//       hour: '2-digit',
-//       minute: '2-digit'
-//     })
-//   }
-
-//   // Helper function to format recharge amount
-//   const formatRechargeAmount = (amount: string) => {
-//     return `${parseFloat(amount).toLocaleString('fr-FR')} €`
-//   }
-
-//   // Helper function to get status color and icon
-//   const getStatusInfo = (status: string) => {
-//     switch (status) {
-//       case "approved":
-//         return {
-//           color: "text-green-500",
-//           bgColor: "bg-green-500/10",
-//           icon: CheckCircle,
-//           text: "Approuvée"
-//         }
-//       case "pending":
-//         return {
-//           color: "text-yellow-500",
-//           bgColor: "bg-yellow-500/10",
-//           icon: Clock,
-//           text: "En attente"
-//         }
-//       case "rejected":
-//         return {
-//           color: "text-red-500",
-//           bgColor: "bg-red-500/10",
-//           icon: XCircle,
-//           text: "Rejetée"
-//         }
-//       case "proof_submitted":
-//         return {
-//           color: "text-blue-500",
-//           bgColor: "bg-blue-500/10",
-//           icon: CheckCircle,
-//           text: "Preuve soumise"
-//         }
-//       default:
-//         return {
-//           color: "text-gray-500",
-//           bgColor: "bg-gray-500/10",
-//           icon: Clock,
-//           text: "Inconnu"
-//         }
-//     }
-//   }
-
-//   // Filter recharges based on status and search term
-//   const filteredRecharges = recharges.filter(recharge => {
-//     const matchesStatus = filterStatus === "all" || recharge.status === filterStatus
-//     const matchesSearch = searchTerm === "" || 
-//       recharge.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//       recharge.formatted_amount.toLowerCase().includes(searchTerm.toLowerCase())
-//     return matchesStatus && matchesSearch
-//   })
-
-//   // Calculate pagination
-//   const totalPages = Math.ceil(filteredRecharges.length / itemsPerPage)
-//   const startIndex = (currentPage - 1) * itemsPerPage
-//   const endIndex = startIndex + itemsPerPage
-//   const currentRecharges = filteredRecharges.slice(startIndex, endIndex)
-
-//   // Reset to first page when filters change
-//   useEffect(() => {
-//     setCurrentPage(1)
-//   }, [filterStatus, searchTerm])
-
-//   return (
-//     <div
-//       className={`min-h-screen transition-colors duration-300 ${
-//         theme === "dark"
-//           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-//           : "bg-gradient-to-br from-blue-50 via-white to-blue-100"
-//       }`}
-//     >
-//       {/* Header */}
-//       <div className="px-4 pt-12 pb-6 safe-area-inset-top">
-//         <div className="flex items-center gap-4 mb-6">
-//           <Button
-//             variant="ghost"
-//             size="sm"
-//             className={`h-10 w-10 p-0 rounded-full transition-colors duration-300 ${
-//               theme === "dark" 
-//                 ? "hover:bg-gray-700/50 text-gray-300" 
-//                 : "hover:bg-gray-100/50 text-gray-600"
-//             }`}
-//             onClick={onNavigateBack}
-//           >
-//             <ArrowLeft className="w-5 h-5" />
-//           </Button>
-//           <div>
-//             <h1 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//               {t("rechargeHistory.title")}
-//             </h1>
-//             <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//               {t("rechargeHistory.subtitle")}
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* Filters and Search */}
-//         <div className="space-y-4 mb-6">
-//           {/* Search Bar */}
-//           <div className="relative">
-//             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-//               theme === "dark" ? "text-gray-400" : "text-gray-500"
-//             }`} />
-//             <input
-//               type="text"
-//               placeholder={t("rechargeHistory.searchPlaceholder")}
-//               value={searchTerm}
-//               onChange={(e) => setSearchTerm(e.target.value)}
-//               className={`w-full pl-10 pr-4 py-3 rounded-xl border-0 transition-colors duration-300 ${
-//                 theme === "dark" 
-//                   ? "bg-gray-800/80 text-white placeholder-gray-400" 
-//                   : "bg-white/80 text-gray-900 placeholder-gray-500"
-//               } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
-//             />
-//           </div>
-
-//           {/* Filter Buttons */}
-//           <div className="flex gap-2 overflow-x-auto pb-2">
-//             <Button
-//               variant={filterStatus === "all" ? "default" : "outline"}
-//               size="sm"
-//               onClick={() => setFilterStatus("all")}
-//               className={`whitespace-nowrap ${
-//                 filterStatus === "all" 
-//                   ? "bg-blue-500 text-white" 
-//                   : theme === "dark" 
-//                     ? "border-gray-600 text-gray-300" 
-//                     : "border-gray-300 text-gray-700"
-//               }`}
-//             >
-//               {t("rechargeHistory.filters.all")}
-//             </Button>
-//             <Button
-//               variant={filterStatus === "approved" ? "default" : "outline"}
-//               size="sm"
-//               onClick={() => setFilterStatus("approved")}
-//               className={`whitespace-nowrap ${
-//                 filterStatus === "approved" 
-//                   ? "bg-green-500 text-white" 
-//                   : theme === "dark" 
-//                     ? "border-gray-600 text-gray-300" 
-//                     : "border-gray-300 text-gray-700"
-//               }`}
-//             >
-//               {t("rechargeHistory.filters.approved")}
-//             </Button>
-//             <Button
-//               variant={filterStatus === "pending" ? "default" : "outline"}
-//               size="sm"
-//               onClick={() => setFilterStatus("pending")}
-//               className={`whitespace-nowrap ${
-//                 filterStatus === "pending" 
-//                   ? "bg-yellow-500 text-white" 
-//                   : theme === "dark" 
-//                     ? "border-gray-600 text-gray-300" 
-//                     : "border-gray-300 text-gray-700"
-//               }`}
-//             >
-//               {t("rechargeHistory.filters.pending")}
-//             </Button>
-//             <Button
-//               variant={filterStatus === "rejected" ? "default" : "outline"}
-//               size="sm"
-//               onClick={() => setFilterStatus("rejected")}
-//               className={`whitespace-nowrap ${
-//                 filterStatus === "rejected" 
-//                   ? "bg-red-500 text-white" 
-//                   : theme === "dark" 
-//                     ? "border-gray-600 text-gray-300" 
-//                     : "border-gray-300 text-gray-700"
-//               }`}
-//             >
-//               {t("rechargeHistory.filters.rejected")}
-//             </Button>
-//             <Button
-//               variant={filterStatus === "proof_submitted" ? "default" : "outline"}
-//               size="sm"
-//               onClick={() => setFilterStatus("proof_submitted")}
-//               className={`whitespace-nowrap ${
-//                 filterStatus === "proof_submitted" 
-//                   ? "bg-blue-500 text-white" 
-//                   : theme === "dark" 
-//                     ? "border-gray-600 text-gray-300" 
-//                     : "border-gray-300 text-gray-700"
-//               }`}
-//             >
-//               {t("rechargeHistory.filters.proofSubmitted")}
-//             </Button>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Recharges List */}
-//       <div className="px-4 pb-8">
-//         <Card
-//           className={`border-0 shadow-xl backdrop-blur-sm transition-colors duration-300 ${
-//             theme === "dark" ? "bg-gray-800/95 text-white" : "bg-white/95 text-gray-900"
-//           }`}
-//         >
-//           <CardHeader className="pb-4">
-//             <div className="flex items-center justify-between">
-//               <CardTitle className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                 Recharges ({filteredRecharges.length})
-//               </CardTitle>
-//               <div className="flex gap-2">
-//                 <Button
-//                   variant="ghost"
-//                   size="sm"
-//                   className={`h-8 w-8 p-0 rounded-full transition-colors duration-300 ${
-//                     theme === "dark" ? "hover:bg-gray-700/50 text-gray-300" : "hover:bg-gray-100/50 text-gray-600"
-//                   }`}
-//                   onClick={refreshRecharges}
-//                 >
-//                   <Search className="w-4 h-4" />
-//                 </Button>
-//                 <Button
-//                   variant="ghost"
-//                   size="sm"
-//                   className={`h-8 w-8 p-0 rounded-full transition-colors duration-300 ${
-//                     theme === "dark" ? "hover:bg-gray-700/50 text-gray-300" : "hover:bg-gray-100/50 text-gray-600"
-//                   }`}
-//                 >
-//                   <Download className="w-4 h-4" />
-//                 </Button>
-//               </div>
-//             </div>
-//           </CardHeader>
-//           <CardContent className="space-y-1">
-//             {isLoading ? (
-//               <div className="text-center py-8">
-//                 <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//                   {t("rechargeHistory.loading")}
-//                 </p>
-//               </div>
-//             ) : currentRecharges.length > 0 ? (
-//               currentRecharges.map((recharge, index) => {
-//                 const statusInfo = getStatusInfo(recharge.status)
-//                 const StatusIcon = statusInfo.icon
-                
-//                 return (
-//                 <div
-//                   key={recharge.uid}
-//                   className={`py-3 px-2 rounded-lg transition-colors duration-300 ${
-//                     theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-100/30"
-//                   } ${
-//                     index !== currentRecharges.length - 1
-//                       ? theme === "dark"
-//                         ? "border-b border-gray-700/50"
-//                         : "border-b border-gray-200/50"
-//                       : ""
-//                   }`}
-//                 >
-//                   {/* Header Row */}
-//                   <div className="flex items-center justify-between mb-2">
-//                     <div className="flex items-center gap-3">
-//                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 ${statusInfo.bgColor}`}>
-//                         <Smartphone className={`w-3.5 h-3.5 ${statusInfo.color}`} />
-//                       </div>
-//                       <div className="flex-1 min-w-0">
-//                         <p className={`font-medium text-sm ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                           {recharge.formatted_amount}
-//                         </p>
-//                         <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//                           {formatRechargeDate(recharge.created_at)}
-//                         </p>
-//                       </div>
-//                     </div>
-//                     <div className="text-right flex-shrink-0">
-//                       <p className={`font-bold text-sm ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-//                         {recharge.formatted_amount}
-//                       </p>
-//                     </div>
-//                   </div>
-                  
-//                   {/* Details Row */}
-//                   <div className="flex items-center justify-between">
-//                     <div className="flex-1">
-//                       <div className="flex items-center gap-2">
-//                         <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-//                           <span className="font-medium">{t("rechargeHistory.reference")}:</span> {recharge.reference}
-//                         </p>
-//                         <Button
-//                           variant="ghost"
-//                           size="sm"
-//                           className={`h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700`}
-//                           onClick={() => copyToClipboard(recharge.reference)}
-//                         >
-//                           <Copy className="w-3 h-3" />
-//                         </Button>
-//                       </div>
-//                       {recharge.is_expired && (
-//                         <p className="text-xs text-red-500">
-//                           <span className="font-medium">{t("rechargeHistory.status")}:</span> {t("rechargeHistory.expired")}
-//                         </p>
-//                       )}
-//                     </div>
-//                     <div className="flex items-center gap-2">
-//                       <StatusIcon className={`w-3 h-3 ${statusInfo.color}`} />
-//                       <p className={`text-xs ${statusInfo.color}`}>
-//                         {statusInfo.text}
-//                       </p>
-//                     </div>
-//                   </div>
-//                 </div>
-//                 )
-//               })
-//             ) : (
-//               <div className="text-center py-8">
-//                 <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-//                   {t("rechargeHistory.noRecharges")}
-//                 </p>
-//               </div>
-//             )}
-//           </CardContent>
-//         </Card>
-
-//         {/* Pagination */}
-//         {totalPages > 1 && (
-//           <div className="flex items-center justify-between mt-6">
-//             <Button
-//               variant="outline"
-//               size="sm"
-//               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-//               disabled={currentPage === 1}
-//               className={`${
-//                 theme === "dark" 
-//                   ? "border-gray-600 text-gray-300 disabled:text-gray-600" 
-//                   : "border-gray-300 text-gray-700 disabled:text-gray-400"
-//               }`}
-//             >
-//               <ChevronLeft className="w-4 h-4 mr-1" />
-//               {t("rechargeHistory.previous")}
-//             </Button>
-            
-//             <div className="flex items-center gap-2">
-//               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-//                 let pageNum;
-//                 if (totalPages <= 5) {
-//                   pageNum = i + 1;
-//                 } else if (currentPage <= 3) {
-//                   pageNum = i + 1;
-//                 } else if (currentPage >= totalPages - 2) {
-//                   pageNum = totalPages - 4 + i;
-//                 } else {
-//                   pageNum = currentPage - 2 + i;
-//                 }
-                
-//                 return (
-//                   <Button
-//                     key={pageNum}
-//                     variant={currentPage === pageNum ? "default" : "outline"}
-//                     size="sm"
-//                     onClick={() => setCurrentPage(pageNum)}
-//                     className={`w-10 h-10 p-0 ${
-//                       currentPage === pageNum 
-//                         ? "bg-blue-500 text-white" 
-//                         : theme === "dark" 
-//                           ? "border-gray-600 text-gray-300" 
-//                           : "border-gray-300 text-gray-700"
-//                     }`}
-//                   >
-//                     {pageNum}
-//                   </Button>
-//                 );
-//               })}
-//             </div>
-
-//             <Button
-//               variant="outline"
-//               size="sm"
-//               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-//               disabled={currentPage === totalPages}
-//               className={`${
-//                 theme === "dark" 
-//                   ? "border-gray-600 text-gray-300 disabled:text-gray-600" 
-//                   : "border-gray-300 text-gray-700 disabled:text-gray-400"
-//               }`}
-//             >
-//               {t("rechargeHistory.next")}
-//               <ChevronRight className="w-4 h-4 ml-1" />
-//             </Button>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   )
-// }
-
 
 
 "use client"
@@ -489,12 +29,17 @@ import { useTranslation } from "@/lib/contexts"
 import { useAuth } from "@/lib/contexts"
 import { rechargeService, RechargeData, RechargesResponse } from "@/lib/recharge"
 import { authService } from "@/lib/auth"
+import { BP, pageBg, cardBg, textPrimary, statusPillClass } from "@/lib/design"
 
 interface RechargeHistoryScreenProps {
   onNavigateBack: () => void
+  onNavigateToCreate?: () => void
 }
 
-export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenProps): JSX.Element {
+export function RechargeHistoryScreen({
+  onNavigateBack,
+  onNavigateToCreate,
+}: RechargeHistoryScreenProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(1)
   const [filterStatus, setFilterStatus] = useState<"all" | "approved" | "pending" | "rejected" | "proof_submitted">("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -518,6 +63,13 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { user, isLoading, refreshRecharges } = useAuth()
+  const isDark = theme === "dark"
+
+  const cardStyle = {
+    background: cardBg(isDark),
+    borderColor: isDark ? "#243147" : BP.border,
+    boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.06)",
+  }
 
   const itemsPerPage = 20
 
@@ -615,8 +167,8 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
         }
       case "proof_submitted":
         return {
-          color: "text-blue-500",
-          bgColor: theme === "dark" ? "bg-blue-500/20" : "bg-blue-100",
+          color: "text-[#0E9F6E]",
+          bgColor: theme === "dark" ? "bg-[#EEF2F8]0/20" : "bg-[rgba(14,159,110,0.12)]",
           icon: AlertTriangle,
           text: t("additional.rechargeHistory.underReview")
         }
@@ -730,328 +282,208 @@ export function RechargeHistoryScreen({ onNavigateBack }: RechargeHistoryScreenP
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  const filterChip = (active: boolean, accent: string) =>
+    active
+      ? { background: accent, color: "#FFFFFF", borderColor: accent }
+      : {
+          background: cardBg(isDark),
+          color: BP.muted,
+          borderColor: isDark ? "#243147" : BP.border,
+        }
+
+  const rechargeStatusPill = (status: string) => {
+    const map: Record<string, string> = {
+      approved: "bp-pill-success",
+      pending: "bp-pill-pending",
+      rejected: "bp-pill-failed",
+      proof_submitted: "bp-pill-sent",
+    }
+    return map[status] || "bp-pill-sent"
+  }
+
   return (
-    <div 
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
+    <div
+      className="min-h-screen"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{
+        background: pageBg(isDark),
         transform: `translateY(${pullToRefreshState.pullDistance}px)`,
-        transition: pullToRefreshState.isPulling ? 'none' : 'transform 0.3s ease-out'
+        transition: pullToRefreshState.isPulling ? "none" : "transform 0.3s ease-out",
       }}
     >
       {/* Pull-to-refresh indicator */}
       {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            theme === "dark" 
-              ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50" 
-              : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
-          } shadow-lg`}>
-            <RefreshCw className={`w-5 h-5 ${
-              pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-            } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center border"
+            style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+          >
+            <RefreshCw
+              className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? "animate-spin" : ""}`}
+              style={{ color: BP.green }}
+            />
           </div>
         </div>
       )}
 
-      {/* Mobile-optimized background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-cyan-500" : "bg-cyan-300"
-        } blur-2xl animate-pulse`}></div>
-        <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-10 ${
-          theme === "dark" ? "bg-emerald-500" : "bg-emerald-300"
-        } blur-2xl animate-pulse`} style={{animationDelay: '1.5s'}}></div>
-      </div>
-
-      {/* Mobile-first header with safe area */}
-      <div className="relative z-10 px-4 pt-safe-area-inset-top pt-12">
-      {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-              theme === "dark" 
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20" 
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-            }`}
+      <div className="px-4 pt-12 pb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            type="button"
             onClick={onNavigateBack}
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center border shrink-0"
+            style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
           >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          
-          <div className="text-center flex-1 mx-4">
-            <h1 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              {t("rechargeHistory.title") || "Recharge History"}
+            <ArrowLeft className="w-5 h-5" style={{ color: textPrimary(isDark) }} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] font-extrabold truncate" style={{ color: textPrimary(isDark) }}>
+              Recharges
             </h1>
-            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            <p className="text-[12px]" style={{ color: BP.muted }}>
               {totalCount} {t("additional.rechargeHistory.recharges")}
             </p>
           </div>
-          
-          <div className={`p-2.5 rounded-xl ${
-            theme === "dark" ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-600"
-          }`}>
-            <Battery className="w-5 h-5" />
-          </div>
+          <button
+            type="button"
+            onClick={handleRefreshButton}
+            disabled={isRefreshing}
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center border shrink-0"
+            style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`} style={{ color: BP.muted }} />
+          </button>
         </div>
 
-        {/* Search and Filter Section */}
-        <div className="space-y-4 mb-6">
-          {/* Search Bar Card */}
-          <div className={`p-4 rounded-2xl border transition-all duration-300 ${
-            theme === "dark" 
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}>
+        {onNavigateToCreate && (
+          <button
+            type="button"
+            onClick={onNavigateToCreate}
+            className="w-full h-[48px] mb-4 rounded-[14px] flex items-center justify-center gap-2 text-white text-[15px] font-bold active:scale-[0.99]"
+            style={{ background: BP.green }}
+          >
+            <Zap className="w-5 h-5" />
+            Nouvelle recharge
+          </button>
+        )}
+
+        <div className="space-y-3 mb-2">
           <div className="relative">
-            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            }`} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BP.muted }} />
             <input
               type="text"
-                placeholder={t("additional.rechargeHistory.searchPlaceholder")}
+              placeholder={t("additional.rechargeHistory.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 rounded-xl border-0 bg-transparent transition-all duration-300 ${
-                theme === "dark" 
-                    ? "text-white placeholder-gray-400" 
-                    : "text-gray-900 placeholder-gray-500"
-                } focus:outline-none`}
-              />
-            </div>
+              className="w-full h-12 pl-11 pr-4 rounded-full border text-[15px] outline-none focus:ring-2 focus:ring-[#0E9F6E]/20"
+              style={{
+                background: cardBg(isDark),
+                borderColor: isDark ? "#243147" : BP.border,
+                color: textPrimary(isDark),
+                boxShadow: isDark ? "none" : "0 4px 16px rgba(14,26,46,0.04)",
+              }}
+            />
           </div>
-
-          {/* Filter Buttons */}
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={() => setFilterStatus("all")}
-              className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
-                filterStatus === "all" 
-                  ? "bg-blue-500 text-white shadow-lg" 
-                  : theme === "dark" 
-                    ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {t("additional.rechargeHistory.all")}
-            </Button>
-            <Button
-              onClick={() => setFilterStatus("approved")}
-              className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
-                filterStatus === "approved" 
-                  ? "bg-green-500 text-white shadow-lg" 
-                  : theme === "dark" 
-                    ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              {t("additional.rechargeHistory.approved")}
-            </Button>
-            <Button
-              onClick={() => setFilterStatus("pending")}
-              className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
-                filterStatus === "pending" 
-                  ? "bg-yellow-500 text-white shadow-lg" 
-                  : theme === "dark" 
-                    ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Clock className="w-4 h-4 mr-1" />
-              {t("additional.rechargeHistory.pending")}
-            </Button>
-            <Button
-              onClick={() => setFilterStatus("rejected")}
-              className={`h-11 rounded-xl font-semibold transition-all duration-200 active:scale-95 ${
-                filterStatus === "rejected" 
-                  ? "bg-red-500 text-white shadow-lg" 
-                  : theme === "dark" 
-                    ? "bg-gray-700/50 border border-gray-600 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              {t("additional.rechargeHistory.rejected")}
-            </Button>
+            {(
+              [
+                { key: "all" as const, label: t("additional.rechargeHistory.all"), accent: BP.blue },
+                { key: "approved" as const, label: t("additional.rechargeHistory.approved"), accent: BP.green },
+                { key: "pending" as const, label: t("additional.rechargeHistory.pending"), accent: BP.amber },
+                { key: "rejected" as const, label: t("additional.rechargeHistory.rejected"), accent: BP.red },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilterStatus(f.key)}
+                className="h-10 rounded-full text-xs font-bold border active:scale-95"
+                style={filterChip(filterStatus === f.key, f.accent)}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Scrollable content area */}
-      <div className="relative z-10 px-4 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-        {/* Action Bar */}
-        <div className="flex items-center justify-between mb-4">
-          <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            {Math.min((currentPage - 1) * backendPageSize + currentRecharges.length, totalCount)} {t("additional.rechargeHistory.of")} {totalCount} {t("additional.rechargeHistory.recharges")}
-          </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-              onClick={handleRefreshButton}
-              disabled={isRefreshing}
-              className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                {/* <Button
-                  variant="ghost"
-                  size="sm"
-              className={`h-9 w-9 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark" 
-                  ? "hover:bg-gray-700/50 text-gray-300 hover:text-white" 
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  <Download className="w-4 h-4" />
-                </Button> */}
-              </div>
-            </div>
-
-        {/* Recharges List */}
-        <div className={`rounded-2xl border transition-all duration-300 ${
-          theme === "dark" 
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm" 
-            : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-        }`}>
-          <div className="p-4">
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className={`w-8 h-8 border-2 border-transparent border-t-current rounded-full animate-spin mx-auto mb-4 ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}></div>
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  {t("additional.rechargeHistory.loadingRecharges")}
-                </p>
-              </div>
-            ) : currentRecharges.length > 0 ? (
-              <div className="space-y-1">
-                {currentRecharges.map((recharge, index) => {
-                const statusInfo = getStatusInfo(recharge.status)
-                const StatusIcon = statusInfo.icon
-                
-                return (
-                <div
-                  key={recharge.uid}
-                      className={`p-4 rounded-2xl transition-all duration-200 active:scale-98 ${
-                        theme === "dark" ? "hover:bg-gray-700/30" : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${statusInfo.bgColor}`}>
-                            <Zap className={`w-5 h-5 ${statusInfo.color}`} />
-                      </div>
-                          
-                          <div>
-                            <p className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                          {recharge.formatted_amount}
-                        </p>
-                            <div className="flex items-center gap-2">
-                              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                          {formatRechargeDate(recharge.created_at)}
-                        </p>
-                              <div className={`w-1 h-1 rounded-full ${
-                                theme === "dark" ? "bg-gray-600" : "bg-gray-400"
-                              }`}></div>
-                              <div className="flex items-center gap-1">
-                                <StatusIcon className={`w-3 h-3 ${statusInfo.color}`} />
-                                <p className={`text-sm ${statusInfo.color}`}>
-                                  {statusInfo.text}
-                                </p>
-                              </div>
-                            </div>
-                      </div>
-                    </div>
-                        
-                        <div className="text-right">
-                          <p className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+      <div className="px-4 pb-28">
+        <p className="text-[12px] font-semibold mb-3" style={{ color: BP.muted }}>
+          {Math.min((currentPage - 1) * backendPageSize + currentRecharges.length, totalCount)}{" "}
+          {t("additional.rechargeHistory.of")} {totalCount} {t("additional.rechargeHistory.recharges")}
+        </p>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: BP.muted }} />
+            <p className="text-sm" style={{ color: BP.muted }}>
+              {t("additional.rechargeHistory.loadingRecharges")}
+            </p>
+          </div>
+        ) : currentRecharges.length > 0 ? (
+          <div className="space-y-3">
+            {currentRecharges.map((recharge) => {
+              const statusInfo = getStatusInfo(recharge.status)
+              return (
+                <div key={recharge.uid} className="bp-card p-4 border rounded-[18px]" style={cardStyle}>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="font-extrabold text-[17px] tabular-nums" style={{ color: textPrimary(isDark) }}>
                         {recharge.formatted_amount}
                       </p>
-                          <div className={`w-2 h-2 rounded-full ml-auto mt-2 ${
-                            recharge.status === "approved"
-                              ? "bg-green-500"
-                              : recharge.status === "pending"
-                              ? "bg-yellow-500"
-                              : recharge.status === "rejected"
-                              ? "bg-red-500"
-                              : "bg-blue-500"
-                          }`}></div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                            <p className={`text-xs font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                              {recharge.reference}
-                        </p>
-                            <button
-                          onClick={() => copyToClipboard(recharge.reference)}
-                              className={`p-1 rounded-lg transition-all duration-200 active:scale-90 ${
-                                theme === "dark" 
-                                  ? "hover:bg-gray-600/50 text-gray-400 hover:text-gray-300" 
-                                  : "hover:bg-gray-200/50 text-gray-500 hover:text-gray-700"
-                              }`}
-                              title={t("additional.rechargeHistory.copyReference")}
-                        >
-                          <Copy className="w-3 h-3" />
-                            </button>
-                      </div>
-                      {recharge.is_expired && (
-                            <p className="text-xs text-red-500 mt-1">
-                              <span className="font-medium">{t("additional.rechargeHistory.status")}:</span> {t("additional.rechargeHistory.expired")}
-                        </p>
-                      )}
-                    </div>
-                        
-                        <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                          {formatFullDate(recharge.created_at)}
+                      <p className="text-[12px] mt-0.5" style={{ color: BP.muted }}>
+                        {formatRechargeDate(recharge.created_at)}
                       </p>
                     </div>
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${rechargeStatusPill(recharge.status)}`}
+                    >
+                      {statusInfo.text}
+                    </span>
                   </div>
-                  )
-                })}
+                  <div
+                    className="flex items-center justify-between pt-2 text-[11px]"
+                    style={{ borderTop: `1px solid ${isDark ? "#243147" : BP.border}` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono" style={{ color: BP.muted }}>
+                        {recharge.reference}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(recharge.reference)}
+                        title={t("additional.rechargeHistory.copyReference")}
+                      >
+                        <Copy className="w-3 h-3" style={{ color: BP.muted }} />
+                      </button>
+                    </div>
+                    <span style={{ color: BP.muted }}>{formatFullDate(recharge.created_at)}</span>
+                  </div>
+                  {recharge.is_expired && (
+                    <p className="text-xs mt-2" style={{ color: BP.red }}>
+                      {t("additional.rechargeHistory.expired")}
+                    </p>
+                  )}
                 </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-                  theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                }`}>
-                  <Search className={`w-8 h-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                </div>
-                <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  {t("additional.rechargeHistory.noRechargesFound")}
-                </p>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                  {t("additional.rechargeHistory.tryAdjustingSearchOrFilters")}
-                </p>
-              </div>
-            )}
+              )
+            })}
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-12">
+            <Search className="w-10 h-10 mx-auto mb-3" style={{ color: BP.muted }} />
+            <p className="text-sm font-semibold" style={{ color: BP.muted }}>
+              {t("additional.rechargeHistory.noRechargesFound")}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Fixed bottom pagination */}
-        {totalPages > 1 && (
-        <div className={`fixed bottom-0 left-0 right-0 z-50 p-4 ${
-          theme === "dark" 
-            ? "bg-slate-900/95 border-t border-gray-700/50" 
-            : "bg-white/95 border-t border-gray-200/50"
-        } backdrop-blur-lg`}>
+      {totalPages > 1 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 border-t"
+          style={{ background: pageBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+        >
           <div className="flex items-center justify-between">
             <Button
               variant="outline"

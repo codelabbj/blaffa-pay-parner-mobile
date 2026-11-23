@@ -1,21 +1,20 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { ThemeProvider, LanguageProvider, AuthProvider } from "@/lib/contexts"
 import "./globals.css"
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-plus-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
 })
 
 export const metadata: Metadata = {
-  title: "BlaffaPay Partners - Financial Hub",
-  description: "Next-generation digital banking platform - Secure, fast, and intuitive",
-  // generator: "",
+  title: "Blaffa Pay · Partners",
+  description: "Espace partenaire Blaffa Pay — dépôts, retraits, transferts et MobCash",
   viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
   icons: {
     icon: "/logo.png",
@@ -30,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans ${inter.variable} antialiased`}>
+    <html lang="fr">
+      <body className={`font-sans ${plusJakarta.variable} antialiased`}>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>

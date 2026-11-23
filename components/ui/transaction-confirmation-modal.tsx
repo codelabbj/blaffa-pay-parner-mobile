@@ -75,25 +75,25 @@ export function TransactionConfirmationModal({
         return {
           primary: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
           accent: theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200",
-          button: "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600"
+          button: "bg-[#0E9F6E] hover:bg-[#0c8a5f]"
         }
       case 'withdrawal':
         return {
           primary: theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600",
           accent: theme === "dark" ? "bg-red-500/10 border-red-500/30" : "bg-red-50 border-red-200",
-          button: "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600"
+          button: "bg-[#E5484D] hover:bg-[#d03e43]"
         }
       case 'recharge':
         return {
           primary: theme === "dark" ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600",
           accent: theme === "dark" ? "bg-emerald-500/10 border-emerald-500/30" : "bg-emerald-50 border-emerald-200",
-          button: "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600"
+          button: "bg-[#0E9F6E] hover:bg-[#0c8a5f]"
         }
       default:
         return {
           primary: theme === "dark" ? "bg-gray-500/20 text-gray-400" : "bg-gray-100 text-gray-600",
           accent: theme === "dark" ? "bg-gray-500/10 border-gray-500/30" : "bg-gray-50 border-gray-200",
-          button: "bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600"
+          button: "bg-[#0E1A2E] hover:bg-[#152238]"
         }
     }
   }

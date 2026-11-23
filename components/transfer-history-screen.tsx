@@ -12,6 +12,7 @@ import { transferService, Transfer } from "@/lib/transfers"
 import { parseBackendError, formatErrorMessage } from "@/lib/error-utils"
 import { formatNumberWithSpaces } from "@/lib/utils"
 import { TransactionDetailsModal } from "@/components/transaction-details-modal"
+import { BP, pageBg, cardBg, textPrimary, statusPillClass } from "@/lib/design"
 
 interface TransferHistoryScreenProps {
   onNavigateBack: () => void
@@ -58,6 +59,13 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
   const { theme } = useTheme()
   const { t } = useTranslation()
   const { user } = useAuth()
+  const isDark = theme === "dark"
+
+  const cardStyle = {
+    background: cardBg(isDark),
+    borderColor: isDark ? "#243147" : BP.border,
+    boxShadow: isDark ? "none" : "0 8px 24px rgba(14, 26, 46, 0.06)",
+  }
 
   const loadTransfers = async (page: number = 1, append: boolean = false) => {
     if (append) {
@@ -246,41 +254,32 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
 
   return (
     <div
-      className={`min-h-screen relative overflow-hidden ${theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
+      className="min-h-screen"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{
+        background: pageBg(isDark),
         transform: `translateY(${pullToRefreshState.pullDistance}px)`,
-        transition: pullToRefreshState.isPulling ? 'none' : 'transform 0.3s ease-out'
+        transition: pullToRefreshState.isPulling ? "none" : "transform 0.3s ease-out",
       }}
     >
       {/* Pull-to-refresh indicator */}
       {(pullToRefreshState.isPulling || pullToRefreshState.isRefreshing) && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark"
-            ? "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
-            : "bg-white/90 backdrop-blur-sm border border-gray-200/50"
-            } shadow-lg`}>
-            <RefreshCw className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? 'animate-spin' : ''
-              } ${theme === "dark" ? "text-blue-400" : "text-blue-500"}`} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center border"
+            style={{ background: cardBg(isDark), borderColor: isDark ? "#243147" : BP.border }}
+          >
+            <RefreshCw
+              className={`w-5 h-5 ${pullToRefreshState.isRefreshing ? "animate-spin" : ""}`}
+              style={{ color: BP.green }}
+            />
           </div>
         </div>
       )}
 
-      {/* Mobile-optimized background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 right-4 w-32 h-32 rounded-full opacity-20 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-2xl animate-pulse`}></div>
-        <div className={`absolute bottom-40 left-4 w-40 h-40 rounded-full opacity-20 ${theme === "dark" ? "bg-blue-500" : "bg-blue-300"
-          } blur-2xl animate-pulse`} style={{ animationDelay: '1.5s' }}></div>
-      </div>
-
-      {/* Mobile-first header with safe area */}
-      <div className="relative z-10 px-4 pt-safe-area-inset-top pt-12">
+      <div className="px-4 pt-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <Button
@@ -319,7 +318,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
             <Button
               variant="ghost"
               size="sm"
-              onClick={loadTransfers}
+              onClick={() => void loadTransfers(1, false)}
               disabled={isLoading}
               className={`h-10 w-10 sm:h-11 sm:w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
                 ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
@@ -331,23 +330,20 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
           </div>
         </div>
 
-        {/* Search Field */}
-        <div className={`p-4 rounded-2xl border mb-4 sm:mb-6 ${theme === "dark"
-          ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-          : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-          }`}>
-          <div className="relative">
-            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`} />
-            <Input
+        <div className="relative mb-4">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BP.muted }} />
+            <input
               type="text"
               placeholder="Rechercher par nom, référence, description ou montant..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`pl-10 h-12 text-sm rounded-xl border-2 transition-all duration-300 ${theme === "dark"
-                ? "bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-500 focus:bg-gray-700"
-                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:bg-white"
-                }`}
+              className="w-full h-12 pl-11 pr-10 text-sm rounded-full border outline-none focus:ring-2 focus:ring-[#0E9F6E]/20"
+              style={{
+                background: cardBg(isDark),
+                borderColor: isDark ? "#243147" : BP.border,
+                color: textPrimary(isDark),
+                boxShadow: isDark ? "none" : "0 4px 16px rgba(14,26,46,0.04)",
+              }}
             />
             {searchQuery && (
               <button
@@ -361,14 +357,10 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
               </button>
             )}
           </div>
-        </div>
 
         {/* Filters */}
         {showFilters && (
-          <div className={`p-4 rounded-2xl border mb-4 sm:mb-6 ${theme === "dark"
-            ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-            : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}>
+          <div className="p-4 rounded-[18px] border mb-4" style={cardStyle}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className={`text-xs font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
@@ -455,7 +447,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
               <Button
                 size="sm"
                 onClick={() => setShowFilters(false)}
-                className="flex-1 h-10 sm:h-11 text-sm bg-blue-600 hover:bg-blue-700"
+                className="flex-1 h-10 sm:h-11 text-sm bp-btn-primary border-0"
               >
                 Appliquer
               </Button>
@@ -464,8 +456,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
         )}
       </div>
 
-      {/* Scrollable content area */}
-      <div className="relative z-10 px-4 pb-24 max-h-screen overflow-y-auto">
+      <div className="px-4 pb-24">
         {/* Error Alert */}
         <ErrorAlert
           error={error}
@@ -478,7 +469,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-500 mx-auto mb-4" />
+              <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 animate-spin mx-auto mb-4" style={{ color: BP.green }} />
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                 Chargement des transferts...
               </p>
@@ -493,10 +484,8 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
                   setSelectedTransfer(transfer)
                   setShowTransactionDetails(true)
                 }}
-                className={`p-3 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer active:scale-98 ${theme === "dark"
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                  : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:bg-gray-50/80"
-                  }`}
+                className="p-4 rounded-[18px] border cursor-pointer active:scale-[0.99] transition bp-card"
+                style={cardStyle}
               >
                 {/* Mobile-first responsive layout */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -520,12 +509,9 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
                         <p className={`font-semibold text-sm sm:text-base truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                           {transfer.receiver_name}
                         </p>
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(transfer.status)}
-                          <span className={`text-xs ${getStatusColor(transfer.status)}`}>
-                            {transfer.status}
-                          </span>
-                        </div>
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${statusPillClass(transfer.status)}`}>
+                          {transfer.status}
+                        </span>
                       </div>
 
                       <p className={`text-xs sm:text-sm mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -637,7 +623,7 @@ export function TransferHistoryScreen({ onNavigateBack }: TransferHistoryScreenP
           ...selectedTransfer,
           historyType: 'transfer',
           typeIcon: Send,
-          typeColor: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
+          typeColor: theme === "dark" ? "bg-[#EEF2F8]0/20 text-[#0E9F6E]" : "bg-[rgba(14,159,110,0.12)] text-[#0E9F6E]",
           typeLabel: "Transfert",
           // Override display fields for consistent rendering
           display_recipient_name: selectedTransfer.receiver_name,

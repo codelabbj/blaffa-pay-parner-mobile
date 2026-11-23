@@ -1,40 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import {
-  ArrowLeft,
-  DollarSign,
-  TrendingUp,
-  CheckCircle,
-  Clock,
-  RefreshCw,
-  AlertCircle,
-} from "lucide-react"
-import { useTheme } from "@/lib/contexts"
+import { ChevronLeft, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/lib/auth"
-import { bettingService, CommissionStats, UnpaidCommissionsResponse, CommissionRatesResponse, PaymentHistoryResponse } from "@/lib/betting"
-import { formatNumberWithSpaces } from "@/lib/utils"
+import {
+  bettingService,
+  CommissionStats,
+  PaymentHistoryResponse,
+} from "@/lib/betting"
+import { BP, pageBg, formatFcfa } from "@/lib/design"
 
 interface BettingCommissionsScreenProps {
   onNavigateBack: () => void
 }
 
-export function BettingCommissionsScreen({
-  onNavigateBack,
-}: BettingCommissionsScreenProps) {
-  const { theme } = useTheme()
+/** PDF p.19 — Commissions : carte du mois + historique des paiements */
+export function BettingCommissionsScreen({ onNavigateBack }: BettingCommissionsScreenProps) {
   const { toast } = useToast()
-
-  const [isLoadingStats, setIsLoadingStats] = useState(true)
-  const [isLoadingUnpaid, setIsLoadingUnpaid] = useState(true)
-  const [isLoadingRates, setIsLoadingRates] = useState(true)
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<CommissionStats | null>(null)
-  const [unpaidCommissions, setUnpaidCommissions] = useState<UnpaidCommissionsResponse | null>(null)
-  const [rates, setRates] = useState<CommissionRatesResponse | null>(null)
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryResponse | null>(null)
 
   useEffect(() => {
@@ -42,561 +27,164 @@ export function BettingCommissionsScreen({
   }, [])
 
   const loadData = async () => {
-    await Promise.all([
-      loadStats(),
-      loadUnpaidCommissions(),
-      loadRates(),
-      loadPaymentHistory(),
-    ])
-  }
-
-  const loadStats = async () => {
-    setIsLoadingStats(true)
+    setIsLoading(true)
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
-      const data = await bettingService.getCommissionStats(accessToken)
-      setStats(data)
+      const now = new Date()
+      const dateFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+      const dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
+
+      const [statsData, historyData] = await Promise.all([
+        bettingService.getCommissionStats(accessToken, dateFrom, dateTo),
+        bettingService.getPaymentHistory(accessToken).catch(() => null),
+      ])
+      setStats(statsData)
+      setPaymentHistory(historyData)
     } catch (error) {
-      console.error("Load stats error:", error)
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de charger les statistiques",
+        description: error instanceof Error ? error.message : "Impossible de charger les commissions",
         variant: "destructive",
       })
     } finally {
-      setIsLoadingStats(false)
+      setIsLoading(false)
     }
   }
 
-  const loadUnpaidCommissions = async () => {
-    setIsLoadingUnpaid(true)
-    try {
-      const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+  const monthLabel = new Date()
+    .toLocaleDateString("fr-FR", { month: "long" })
+    .toUpperCase()
 
-      const data = await bettingService.getUnpaidCommissions(accessToken)
-      setUnpaidCommissions(data)
-    } catch (error) {
-      console.error("Load unpaid commissions error:", error)
-    } finally {
-      setIsLoadingUnpaid(false)
+  const totalMonth = stats
+    ? Number(stats.total_commission || 0) ||
+      Number(stats.paid_commission || 0) + Number(stats.unpaid_commission || 0)
+    : 0
+  const paid = stats ? Number(stats.paid_commission || 0) : 0
+  const unpaid = stats ? Number(stats.unpaid_commission || 0) : 0
+
+  const formatPeriod = (payment: { period_start?: string; period_end?: string; created_at: string }) => {
+    const fmt = (value?: string) => {
+      if (!value) return ""
+      const d = new Date(value)
+      if (Number.isNaN(d.getTime())) return value
+      return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }).replace(".", "")
     }
-  }
-
-  const loadRates = async () => {
-    setIsLoadingRates(true)
-    try {
-      const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
-
-      const data = await bettingService.getCurrentRates(accessToken)
-      setRates(data)
-    } catch (error) {
-      console.error("Load rates error:", error)
-    } finally {
-      setIsLoadingRates(false)
+    if (payment.period_start && payment.period_end) {
+      return `Semaine du ${fmt(payment.period_start)}-${fmt(payment.period_end)}`
     }
-  }
-
-  const loadPaymentHistory = async () => {
-    setIsLoadingHistory(true)
-    try {
-      const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
-
-      const data = await bettingService.getPaymentHistory(accessToken)
-      setPaymentHistory(data)
-    } catch (error) {
-      console.error("Load payment history error:", error)
-    } finally {
-      setIsLoadingHistory(false)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
+    const d = new Date(payment.created_at)
+    if (Number.isNaN(d.getTime())) return payment.created_at
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
   }
 
   return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-          : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-      }`}
-    >
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-emerald-500" : "bg-emerald-300"
-          } blur-3xl animate-pulse`}
-        ></div>
-        <div
-          className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${
-            theme === "dark" ? "bg-green-500" : "bg-green-300"
-          } blur-2xl animate-pulse`}
-          style={{ animationDelay: "2s" }}
-        ></div>
+    <div className="min-h-screen pb-10" style={{ background: pageBg(false) }}>
+      {/* Header PDF : bouton blanc carré + titre (pas de refresh) */}
+      <div className="px-4 pt-12 pb-5 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onNavigateBack}
+          className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 bg-white border"
+          style={{ borderColor: BP.border }}
+          aria-label="Retour"
+        >
+          <ChevronLeft className="w-5 h-5" style={{ color: BP.text }} />
+        </button>
+        <h1 className="text-[26px] font-extrabold tracking-tight" style={{ color: BP.text }}>
+          Commissions
+        </h1>
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNavigateBack}
-              className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-                theme === "dark"
-                  ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                  : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
+      <div className="px-4">
+        {/* Carte PDF : 2 sous-cartes translucides Déjà payée / À recevoir */}
+        <div
+          className="rounded-[24px] px-4 pt-5 pb-4 mb-7 text-white"
+          style={{ background: "#0B8F63" }}
+        >
+          <p className="text-[11px] font-bold tracking-[0.08em] text-white/80 px-1">
+            COMMISSION DU MOIS · {monthLabel}
+          </p>
+          <p className="text-[36px] font-extrabold tabular-nums mt-3 leading-none tracking-tight px-1">
+            {isLoading ? "…" : formatFcfa(totalMonth)}{" "}
+            <span className="text-[15px] font-bold tracking-normal">FCFA</span>
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div
+              className="rounded-[16px] px-3.5 py-3"
+              style={{ background: "rgba(255,255,255,0.16)" }}
             >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1
-                className={`text-2xl font-bold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Commissions
-              </h1>
-              <p
-                className={`text-sm ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Vos gains sur les transactions
+              <p className="text-[12px] text-white/80">Déjà payée</p>
+              <p className="text-[18px] font-extrabold tabular-nums mt-1.5">
+                {isLoading ? "…" : `${formatFcfa(paid)} F`}
+              </p>
+            </div>
+            <div
+              className="rounded-[16px] px-3.5 py-3"
+              style={{ background: "rgba(255,255,255,0.16)" }}
+            >
+              <p className="text-[12px] text-white/80">À recevoir</p>
+              <p className="text-[18px] font-extrabold tabular-nums mt-1.5">
+                {isLoading ? "…" : `${formatFcfa(unpaid)} F`}
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadData}
-            disabled={isLoadingStats}
-            className={`h-11 w-11 p-0 rounded-xl active:scale-95 transition-all duration-200 ${
-              theme === "dark"
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-            }`}
-          >
-            <RefreshCw className={`w-5 h-5 ${isLoadingStats ? "animate-spin" : ""}`} />
-          </Button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Card
-            className={`p-4 rounded-2xl border ${
-              theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-600"
-                }`}
-              >
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div>
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Total
-                </p>
-                <p
-                  className={`text-lg font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {stats ? formatNumberWithSpaces(stats.total_commission) : "0"}
-                </p>
-              </div>
-            </div>
-          </Card>
+        <p
+          className="text-[11px] font-bold tracking-[0.14em] mb-3 px-0.5"
+          style={{ color: BP.muted }}
+        >
+          HISTORIQUE DES PAIEMENTS
+        </p>
 
-          <Card
-            className={`p-4 rounded-2xl border ${
-              theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}
-          >
-            <div className="flex items-center gap-3">
+        {isLoading && !paymentHistory ? (
+          <div className="py-12 text-center text-sm" style={{ color: BP.muted }}>
+            Chargement…
+          </div>
+        ) : paymentHistory && paymentHistory.payments.length > 0 ? (
+          <div className="space-y-3">
+            {paymentHistory.payments.map((payment) => (
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-600"
-                }`}
+                key={payment.uid}
+                className="flex items-center gap-3 p-4 rounded-[18px] border bg-white"
+                style={{
+                  borderColor: BP.border,
+                  boxShadow: "0 4px 16px rgba(14,26,46,0.04)",
+                }}
               >
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Non payée
-                </p>
-                <p
-                  className={`text-lg font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {stats ? formatNumberWithSpaces(stats.unpaid_commission) : "0"}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className={`p-4 rounded-2xl border ${
-              theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
-                }`}
-              >
-                <CheckCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Payée
-                </p>
-                <p
-                  className={`text-lg font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {stats ? formatNumberWithSpaces(stats.paid_commission) : "0"}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className={`p-4 rounded-2xl border ${
-              theme === "dark"
-                ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                }`}
-              >
-                <TrendingUp className="w-5 h-5" />
-              </div>
-              <div>
-                <p
-                  className={`text-xs ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Transactions
-                </p>
-                <p
-                  className={`text-lg font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {stats ? stats.total_transactions : 0}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 px-4 pb-24 space-y-6">
-        {/* Commission Rates */}
-        {rates && (
-          <div>
-            <h2
-              className={`text-sm font-semibold mb-3 px-2 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              TAUX DE COMMISSION
-            </h2>
-            <Card
-              className={`p-4 rounded-2xl border ${
-                theme === "dark"
-                  ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                  : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Taux de dépôt
-                  </span>
-                  <span
-                    className={`font-bold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {rates.deposit_rate}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Taux de retrait
-                  </span>
-                  <span
-                    className={`font-bold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {rates.withdrawal_rate}%
-                  </span>
-                </div>
-              </div>
-              {rates.message && (
                 <div
-                  className={`mt-3 p-3 rounded-xl flex items-start gap-2 ${
-                    theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
-                  }`}
+                  className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(14,159,110,0.12)" }}
                 >
-                  <AlertCircle
-                    className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-600"
-                    }`}
-                  />
-                  <p
-                    className={`text-xs ${
-                      theme === "dark" ? "text-blue-300" : "text-blue-700"
-                    }`}
-                  >
-                    {rates.message}
+                  <CheckCircle className="w-5 h-5" style={{ color: BP.green }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-extrabold" style={{ color: BP.text }}>
+                    Commission payée
+                  </p>
+                  <p className="text-[12px] mt-0.5 truncate" style={{ color: BP.muted }}>
+                    {formatPeriod(payment)}
                   </p>
                 </div>
-              )}
-            </Card>
+                <p className="text-[16px] font-extrabold tabular-nums shrink-0" style={{ color: BP.green }}>
+                  +{formatFcfa(payment.total_amount)}
+                </p>
+              </div>
+            ))}
           </div>
-        )}
-
-        {/* Commission by Platform */}
-        {stats && stats.by_platform.length > 0 && (
-          <div>
-            <h2
-              className={`text-sm font-semibold mb-3 px-2 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              PAR PLATEFORME
-            </h2>
-            <div className="space-y-3">
-              {stats.by_platform.map((platform, index) => (
-                <Card
-                  key={index}
-                  className={`p-4 rounded-2xl border ${
-                    theme === "dark"
-                      ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                      : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3
-                      className={`font-bold ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {platform.platform__name}
-                    </h3>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {platform.count} transactions
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                      }`}
-                    >
-                      <p
-                        className={`text-xs ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        Total
-                      </p>
-                      <p
-                        className={`font-bold ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                      >
-                        {formatNumberWithSpaces((platform.total_commission ?? 0).toString())}
-                      </p>
-                    </div>
-                    <div
-                      className={`p-2 rounded-lg ${
-                        theme === "dark" ? "bg-yellow-500/20" : "bg-yellow-100"
-                      }`}
-                    >
-                      <p
-                        className={`text-xs ${
-                          theme === "dark" ? "text-yellow-400" : "text-yellow-600"
-                        }`}
-                      >
-                        Non payée
-                      </p>
-                      <p
-                        className={`font-bold ${
-                          theme === "dark" ? "text-yellow-400" : "text-yellow-600"
-                        }`}
-                      >
-                        {formatNumberWithSpaces((platform.unpaid_commission ?? 0).toString())}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Payment History */}
-        {paymentHistory && paymentHistory.payments.length > 0 && (
-          <div>
-            <h2
-              className={`text-sm font-semibold mb-3 px-2 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              HISTORIQUE DES PAIEMENTS
-            </h2>
-            <div className="space-y-3">
-              {paymentHistory.payments.map((payment) => (
-                <Card
-                  key={payment.uid}
-                  className={`p-4 rounded-2xl border ${
-                    theme === "dark"
-                      ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                      : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
-                        }`}
-                      >
-                        <CheckCircle className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p
-                          className={`font-bold ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          {formatNumberWithSpaces(payment.total_amount)} FCFA
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          {payment.transaction_count} transactions
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`p-2 rounded-lg ${
-                      theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span
-                        className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
-                      >
-                        Payé par
-                      </span>
-                      <span
-                        className={theme === "dark" ? "text-white" : "text-gray-900"}
-                      >
-                        {payment.paid_by_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span
-                        className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
-                      >
-                        Date
-                      </span>
-                      <span
-                        className={theme === "dark" ? "text-white" : "text-gray-900"}
-                      >
-                        {formatDate(payment.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                  {payment.notes && (
-                    <p
-                      className={`mt-2 text-xs ${
-                        theme === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}
-                    >
-                      {payment.notes}
-                    </p>
-                  )}
-                </Card>
-              ))}
-            </div>
+        ) : (
+          <div
+            className="rounded-[18px] border bg-white p-8 text-center"
+            style={{ borderColor: BP.border }}
+          >
+            <p className="text-sm font-semibold" style={{ color: BP.muted }}>
+              Aucun paiement enregistré pour le moment
+            </p>
           </div>
         )}
       </div>
     </div>
   )
 }
-

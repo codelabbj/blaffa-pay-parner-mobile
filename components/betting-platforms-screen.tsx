@@ -1,27 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import {
   ArrowLeft,
-  Shield,
   Check,
   X,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
   ChevronRight,
   Gamepad2,
-  DollarSign,
   Activity,
+  Loader2,
 } from "lucide-react"
-import { useTheme } from "@/lib/contexts"
-import { useTranslation } from "@/lib/contexts"
 import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/lib/auth"
 import { bettingService, BettingPlatformWithStats, ExternalPlatformData } from "@/lib/betting"
-import { formatNumberWithSpaces } from "@/lib/utils"
+import { BP } from "@/lib/design"
 
 interface BettingPlatformsScreenProps {
   onNavigateBack: () => void
@@ -30,15 +22,38 @@ interface BettingPlatformsScreenProps {
   transactionType?: "deposit" | "withdraw"
 }
 
+function prettyPlace(value?: string | null) {
+  if (!value) return ""
+  return value
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+    .join(" ")
+}
+
+function platformBadge(name: string): { label: string; bg: string } {
+  const n = (name || "").toUpperCase()
+  if (n.includes("1X") || n.includes("1XBET")) return { label: "1X", bg: BP.blue }
+  if (n.includes("MEL")) return { label: "MEL", bg: BP.navy }
+  if (n.includes("888")) return { label: "888", bg: "#1A1A2E" }
+  if (n.includes("BETWINNER") || n.includes("BW")) return { label: "BW", bg: "#0B6E4F" }
+  const letters = n.replace(/[^A-Z0-9]/g, "").slice(0, 3) || "?"
+  return { label: letters, bg: BP.violet }
+}
+
+/** PDF p.9 — liste plateformes MobCash */
 export function BettingPlatformsScreen({
   onNavigateBack,
   onNavigateToBettingDeposit,
   onNavigateToBettingWithdraw,
   transactionType,
 }: BettingPlatformsScreenProps) {
-  const { theme } = useTheme()
-  const { t } = useTranslation()
   const { toast } = useToast()
+  const cardStyle = {
+    background: BP.card,
+    borderColor: BP.border,
+    boxShadow: "0 8px 24px rgba(14, 26, 46, 0.06)",
+  }
 
   const [isLoading, setIsLoading] = useState(true)
   const [authorizedPlatforms, setAuthorizedPlatforms] = useState<BettingPlatformWithStats[]>([])
@@ -50,7 +65,6 @@ export function BettingPlatformsScreen({
     platforms_with_transactions: 0,
   })
   const [selectedPlatform, setSelectedPlatform] = useState<BettingPlatformWithStats | null>(null)
-  const [externalPlatformData, setExternalPlatformData] = useState<ExternalPlatformData[]>([])
 
   useEffect(() => {
     loadPlatforms()
@@ -60,52 +74,37 @@ export function BettingPlatformsScreen({
     setIsLoading(true)
     try {
       const accessToken = authService.getAccessToken()
-      if (!accessToken) {
-        throw new Error("No access token available")
-      }
+      if (!accessToken) throw new Error("No access token available")
 
-      // Load internal platforms first
       const platformsData = await bettingService.getPlatformsWithStats(accessToken)
-      setAuthorizedPlatforms(platformsData.authorized_platforms)
-      setUnauthorizedPlatforms(platformsData.unauthorized_platforms)
       setSummary(platformsData.summary)
 
-      // Try to load external platform data, but don't fail if it doesn't work
-      let externalData: any[] = []
+      let externalData: ExternalPlatformData[] = []
       try {
         externalData = await bettingService.getExternalPlatformData()
-        setExternalPlatformData(externalData)
       } catch (externalError) {
         console.warn("External platform data failed to load:", externalError)
-        // Continue without external data - platforms will still work
       }
 
-      // Merge external data with internal platforms (if available)
-      const matchPlatform = (platform: any, externalData: any[]) => {
-        // First try to match by external_id
-        let match = externalData.find(ext => ext.id === platform.external_id)
-
-        // If no match, try to match by name (case-insensitive) as a fallback
+      const matchPlatform = (platform: BettingPlatformWithStats, extData: ExternalPlatformData[]) => {
+        let match = extData.find((ext) => ext.id === platform.external_id)
         if (!match) {
-          match = externalData.find(ext =>
-            ext.name.toLowerCase() === platform.name.toLowerCase() ||
-            ext.public_name?.toLowerCase() === platform.name.toLowerCase()
+          match = extData.find(
+            (ext) =>
+              ext.name.toLowerCase() === platform.name.toLowerCase() ||
+              ext.public_name?.toLowerCase() === platform.name.toLowerCase()
           )
         }
-
         return {
           ...platform,
           city: match?.city || platform.city,
           street: match?.street || platform.street,
-          external_image: match?.image || platform.external_image
+          external_image: match?.image || platform.external_image,
         }
       }
 
-      const enrichedAuthorizedPlatforms = platformsData.authorized_platforms.map(p => matchPlatform(p, externalData))
-      const enrichedUnauthorizedPlatforms = platformsData.unauthorized_platforms.map(p => matchPlatform(p, externalData))
-
-      setAuthorizedPlatforms(enrichedAuthorizedPlatforms)
-      setUnauthorizedPlatforms(enrichedUnauthorizedPlatforms)
+      setAuthorizedPlatforms(platformsData.authorized_platforms.map((p) => matchPlatform(p, externalData)))
+      setUnauthorizedPlatforms(platformsData.unauthorized_platforms.map((p) => matchPlatform(p, externalData)))
     } catch (error) {
       console.error("Load platforms error:", error)
       toast({
@@ -118,443 +117,178 @@ export function BettingPlatformsScreen({
     }
   }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A"
-    const date = new Date(dateString)
-    return date.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  }
-
   const handlePlatformSelect = (platform: BettingPlatformWithStats) => {
-    if (transactionType) {
-      // Automatically navigate based on transaction type
-      if (transactionType === "deposit") {
-        onNavigateToBettingDeposit(platform.uid)
-      } else {
-        onNavigateToBettingWithdraw(platform.uid)
-      }
+    if (transactionType === "deposit") {
+      onNavigateToBettingDeposit(platform.uid)
+    } else if (transactionType === "withdraw") {
+      onNavigateToBettingWithdraw(platform.uid)
     } else {
-      // Show platform details for manual selection
       setSelectedPlatform(platform)
     }
   }
 
-  return (
-    <div
-      className={`min-h-screen relative overflow-hidden ${theme === "dark"
-        ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
-        : "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        }`}
-    >
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className={`absolute top-20 right-4 w-40 h-40 rounded-full opacity-10 ${theme === "dark" ? "bg-indigo-500" : "bg-indigo-300"
-            } blur-3xl animate-pulse`}
-        ></div>
-        <div
-          className={`absolute bottom-60 left-4 w-32 h-32 rounded-full opacity-10 ${theme === "dark" ? "bg-purple-500" : "bg-purple-300"
-            } blur-2xl animate-pulse`}
-          style={{ animationDelay: "2s" }}
-        ></div>
-      </div>
+  const logoUrl = (platform: BettingPlatformWithStats) => {
+    if (platform.external_image) return platform.external_image
+    if (platform.logo) {
+      return platform.logo.startsWith("http")
+        ? platform.logo
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`
+    }
+    return ""
+  }
 
-      {/* Header */}
-      <div className="relative z-10 px-3 pt-12 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNavigateBack}
-              className={`h-10 w-10 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-                ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-                : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-                }`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1
-                className={`text-lg font-bold truncate ${theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-              >
-                {transactionType
-                  ? `Plateformes - ${transactionType === "deposit" ? "Dépôt" : "Retrait"}`
-                  : "Plateformes de Paris"
-                }
-              </h1>
-              <p
-                className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-              >
-                {transactionType
-                  ? `Sélectionnez une plateforme pour ${transactionType === "deposit" ? "effectuer un dépôt" : "effectuer un retrait"}`
-                  : "Gérer vos plateformes autorisées"
-                }
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadPlatforms}
-            disabled={isLoading}
-            className={`h-10 w-10 p-0 rounded-xl active:scale-95 transition-all duration-200 ${theme === "dark"
-              ? "text-gray-300 hover:bg-white/10 active:bg-white/20"
-              : "text-gray-600 hover:bg-black/5 active:bg-black/10"
-              }`}
+  const title = transactionType
+    ? transactionType === "deposit"
+      ? "Dépôt — Plateformes"
+      : "Retrait — Plateformes"
+    : "Plateformes de paris"
+
+  const subtitle = transactionType
+    ? "Choisis une plateforme de paris"
+    : "Gérer vos plateformes autorisées"
+
+  const renderAvatar = (platform: BettingPlatformWithStats, muted = false) => {
+    const url = logoUrl(platform)
+    const badge = platformBadge(platform.name)
+    if (url) {
+      return (
+        <div
+          className={`w-11 h-11 rounded-[12px] overflow-hidden flex items-center justify-center shrink-0 ${muted ? "grayscale opacity-70" : ""}`}
+          style={{ background: BP.bg }}
+        >
+          <img src={url} alt={platform.name} className="w-11 h-11 object-cover" />
+        </div>
+      )
+    }
+    return (
+      <div
+        className="w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0 text-white text-[11px] font-extrabold tracking-tight"
+        style={{ background: muted ? BP.muted : badge.bg }}
+      >
+        {badge.label}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen pb-8" style={{ background: BP.bg }}>
+      <div className="px-4 pt-12 pb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
+            onClick={onNavigateBack}
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center border shrink-0 active:scale-95 bg-white"
+            style={{ borderColor: BP.border }}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
+            <ArrowLeft className="w-5 h-5" style={{ color: BP.text }} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] font-extrabold truncate" style={{ color: BP.text }}>
+              {title}
+            </h1>
+            <p className="text-[12px]" style={{ color: BP.muted }}>
+              {subtitle}
+            </p>
+          </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Card
-            className={`p-3 rounded-xl border transition-all ${theme === "dark"
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-          >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bp-card p-3 border rounded-[18px]" style={cardStyle}>
             <div className="flex items-center gap-2">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600"
-                  }`}
+                className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                style={{ background: "rgba(14,159,110,0.14)" }}
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4" style={{ color: BP.green }} />
               </div>
               <div>
-                <p
-                  className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                >
+                <p className="text-[11px]" style={{ color: BP.muted }}>
                   Autorisées
                 </p>
-                <p
-                  className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                >
+                <p className="text-lg font-extrabold" style={{ color: BP.text }}>
                   {summary.authorized_count}
                 </p>
               </div>
             </div>
-          </Card>
-
-          <Card
-            className={`p-3 rounded-xl border transition-all ${theme === "dark"
-              ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-              : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-              }`}
-          >
+          </div>
+          <div className="bp-card p-3 border rounded-[18px]" style={cardStyle}>
             <div className="flex items-center gap-2">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                  }`}
+                className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                style={{ background: "rgba(47,107,255,0.12)" }}
               >
-                <Activity className="w-4 h-4" />
+                <Activity className="w-4 h-4" style={{ color: BP.blue }} />
               </div>
               <div>
-                <p
-                  className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                >
-                  Avec transactions
+                <p className="text-[11px]" style={{ color: BP.muted }}>
+                  Actives
                 </p>
-                <p
-                  className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                >
-                  {summary.platforms_with_transactions}
+                <p className="text-lg font-extrabold" style={{ color: BP.text }}>
+                  {summary.platforms_with_transactions || summary.authorized_count}
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 
-      {/* Platforms List */}
-      <div className="relative z-10 px-3 pb-20">
+      <div className="px-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: BP.blue }} />
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* Authorized Platforms */}
-            {authorizedPlatforms.length > 0 && (
-              <div>
-                <h2
-                  className={`text-xs font-semibold mb-2 px-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                >
-                  PLATEFORMES AUTORISÉES
-                </h2>
-                <div className="space-y-2">
-                  {authorizedPlatforms.map((platform) => (
-                    <Card
-                      key={platform.uid}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer ${theme === "dark"
-                        ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm hover:bg-gray-700/60"
-                        : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm hover:shadow-md"
-                        }`}
-                      onClick={() => handlePlatformSelect(platform)}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                          {platform.external_image ? (
-                            <img
-                              src={platform.external_image}
-                              alt={platform.name}
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                          ) : platform.logo ? (
-                            <img
-                              src={platform.logo.startsWith('http') ? platform.logo : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
-                              alt={platform.name}
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${theme === "dark"
-                              ? "bg-gradient-to-br from-indigo-600 to-purple-600"
-                              : "bg-gradient-to-br from-indigo-500 to-purple-500"
-                              }`}>
-                              <Gamepad2 className="w-5 h-5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3
-                              className={`font-bold text-sm truncate ${theme === "dark" ? "text-white" : "text-gray-900"
-                                }`}
-                            >
-                              {platform.name}
-                            </h3>
-                            <ChevronRight
-                              className={`w-4 h-4 flex-shrink-0 ${theme === "dark" ? "text-gray-500" : "text-gray-400"
-                                }`}
-                            />
-                          </div>
+          <div className="space-y-2">
+            {authorizedPlatforms.map((platform) => (
+              <button
+                key={platform.uid}
+                type="button"
+                onClick={() => handlePlatformSelect(platform)}
+                className="w-full bp-card p-3.5 border rounded-[18px] text-left active:scale-[0.99] transition"
+                style={cardStyle}
+              >
+                <div className="flex items-center gap-3">
+                  {renderAvatar(platform)}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-extrabold text-[15px] truncate" style={{ color: BP.text }}>
+                      {platform.name}
+                    </h3>
+                    {[platform.city, platform.street].some(Boolean) && (
+                      <p className="text-[12px] truncate" style={{ color: BP.muted }}>
+                        {[prettyPlace(platform.city), prettyPlace(platform.street)].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 shrink-0" style={{ color: BP.muted }} />
+                </div>
+              </button>
+            ))}
 
-                          {/* City and Street */}
-                          {(platform.city || platform.street) && (
-                            <div className="mb-2">
-                              {platform.city && (
-                                <p
-                                  className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                    }`}
-                                >
-                                  Ville: {platform.city}
-                                </p>
-                              )}
-                              {platform.street && (
-                                <p
-                                  className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                    }`}
-                                >
-                                  Rue: {platform.street}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Stats */}
-                          {/* <div className="grid grid-cols-2 gap-1 mt-2">
-                            <div
-                              className={`p-1.5 rounded-lg ${
-                                theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                              }`}
-                            >
-                              <p
-                                className={`text-xs ${
-                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                }`}
-                              >
-                                Transactions
-                              </p>
-                              <p
-                                className={`text-xs font-bold ${
-                                  theme === "dark" ? "text-white" : "text-gray-900"
-                                }`}
-                              >
-                                {platform.my_stats.total_transactions}
-                              </p>
-                            </div>
-                            <div
-                              className={`p-1.5 rounded-lg ${
-                                theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                              }`}
-                            >
-                              <p
-                                className={`text-xs ${
-                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                }`}
-                              >
-                                Commission
-                              </p>
-                              <p
-                                className={`text-xs font-bold ${
-                                  theme === "dark" ? "text-green-400" : "text-green-600"
-                                }`}
-                              >
-                                {formatNumberWithSpaces(platform.my_stats.unpaid_commission.toString())}
-                              </p>
-                            </div>
-                          </div> */}
-
-                          {/* Action Buttons */}
-                          {/* <div className="grid grid-cols-2 gap-1 mt-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onNavigateToBettingDeposit(platform.uid)
-                              }}
-                              disabled={!platform.can_deposit}
-                              className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                                platform.can_deposit
-                                  ? theme === "dark"
-                                    ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                                    : "bg-green-100 text-green-600 hover:bg-green-200"
-                                  : theme === "dark"
-                                  ? "bg-gray-700/50 text-gray-500 cursor-not-allowed"
-                                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              }`}
-                            >
-                              <TrendingUp className="w-3 h-3 inline mr-1" />
-                              Dépôt
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onNavigateToBettingWithdraw(platform.uid)
-                              }}
-                              disabled={!platform.can_withdraw}
-                              className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                                platform.can_withdraw
-                                  ? theme === "dark"
-                                    ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                  : theme === "dark"
-                                  ? "bg-gray-700/50 text-gray-500 cursor-not-allowed"
-                                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              }`}
-                            >
-                              <TrendingDown className="w-3 h-3 inline mr-1" />
-                              Retrait
-                            </button>
-                          </div> */}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+            {unauthorizedPlatforms.map((platform) => (
+              <div
+                key={platform.uid}
+                className="bp-card p-3.5 border rounded-[18px] opacity-70"
+                style={cardStyle}
+              >
+                <div className="flex items-center gap-3">
+                  {renderAvatar(platform, true)}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-extrabold text-[15px] truncate" style={{ color: BP.muted }}>
+                      {platform.name}
+                    </h3>
+                    <p className="text-[12px]" style={{ color: BP.muted }}>
+                      Accès non autorisé
+                    </p>
+                  </div>
+                  <X className="w-4 h-4 shrink-0" style={{ color: BP.red }} />
                 </div>
               </div>
-            )}
-
-            {/* Unauthorized Platforms */}
-            {unauthorizedPlatforms.length > 0 && (
-              <div className="mt-4">
-                <h2
-                  className={`text-xs font-semibold mb-2 px-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                >
-                  PLATEFORMES NON AUTORISÉES
-                </h2>
-                <div className="space-y-2">
-                  {unauthorizedPlatforms.map((platform) => (
-                    <Card
-                      key={platform.uid}
-                      className={`p-3 rounded-xl border transition-all opacity-60 ${theme === "dark"
-                        ? "bg-gray-800/60 border-gray-700/50 backdrop-blur-sm"
-                        : "bg-white/80 border-gray-200/50 backdrop-blur-sm shadow-sm"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                          {platform.external_image ? (
-                            <img
-                              src={platform.external_image}
-                              alt={platform.name}
-                              className="w-10 h-10 rounded-lg object-cover grayscale"
-                            />
-                          ) : platform.logo ? (
-                            <img
-                              src={platform.logo.startsWith('http') ? platform.logo : `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}${platform.logo}`}
-                              alt={platform.name}
-                              className="w-10 h-10 rounded-lg object-cover grayscale"
-                            />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                              }`}>
-                              <Gamepad2
-                                className={`w-5 h-5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"
-                                  }`}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3
-                            className={`font-bold text-sm truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                              }`}
-                          >
-                            {platform.name}
-                          </h3>
-
-                          {/* City and Street */}
-                          {(platform.city || platform.street) && (
-                            <div className="mb-1">
-                              {platform.city && (
-                                <p
-                                  className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"
-                                    }`}
-                                >
-                                  Ville: {platform.city}
-                                </p>
-                              )}
-                              {platform.street && (
-                                <p
-                                  className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"
-                                    }`}
-                                >
-                                  Rue: {platform.street}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          <p
-                            className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"
-                              }`}
-                          >
-                            Accès non autorisé
-                          </p>
-                        </div>
-                        <X
-                          className={`w-4 h-4 flex-shrink-0 ${theme === "dark" ? "text-red-500" : "text-red-600"
-                            }`}
-                        />
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+            ))}
 
             {authorizedPlatforms.length === 0 && unauthorizedPlatforms.length === 0 && (
-              <div className="text-center py-8">
-                <Gamepad2
-                  className={`w-12 h-12 mx-auto mb-3 ${theme === "dark" ? "text-gray-600" : "text-gray-400"
-                    }`}
-                />
-                <p
-                  className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                >
+              <div className="text-center py-12">
+                <Gamepad2 className="w-12 h-12 mx-auto mb-3" style={{ color: BP.muted }} />
+                <p className="text-sm font-semibold" style={{ color: BP.muted }}>
                   Aucune plateforme disponible
                 </p>
               </div>
@@ -563,230 +297,52 @@ export function BettingPlatformsScreen({
         )}
       </div>
 
-      {/* Platform Details Modal */}
       {selectedPlatform && (
         <>
-          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedPlatform(null)} />
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-            onClick={() => setSelectedPlatform(null)}
-          />
-
-          <div
-            className={`fixed bottom-0 left-0 right-0 w-full max-h-[90vh] mx-0 rounded-t-2xl border-0 shadow-2xl z-50 transform ${theme === "dark"
-              ? "bg-gray-900"
-              : "bg-white"
-              }`}
-            style={{
-              left: 0,
-              right: 0,
-              width: '100%',
-              maxWidth: '100vw'
-            }}
+            className="fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-[24px] border-t bg-white"
+            style={{ borderColor: BP.border }}
           >
-            {/* Drag Handle */}
-            <div className="flex justify-center pt-2 pb-1">
-              <div className={`w-10 h-1 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`}></div>
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full" style={{ background: BP.border }} />
             </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3 px-4">
-              <h2
-                className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-              >
+            <div className="flex items-center justify-between px-4 mb-4">
+              <h2 className="text-base font-extrabold" style={{ color: BP.text }}>
                 {selectedPlatform.name}
               </h2>
               <button
+                type="button"
                 onClick={() => setSelectedPlatform(null)}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                  }`}
+                className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                style={{ background: BP.bg }}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" style={{ color: BP.muted }} />
               </button>
             </div>
-
-            {/* Content */}
-            <div className="px-4 pb-6 overflow-y-auto max-h-[75vh]">
-              <div className="space-y-4 w-full">
-                {/* Limits */}
-                <div>
-                  <h3
-                    className={`text-sm font-bold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"
-                      }`}
-                  >
-                    LIMITES
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div
-                      className={`p-3 rounded-xl ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <p
-                        className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Dépôt Min
-                      </p>
-                      <p
-                        className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.min_deposit_amount)}
-                      </p>
-                    </div>
-                    <div
-                      className={`p-3 rounded-xl ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <p
-                        className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Dépôt Max
-                      </p>
-                      <p
-                        className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.max_deposit_amount)}
-                      </p>
-                    </div>
-                    <div
-                      className={`p-3 rounded-xl ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <p
-                        className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Retrait Min
-                      </p>
-                      <p
-                        className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.min_withdrawal_amount)}
-                      </p>
-                    </div>
-                    <div
-                      className={`p-3 rounded-xl ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <p
-                        className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Retrait Max
-                      </p>
-                      <p
-                        className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.max_withdrawal_amount)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div>
-                  <h3
-                    className={`text-sm font-bold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"
-                      }`}
-                  >
-                    STATISTIQUES
-                  </h3>
-                  <div className="space-y-3">
-                    <div
-                      className={`p-4 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <span
-                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Total Transactions
-                      </span>
-                      <span
-                        className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {selectedPlatform.my_stats.total_transactions}
-                      </span>
-                    </div>
-                    <div
-                      className={`p-4 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <span
-                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Montant Total
-                      </span>
-                      <span
-                        className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.my_stats.total_amount.toString())} FCFA
-                      </span>
-                    </div>
-                    <div
-                      className={`p-4 rounded-xl flex items-center justify-between ${theme === "dark" ? "bg-green-500/20" : "bg-green-100"
-                        }`}
-                    >
-                      <span
-                        className={`text-sm ${theme === "dark" ? "text-green-400" : "text-green-600"
-                          }`}
-                      >
-                        Commission Non Payée
-                      </span>
-                      <span
-                        className={`text-lg font-bold ${theme === "dark" ? "text-green-400" : "text-green-600"
-                          }`}
-                      >
-                        {formatNumberWithSpaces(selectedPlatform.my_stats.unpaid_commission.toString())} FCFA
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Permission Info */}
-                {selectedPlatform.granted_by_name && (
-                  <div>
-                    <h3
-                      className={`text-sm font-bold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}
-                    >
-                      AUTORISATION
-                    </h3>
-                    <div
-                      className={`p-4 rounded-xl ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-                        }`}
-                    >
-                      <p
-                        className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}
-                      >
-                        Accordée par
-                      </p>
-                      <p
-                        className={`text-base font-bold mb-1 ${theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}
-                      >
-                        {selectedPlatform.granted_by_name}
-                      </p>
-                      <p
-                        className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"
-                          }`}
-                      >
-                        {formatDate(selectedPlatform.permission_granted_at || null)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="px-4 pb-8 space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlatform(null)
+                  onNavigateToBettingDeposit(selectedPlatform.uid)
+                }}
+                className="w-full h-[52px] rounded-[16px] font-bold text-white"
+                style={{ background: BP.green }}
+              >
+                Déposer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlatform(null)
+                  onNavigateToBettingWithdraw(selectedPlatform.uid)
+                }}
+                className="w-full h-[52px] rounded-[16px] font-bold text-white"
+                style={{ background: BP.blue }}
+              >
+                Retirer
+              </button>
             </div>
           </div>
         </>
@@ -794,4 +350,3 @@ export function BettingPlatformsScreen({
     </div>
   )
 }
-

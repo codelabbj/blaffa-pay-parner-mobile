@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { BP } from "@/lib/design"
 
 interface SplashScreenProps {
   onComplete: () => void
@@ -9,16 +10,22 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onComplete, isReady = false }: SplashScreenProps) {
   const [progress, setProgress] = useState(0)
-  const [completed, setCompleted] = useState(false)
+  const completedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
 
   useEffect(() => {
-    if (completed) return
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
+    if (completedRef.current) return
 
     if (isReady) {
       setProgress(100)
       const timeout = window.setTimeout(() => {
-        setCompleted(true)
-        onComplete()
+        if (completedRef.current) return
+        completedRef.current = true
+        onCompleteRef.current()
       }, 180)
       return () => window.clearTimeout(timeout)
     }
@@ -28,10 +35,10 @@ export function SplashScreen({ onComplete, isReady = false }: SplashScreenProps)
     }, 40)
 
     return () => window.clearInterval(timer)
-  }, [isReady, onComplete, completed])
+  }, [isReady])
 
   useEffect(() => {
-    document.body.style.background = "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)"
+    document.body.style.background = BP.navy
     document.body.style.minHeight = "100vh"
 
     return () => {
@@ -43,33 +50,34 @@ export function SplashScreen({ onComplete, isReady = false }: SplashScreenProps)
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-8"
-      style={{
-        background: "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
-        minHeight: "100vh",
-      }}
+      style={{ background: BP.navy, minHeight: "100vh" }}
     >
       <div className="text-center mb-16">
-        <div className="mb-8">
-          <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-4 mb-6">
-            <img src="/logo.png" alt="BlaffaPay Logo" className="w-20 h-20 object-contain mx-auto" />
-          </div>
+        <div
+          className="w-[72px] h-[72px] rounded-[18px] flex items-center justify-center mx-auto mb-6"
+          style={{ background: BP.logoBlue }}
+        >
+          <img src="/logo.png" alt="Blaffa Pay" className="w-12 h-12 object-contain" />
         </div>
-
-        <h1 className="text-4xl font-bold text-white mb-2">
-          BlaffaPay
-        </h1>
-        <p className="text-white/80 text-sm">
-          Digital Wallet Platform
+        <h1 className="text-[28px] font-extrabold text-white mb-2">Blaffa Pay</h1>
+        <p className="text-[14px]" style={{ color: "rgba(243,246,251,0.72)" }}>
+          Espace partenaire
         </p>
       </div>
 
-      <div className="w-full max-w-sm">
-        <div className="bg-white/20 backdrop-blur-sm rounded-full h-2 mb-6">
+      <div className="w-full max-w-xs">
+        <div
+          className="rounded-full h-1.5 mb-4 overflow-hidden"
+          style={{ background: "rgba(255,255,255,0.15)" }}
+        >
           <div
-            className="bg-white rounded-full h-2 transition-all duration-150 ease-out"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-all duration-150 ease-out"
+            style={{ width: `${progress}%`, background: BP.green }}
           />
         </div>
+        <p className="text-center text-[11px] font-semibold" style={{ color: "rgba(243,246,251,0.5)" }}>
+          Chargement…
+        </p>
       </div>
     </div>
   )

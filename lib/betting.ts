@@ -606,13 +606,19 @@ export const bettingService = {
     }
   },
 
-  // Get external platform data
+  // Get external platform data (ville / agence pour le PDF)
   async getExternalPlatformData(): Promise<ExternalPlatformData[]> {
+    const fallback = async (): Promise<ExternalPlatformData[]> => {
+      const res = await fetch("/blaffa-app-names.json", { method: "GET" })
+      if (!res.ok) throw new Error(`Fallback HTTP ${res.status}`)
+      return res.json()
+    }
+
     try {
-      const response = await fetch('https://api.blaffa.net/blaffa/app_name', {
-        method: 'GET',
+      const response = await fetch("https://api.blaffa.net/blaffa/app_name", {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       })
 
@@ -620,11 +626,15 @@ export const bettingService = {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
-      return data
+      return await response.json()
     } catch (error) {
-      console.error('Get external platform data error:', error)
-      throw error
+      console.warn("External platform data failed, using local fallback:", error)
+      try {
+        return await fallback()
+      } catch (fallbackError) {
+        console.error("Get external platform data error:", fallbackError)
+        throw fallbackError
+      }
     }
   },
 }

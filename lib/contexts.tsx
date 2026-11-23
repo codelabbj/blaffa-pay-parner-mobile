@@ -22,21 +22,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Cahier / PDF : design livré en clair (fond #EEF2F8). Dark = option réglages.
   const [theme, setTheme] = useState<Theme>(() => {
-    // Initialize theme from localStorage if available, otherwise default to "system"
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme") as Theme
-      return stored || "system"
+      if (stored === "light" || stored === "dark" || stored === "system") return stored
     }
-    return "system"
+    return "light"
   })
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light")
 
   useEffect(() => {
-    // Only run this effect on client side
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme") as Theme
-      if (stored && stored !== theme) {
+      if (stored && stored !== theme && (stored === "light" || stored === "dark" || stored === "system")) {
         setTheme(stored)
       }
     }
@@ -95,22 +94,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    // Only run this effect on client side
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("language") as Language
-      if (stored && (stored === "en" || stored === "fr")) {
-        setLanguage(stored)
-      }
-      setIsHydrated(true)
+    if (typeof window === "undefined") return
+    const stored = localStorage.getItem("language") as Language
+    if (stored === "en" || stored === "fr") {
+      setLanguage(stored)
     }
+    setIsHydrated(true)
   }, [])
 
   useEffect(() => {
-    // Only run this effect on client side
-    if (typeof window !== "undefined") {
-      localStorage.setItem("language", language)
-    }
-  }, [language])
+    // Ne pas écraser le localStorage avant hydratation (sinon FR écrase EN au boot)
+    if (typeof window === "undefined" || !isHydrated) return
+    localStorage.setItem("language", language)
+  }, [language, isHydrated])
 
   const t = (key: string, params?: Record<string, any>): string => {
     const keys = key.split('.')
@@ -461,7 +457,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (updates: Partial<User>) => {
     try {
       const result = await authService.updateProfile(updates)
-      setUser(result.user)
+      if (result?.user) {
+        setUser(result.user)
+      } else {
+        setUser((prev) => (prev ? { ...prev, ...updates } : prev))
+      }
     } catch (error) {
       console.error('Failed to update profile:', error)
       throw error
